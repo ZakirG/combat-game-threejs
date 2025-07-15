@@ -215,7 +215,7 @@ export const Player: React.FC<PlayerProps> = ({
         if (characterClass === 'Paladin') {
           fbx.scale.setScalar(1.0);
         } else if (characterClass === 'Zaqir Mufasa') {
-          fbx.scale.setScalar(0.02); // Same scale as wizard for now
+          fbx.scale.setScalar(0.012); // 50% smaller than other characters
         } else {
           fbx.scale.setScalar(0.02); // Default/Wizard scale
         }
@@ -359,7 +359,11 @@ export const Player: React.FC<PlayerProps> = ({
         if (group.current) {
           group.current.add(fbx);
           // Apply position adjustment after adding to group
-          fbx.position.y = -0.1; // Lower the model slightly
+          if (characterClass === 'Zaqir Mufasa') {
+            fbx.position.y = -0.3; // Lower Zaqir Mufasa more due to smaller size
+          } else {
+            fbx.position.y = -0.1; // Default lowering for other characters
+          }
           
           // --- Remove embedded lights safely --- 
           try { 
@@ -450,7 +454,7 @@ export const Player: React.FC<PlayerProps> = ({
       'walk-right': characterClass === 'Wizard' ? 'wizard-standing-walk-right.fbx' : 
                     characterClass === 'Paladin' ? 'paladin-walk-right.fbx' : 'Standing Walk Right.fbx',
       'run-forward': characterClass === 'Wizard' ? 'wizard-standing-run-forward.fbx' : 
-                     characterClass === 'Paladin' ? 'paladin-run-forward.fbx' : 'Walk forward.fbx',
+                     characterClass === 'Paladin' ? 'paladin-run-forward.fbx' : 'Fast Run.fbx',
       'run-back': characterClass === 'Wizard' ? 'wizard-standing-run-back.fbx' : 
                   characterClass === 'Paladin' ? 'paladin-run-back.fbx' : 'Standing Walk Back.fbx',
       'run-left': characterClass === 'Wizard' ? 'wizard-standing-run-left.fbx' : 
@@ -1319,7 +1323,7 @@ export const Player: React.FC<PlayerProps> = ({
       {/* Model added dynamically */}
       {/* Name tag */}
       {model && (
-        <Html position={[0, 2.5, 0]} center distanceFactor={10}>
+        <Html position={[0, 2.4, 0]} center distanceFactor={10} style={{ zIndex: 10 }}>
             <div className="nametag">
             <div className="nametag-text">{playerData.username}</div>
             <div className="nametag-class">{characterClass}</div>

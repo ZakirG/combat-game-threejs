@@ -150,6 +150,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
         zombieCount={10}
         players={players}
         isDebugVisible={isDebugPanelVisible}
+        minSpawnDistance={12} // Minimum 12 units from any player
       />
 
       {/* Remove OrbitControls as we're using our own camera controls */}

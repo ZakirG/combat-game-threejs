@@ -36,6 +36,11 @@ interface JoinGameDialogProps {
 // Character data for the carousel
 const characters = [
   {
+    name: 'Zaqir Mufasa',
+    image: '/zaqir-mufasa.png',
+    description: 'Legendary warrior'
+  },
+  {
     name: 'Wizard',
     image: '/zaqir-mufasa.png',
     description: 'Master of arcane arts'
@@ -44,11 +49,6 @@ const characters = [
     name: 'Paladin', 
     image: '/zaqir-mufasa.png', // Using same image for now, can be updated later
     description: 'Holy warrior'
-  },
-  {
-    name: 'Zaqir Mufasa',
-    image: '/zaqir-mufasa.png',
-    description: 'Legendary warrior'
   }
 ];
 
