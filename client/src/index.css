@@ -208,3 +208,8 @@ body.cursor-locked {
 .player-mana {
   margin-bottom: 2px;
 }
+
+/* Hide debug panel */
+.debug-panel {
+  display: none;
+}

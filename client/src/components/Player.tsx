@@ -36,6 +36,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useAnimations, Html, Sphere } from '@react-three/drei';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { TextureLoader } from 'three';
 import { PlayerData, InputState } from '../generated';
 
 // Define animation names for reuse
@@ -131,6 +132,8 @@ export const Player: React.FC<PlayerProps> = ({
   // Main character model path
   const mainModelPath = characterClass === 'Paladin' 
     ? '/models/paladin/paladin.fbx'
+    : characterClass === 'Zaqir Mufasa'
+    ? '/models/zaqir-1/zaqir-mufasa.fbx'
     : '/models/wizard/wizard.fbx';
 
   // --- State variables ---
@@ -202,6 +205,7 @@ export const Player: React.FC<PlayerProps> = ({
   useEffect(() => {
     if (!playerData) return; // Guard clause
     const loader = new FBXLoader();
+    const textureLoader = new TextureLoader();
 
     loader.load(
       mainModelPath,
@@ -210,11 +214,107 @@ export const Player: React.FC<PlayerProps> = ({
         // Simplified: Just add the model, setup scale, shadows etc.
         if (characterClass === 'Paladin') {
           fbx.scale.setScalar(1.0);
+        } else if (characterClass === 'Zaqir Mufasa') {
+          fbx.scale.setScalar(0.02); // Same scale as wizard for now
         } else {
           fbx.scale.setScalar(0.02); // Default/Wizard scale
         }
         fbx.position.set(0, 0, 0);
-        // REMOVED TRAVERSE for setting castShadow/receiveShadow to avoid potential errors
+
+        // DEBUG: Dump skeleton information to verify that the model really has a skinned armature and to see bone names.
+        const skinnedMeshes: THREE.SkinnedMesh[] = [];
+        const regularMeshes: THREE.Mesh[] = [];
+        const bones: THREE.Bone[] = [];
+        const allObjects: {name: string, type: string}[] = [];
+        
+        fbx.traverse((child) => {
+          allObjects.push({name: child.name || 'Unnamed', type: child.type});
+          if (child instanceof THREE.SkinnedMesh) {
+            skinnedMeshes.push(child as THREE.SkinnedMesh);
+          } else if (child instanceof THREE.Mesh) {
+            regularMeshes.push(child as THREE.Mesh);
+          } else if (child instanceof THREE.Bone) {
+            bones.push(child as THREE.Bone);
+          }
+        });
+        
+        console.log(`%c[Debug] ★ Model structure for ${characterClass}:`, "color: #00bfff");
+        console.log(`%c[Debug]   - SkinnedMesh objects: ${skinnedMeshes.length}`, "color: #00bfff");
+        console.log(`%c[Debug]   - Regular Mesh objects: ${regularMeshes.length}`, "color: #00bfff");
+        console.log(`%c[Debug]   - Bone objects: ${bones.length}`, "color: #00bfff");
+        console.log(`%c[Debug]   - All objects (first 20):`, "color: #00bfff", allObjects.slice(0, 20));
+        
+        skinnedMeshes.forEach((sm, idx) => {
+          console.log(`%c[Debug]   [${idx}] SkinnedMesh="${sm.name}" bones=${sm.skeleton?.bones.length}` , "color: #00bfff");
+          if (sm.skeleton?.bones) {
+            console.log(`%c[Debug]     First 10 bone names:`, "color: #00bfff", sm.skeleton.bones.slice(0, 10).map(b => b.name));
+          }
+        });
+        
+        if (skinnedMeshes.length === 0) {
+          console.log(`%c[Debug] ⚠️ NO SKINNED MESHES FOUND! This model is static geometry and cannot be animated.`, "color: #ff0000");
+          console.log(`%c[Debug] ⚠️ You need to re-export from Mixamo with "With Skin" option enabled.`, "color: #ff0000");
+        }
+
+        // Apply custom textures for Zaqir Mufasa
+        if (characterClass === 'Zaqir Mufasa') {
+          console.log(`[Player Model Effect ${playerData.username}] Loading textures for Zaqir Mufasa...`);
+          
+          fbx.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              console.log(`[Player Model Effect ${playerData.username}] Found mesh: ${child.name || 'Unnamed'}, applying textures...`);
+              
+              // Load textures for Zaqir Mufasa
+              const diffuse = textureLoader.load('/models/zaqir-1/texture_diffuse.png', 
+                (texture) => console.log(`✅ Diffuse texture loaded: ${texture.image.width}x${texture.image.height}`),
+                undefined,
+                (error) => console.error(`❌ Diffuse texture failed:`, error)
+              );
+              const normal = textureLoader.load('/models/zaqir-1/texture_normal.png',
+                (texture) => console.log(`✅ Normal texture loaded: ${texture.image.width}x${texture.image.height}`),
+                undefined,
+                (error) => console.error(`❌ Normal texture failed:`, error)
+              );
+              const roughness = textureLoader.load('/models/zaqir-1/texture_roughness.png',
+                (texture) => console.log(`✅ Roughness texture loaded: ${texture.image.width}x${texture.image.height}`),
+                undefined,
+                (error) => console.error(`❌ Roughness texture failed:`, error)
+              );
+              const metalness = textureLoader.load('/models/zaqir-1/texture_metallic.png',
+                (texture) => console.log(`✅ Metalness texture loaded: ${texture.image.width}x${texture.image.height}`),
+                undefined,
+                (error) => console.error(`❌ Metalness texture failed:`, error)
+              );
+
+              // Configure texture settings
+              [diffuse, normal, roughness, metalness].forEach(texture => {
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+                texture.flipY = false; // Common fix for FBX textures
+              });
+
+              // Create material with adjustments
+              const material = new THREE.MeshStandardMaterial({
+                map: diffuse,
+                normalMap: normal,
+                normalScale: new THREE.Vector2(0.5, 0.5), // Reduce normal map strength if too bumpy
+                roughnessMap: roughness,
+                roughness: 1.0, // Adjust if too shiny
+                metalnessMap: metalness,
+                metalness: 0.5, // Adjust if too metallic
+              });
+
+              // Enable skinning for animated models
+              (material as any).skinning = true;
+              child.material = material;
+              child.material.needsUpdate = true;
+              child.castShadow = true;
+              child.receiveShadow = true;
+              
+              console.log(`[Player Model Effect ${playerData.username}] Applied textures to mesh: ${child.name || 'Unnamed'}`);
+            }
+          });
+        }
 
         setModel(fbx); 
         
@@ -223,15 +323,23 @@ export const Player: React.FC<PlayerProps> = ({
           // Apply position adjustment after adding to group
           fbx.position.y = -0.1; // Lower the model slightly
           
-          // --- TRY AGAIN: Traverse to remove embedded lights --- 
+          // --- Remove embedded lights safely --- 
           try { 
             console.log(`[Player Model Effect ${playerData.username}] Traversing loaded FBX to find embedded lights...`);
+            const lightsToRemove: THREE.Light[] = [];
+            
+            // First pass: collect all lights
             fbx.traverse((child) => {
               if (child && child instanceof THREE.Light) { 
-                // --- LOGGING ADDED HERE ---
-                console.log(`[Player Model Effect ${playerData.username}] --- FOUND AND REMOVING EMBEDDED LIGHT --- Name: ${child.name || 'Unnamed'}, Type: ${child.type}`);
-                child.removeFromParent();
+                console.log(`[Player Model Effect ${playerData.username}] --- FOUND EMBEDDED LIGHT --- Name: ${child.name || 'Unnamed'}, Type: ${child.type}`);
+                lightsToRemove.push(child);
               }
+            });
+            
+            // Second pass: remove all collected lights
+            lightsToRemove.forEach(light => {
+              console.log(`[Player Model Effect ${playerData.username}] Removing light: ${light.name || 'Unnamed'}`);
+              light.removeFromParent();
             });
           } catch (traverseError) {
              console.error(`[Player Model Effect ${playerData.username}] Error during fbx.traverse for light removal:`, traverseError);
@@ -287,25 +395,40 @@ export const Player: React.FC<PlayerProps> = ({
     console.log(`Loading animations for ${characterClass}...`);
     
     const animationPaths: Record<string, string> = {};
-    const basePath = characterClass === 'Paladin' ? '/models/paladin/' : '/models/wizard/';
+    const basePath = characterClass === 'Paladin' ? '/models/paladin/' : 
+                    characterClass === 'Zaqir Mufasa' ? '/models/zaqir-1/' : '/models/wizard/';
     
     // Map animation keys to file paths, ensuring exact matching of key names
     // Define all animation keys with their exact matching paths
     const animKeys = {
-      idle: characterClass === 'Wizard' ? 'wizard-standing-idle.fbx' : 'paladin-idle.fbx',
-      'walk-forward': characterClass === 'Wizard' ? 'wizard-standing-walk-forward.fbx' : 'paladin-walk-forward.fbx',
-      'walk-back': characterClass === 'Wizard' ? 'wizard-standing-walk-back.fbx' : 'paladin-walk-back.fbx',
-      'walk-left': characterClass === 'Wizard' ? 'wizard-standing-walk-left.fbx' : 'paladin-walk-left.fbx',
-      'walk-right': characterClass === 'Wizard' ? 'wizard-standing-walk-right.fbx' : 'paladin-walk-right.fbx',
-      'run-forward': characterClass === 'Wizard' ? 'wizard-standing-run-forward.fbx' : 'paladin-run-forward.fbx',
-      'run-back': characterClass === 'Wizard' ? 'wizard-standing-run-back.fbx' : 'paladin-run-back.fbx',
-      'run-left': characterClass === 'Wizard' ? 'wizard-standing-run-left.fbx' : 'paladin-run-left.fbx',
-      'run-right': characterClass === 'Wizard' ? 'wizard-standing-run-right.fbx' : 'paladin-run-right.fbx',
-      jump: characterClass === 'Wizard' ? 'wizard-standing-jump.fbx' : 'paladin-jump.fbx',
-      attack1: characterClass === 'Wizard' ? 'wizard-standing-1h-magic-attack-01.fbx' : 'paladin-attack.fbx',
-      cast: characterClass === 'Wizard' ? 'wizard-standing-2h-magic-area-attack-02.fbx' : 'paladin-cast.fbx',
-      damage: characterClass === 'Wizard' ? 'wizard-standing-react-small-from-front.fbx' : 'paladin-damage.fbx',
-      death: characterClass === 'Wizard' ? 'wizard-standing-react-death-backward.fbx' : 'paladin-death.fbx',
+      idle: characterClass === 'Wizard' ? 'wizard-standing-idle.fbx' : 
+            characterClass === 'Paladin' ? 'paladin-idle.fbx' : 'Idle.fbx',
+      'walk-forward': characterClass === 'Wizard' ? 'wizard-standing-walk-forward.fbx' : 
+                      characterClass === 'Paladin' ? 'paladin-walk-forward.fbx' : 'Standing Walk Forward',
+      'walk-back': characterClass === 'Wizard' ? 'wizard-standing-walk-back.fbx' : 
+                   characterClass === 'Paladin' ? 'paladin-walk-back.fbx' : 'Standing Walk Back.fbx',
+      'walk-left': characterClass === 'Wizard' ? 'wizard-standing-walk-left.fbx' : 
+                   characterClass === 'Paladin' ? 'paladin-walk-left.fbx' : 'Standing Walk Left.fbx',
+      'walk-right': characterClass === 'Wizard' ? 'wizard-standing-walk-right.fbx' : 
+                    characterClass === 'Paladin' ? 'paladin-walk-right.fbx' : 'Standing Walk Right.fbx',
+      'run-forward': characterClass === 'Wizard' ? 'wizard-standing-run-forward.fbx' : 
+                     characterClass === 'Paladin' ? 'paladin-run-forward.fbx' : 'Standing Run Forward.fbx',
+      'run-back': characterClass === 'Wizard' ? 'wizard-standing-run-back.fbx' : 
+                  characterClass === 'Paladin' ? 'paladin-run-back.fbx' : 'Standing Run Back.fbx',
+      'run-left': characterClass === 'Wizard' ? 'wizard-standing-run-left.fbx' : 
+                  characterClass === 'Paladin' ? 'paladin-run-left.fbx' : 'Standing Run Left.fbx',
+      'run-right': characterClass === 'Wizard' ? 'wizard-standing-run-right.fbx' : 
+                   characterClass === 'Paladin' ? 'paladin-run-right.fbx' : 'Standing Run Right.fbx',
+      jump: characterClass === 'Wizard' ? 'wizard-standing-jump.fbx' : 
+            characterClass === 'Paladin' ? 'paladin-jump.fbx' : 'Jumping.fbx',
+      attack1: characterClass === 'Wizard' ? 'wizard-standing-1h-magic-attack-01.fbx' : 
+               characterClass === 'Paladin' ? 'paladin-attack.fbx' : 'Standing Melee Punch.fbx',
+      cast: characterClass === 'Wizard' ? 'wizard-standing-2h-magic-area-attack-02.fbx' : 
+            characterClass === 'Paladin' ? 'paladin-cast.fbx' : 'Fireball',
+      damage: characterClass === 'Wizard' ? 'wizard-standing-react-small-from-front.fbx' : 
+              characterClass === 'Paladin' ? 'paladin-damage.fbx' : 'Hit Reaction.fbx',
+      death: characterClass === 'Wizard' ? 'wizard-standing-react-death-backward.fbx' : 
+             characterClass === 'Paladin' ? 'paladin-death.fbx' : 'Knocked Out.fbx',
     };
     
     // Create animation paths
@@ -330,17 +453,18 @@ export const Player: React.FC<PlayerProps> = ({
       fetch(path)
         .then(response => {
           if (!response.ok) {
-            console.error(`Animation file not found: ${path} (${response.status})`);
+            console.error(`❌ Animation file not found: ${path} (${response.status})`);
             loadedCount++;
             checkCompletedLoading();
             return;
           }
           
+          console.log(`✅ Animation file found: ${path}`);
           // File exists, proceed with loading
           loadAnimationFile(name, path, mixerInstance);
         })
         .catch(error => {
-          console.error(`Network error checking animation file ${path}:`, error);
+          console.error(`❌ Network error checking animation file ${path}:`, error);
           loadedCount++;
           checkCompletedLoading();
         });
@@ -405,7 +529,9 @@ export const Player: React.FC<PlayerProps> = ({
             }
             
             const clip = animFbx.animations[0];
-            console.log(`Animation "${name}" loaded. Duration: ${clip.duration}s, Tracks: ${clip.tracks.length}`);
+
+            // DEBUG: List the first few track names so we can compare them to the bone names above.
+            console.log("%c[Debug] Track names in clip (first 20):", "color: #ff9900", clip.tracks.slice(0, 20).map(t => t.name));
             
             // Try to find hierarchy and parent bone
             let rootBoneName = '';
@@ -463,47 +589,52 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Improve root motion removal function
   const makeAnimationInPlace = (clip: THREE.AnimationClip) => {
-    // console.log(`Making animation "${clip.name}" in-place`);
+    console.log(`🛠️ Making animation "${clip.name}" in-place`);
     
-    // Get all position tracks
     const tracks = clip.tracks;
     const positionTracks = tracks.filter(track => track.name.endsWith('.position'));
+    const rotationTracks = tracks.filter(track => track.name.endsWith('.rotation'));
     
     if (positionTracks.length === 0) {
-      // console.log(`No position tracks found in "${clip.name}"`);
-      return;
-    }
-    
-    // console.log(`Found ${positionTracks.length} position tracks in "${clip.name}"`);
-    
-    // Find the root position track (typically the first bone)
-    // Common root bone names: Hips, mixamorigHips, root, Armature
-    let rootTrack: THREE.KeyframeTrack | undefined;
-    const rootNames = ['Hips.position', 'mixamorigHips.position', 'root.position', 'Armature.position', 'Root.position'];
-    rootTrack = positionTracks.find(track => rootNames.some(name => track.name.toLowerCase().includes(name.toLowerCase())));
-
-    if (!rootTrack) {
-        // If no common root name found, assume the first position track is the root
-        rootTrack = positionTracks[0];
-        // console.warn(`Using first position track "${rootTrack.name}" as root for in-place conversion for anim "${clip.name}".`);
+      console.log(`⚠️ No position tracks found in "${clip.name}"`);
     } else {
-        // console.log(`Using root bone track "${rootTrack.name}" for in-place conversion for anim "${clip.name}"`);
-    }
-    
-    const rootTrackNameBase = rootTrack.name.split('.')[0];
-
-    // Filter out root position tracks to remove root motion
-    // Keep only the Y component of the root track if needed for jumps, etc.
-    const originalLength = clip.tracks.length;
-    clip.tracks = tracks.filter(track => {
-        if (track.name.startsWith(`${rootTrackNameBase}.position`)) {
-            // Maybe keep Y component in the future if needed, for now remove all XYZ root motion.
-            return false; // Remove X, Y, Z root position tracks
+      // Find root track (try common names)
+      let rootPositionTrack = positionTracks.find(track => 
+        track.name.toLowerCase().includes('hips') || 
+        track.name.toLowerCase().includes('root') || 
+        track.name.toLowerCase().includes('armature')
+      ) || positionTracks[0];
+      
+      console.log(`Using root position track: ${rootPositionTrack?.name}`);
+      
+      // Remove X/Z translation from root (keep Y for jumps)
+      if (rootPositionTrack instanceof THREE.VectorKeyframeTrack) {
+        const values = rootPositionTrack.values;
+        for (let i = 0; i < values.length; i += 3) {
+          values[i] = 0;     // Remove X
+          // values[i + 1] = 0; // Keep Y
+          values[i + 2] = 0; // Remove Z
         }
-        return true; // Keep other tracks
-    });
-    
-    // console.log(`Removed ${originalLength - clip.tracks.length} root motion tracks from "${clip.name}"`);
+      }
+      
+      // Optionally remove root rotation if causing issues
+      let rootRotationTrack = rotationTracks.find(track => 
+        track.name.toLowerCase().includes('hips') || 
+        track.name.toLowerCase().includes('root') || 
+        track.name.toLowerCase().includes('armature')
+      );
+      
+      if (rootRotationTrack instanceof THREE.QuaternionKeyframeTrack) {
+        const values = rootRotationTrack.values;
+        for (let i = 0; i < values.length; i += 4) {
+          // Reset to identity quaternion (no rotation)
+          values[i] = 0;
+          values[i + 1] = 0;
+          values[i + 2] = 0;
+          values[i + 3] = 1;
+        }
+      }
+    }
   };
 
   // Add a retargetClip function after makeAnimationInPlace
@@ -601,31 +732,37 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Update playAnimation to have better logging
   const playAnimation = useCallback((name: string, crossfadeDuration = 0.3) => {
-    if (!mixer) return; // Ensure mixer exists
+    console.log(`🎬 playAnimation called with: ${name}`);
+    
+    if (!mixer) {
+      console.log(`❌ playAnimation: No mixer available`);
+      return;
+    }
     
     if (!animations[name]) {
-      // console.warn(`Animation not found: ${name}`);
-      // console.log("Available animations:", Object.keys(animations).join(", "));
+      console.warn(`⚠️ Animation not found: ${name}`);
+      console.log("Available animations:", Object.keys(animations).join(", "));
       // Fallback to idle if requested animation is missing
       if (name !== ANIMATIONS.IDLE && animations[ANIMATIONS.IDLE]) {
-        // console.log(`Falling back to ${ANIMATIONS.IDLE}`);
+        console.log(`🔄 Falling back to ${ANIMATIONS.IDLE}`);
         name = ANIMATIONS.IDLE;
       } else {
+         console.log(`❌ Cannot play requested or fallback idle`);
          return; // Cannot play requested or fallback idle
       }
     }
     
-    // console.log(`Playing animation: ${name} (crossfade: ${crossfadeDuration}s)`);
+    console.log(`🎯 Playing animation: ${name} (crossfade: ${crossfadeDuration}s)`);
     
     const targetAction = animations[name];
     const currentAction = animations[currentAnimation];
     
     if (currentAction && currentAction !== targetAction) {
-      // console.log(`Fading out previous animation: ${currentAnimation}`);
+      console.log(`🔄 Fading out previous animation: ${currentAnimation}`);
       currentAction.fadeOut(crossfadeDuration);
     }
     
-    // console.log(`Starting animation: ${name}`);
+    console.log(`▶️ Starting animation: ${name}`);
     targetAction.reset()
                 .setEffectiveTimeScale(1)
                 .setEffectiveWeight(1)
@@ -1093,28 +1230,28 @@ export const Player: React.FC<PlayerProps> = ({
     {
       // Only update animations if mixer and animations exist
       if (!mixer || Object.keys(animations).length === 0) {
+        console.log(`🔄 Animation trigger skipped: mixer=${!!mixer}, animations=${Object.keys(animations).length}`);
         return;
       }
 
       const serverAnim = playerData.currentAnimation;
 
-      // console.log(`[Anim Check] Received ServerAnim: ${serverAnim}, Current LocalAnim: ${currentAnimation}, Is Available: ${!!animations[serverAnim]}`);
+      console.log(`🎯 [Anim Check] Received ServerAnim: ${serverAnim}, Current LocalAnim: ${currentAnimation}, Is Available: ${!!animations[serverAnim]}`);
 
       // Play animation if it's different and available
       if (serverAnim && serverAnim !== currentAnimation && animations[serverAnim]) {
-         // console.log(`[Anim Play] Server requested animation change to: ${serverAnim}`);
+         console.log(`🎬 [Anim Play] Server requested animation change to: ${serverAnim}`);
         try {
           playAnimation(serverAnim, 0.2);
         } catch (error) {
-          console.error(`[Anim Error] Error playing animation ${serverAnim}:`, error);
+          console.error(`❌ [Anim Error] Error playing animation ${serverAnim}:`, error);
           // Attempt to fallback to idle if error occurs and not already idle
           if (animations['idle'] && currentAnimation !== 'idle') {
             playAnimation('idle', 0.2);
           }
         }
       } else if (serverAnim && !animations[serverAnim]) {
-         // Log if server requests an animation we don't have loaded
-         // console.warn(`[Anim Warn] Server requested unavailable animation: ${serverAnim}. Available: ${Object.keys(animations).join(', ')}`);
+         console.warn(`⚠️ [Anim Warn] Server requested unavailable animation: ${serverAnim}. Available: ${Object.keys(animations).join(', ')}`);
       }
     }
   }, [playerData.currentAnimation, animations, mixer, playAnimation, currentAnimation]); // Dependencies include things that trigger animation changes

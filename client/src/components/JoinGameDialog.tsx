@@ -33,19 +33,50 @@ interface JoinGameDialogProps {
   onJoin: (username: string, characterClass: string) => void;
 }
 
+// Character data for the carousel
+const characters = [
+  {
+    name: 'Wizard',
+    image: '/zaqir-mufasa.png',
+    description: 'Master of arcane arts'
+  },
+  {
+    name: 'Paladin', 
+    image: '/zaqir-mufasa.png', // Using same image for now, can be updated later
+    description: 'Holy warrior'
+  },
+  {
+    name: 'Zaqir Mufasa',
+    image: '/zaqir-mufasa.png',
+    description: 'Legendary warrior'
+  }
+];
+
 export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
   const [username, setUsername] = useState('Adventurer');
-  const [characterClass, setCharacterClass] = useState('Wizard');
+  const [currentCharacterIndex, setCurrentCharacterIndex] = useState(0);
   const [showControls, setShowControls] = useState(false);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     const finalUsername = username.trim() || `Player${Math.floor(Math.random() * 1000)}`;
-    onJoin(finalUsername, characterClass);
+    onJoin(finalUsername, characters[currentCharacterIndex].name);
   };
 
   const handleControlsToggle = () => {
     setShowControls(!showControls);
+  };
+
+  const handlePreviousCharacter = () => {
+    setCurrentCharacterIndex((prev) => 
+      prev === 0 ? characters.length - 1 : prev - 1
+    );
+  };
+
+  const handleNextCharacter = () => {
+    setCurrentCharacterIndex((prev) => 
+      prev === characters.length - 1 ? 0 : prev + 1
+    );
   };
 
   return (
@@ -64,19 +95,45 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
           />
         </div>
         <div style={styles.inputGroup}>
-          <label htmlFor="characterClass" style={styles.label}>Class:</label>
-          <select
-            id="characterClass"
-            value={characterClass}
-            onChange={(e) => setCharacterClass(e.target.value)}
-            style={styles.select}
-          >
-            <option value="Wizard">Wizard</option>
-            <option value="Paladin">Paladin</option>
-            {/* Add more classes later */}
-          </select>
+          <label style={styles.label}>Class:</label>
+          <div style={styles.characterCarousel}>
+            {/* Character info in top left */}
+            <div style={styles.characterInfo}>
+              <div style={styles.characterName}>
+                {characters[currentCharacterIndex].name}
+              </div>
+              <div style={styles.characterDescription}>
+                {characters[currentCharacterIndex].description}
+              </div>
+            </div>
+            
+            {/* Navigation and image container */}
+            <div style={styles.characterNavigationContainer}>
+              <button 
+                type="button" 
+                onClick={handlePreviousCharacter}
+                style={styles.carouselArrow}
+              >
+                ‹
+              </button>
+              <div style={styles.characterImageContainer}>
+                <img 
+                  src={characters[currentCharacterIndex].image} 
+                  alt={characters[currentCharacterIndex].name}
+                  style={styles.characterImage}
+                />
+              </div>
+              <button 
+                type="button" 
+                onClick={handleNextCharacter}
+                style={styles.carouselArrow}
+              >
+                ›
+              </button>
+            </div>
+          </div>
         </div>
-        <button type="submit" style={styles.button}>Join the Map</button><br/>
+        <button type="submit" style={styles.button}>Join the Map</button>
         <button type="button" onClick={handleControlsToggle} style={{...styles.button, ...styles.controlsButtonMargin}}>
           Controls
         </button>
@@ -84,7 +141,7 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
       
       {/* Controls Modal */}
       {showControls && (
-        <div style={styles.overlay}>
+        <div style={{...styles.overlay, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
           <div style={styles.controlsDialog}>
             <h2 style={styles.title}>Controls</h2>
             <div style={styles.controlsList}>
@@ -112,6 +169,10 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
                 <span style={styles.controlKey}>Mouse Wheel:</span>
                 <span style={styles.controlDescription}>Zoom</span>
               </div>
+              <div style={styles.controlItem}>
+                <span style={styles.controlKey}>C:</span>
+                <span style={styles.controlDescription}>Toggle Camera Mode</span>
+              </div>
             </div>
             <button onClick={handleControlsToggle} style={styles.button}>Back</button>
           </div>
@@ -130,9 +191,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 1)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
     zIndex: 1000,
   },
   dialog: {
@@ -140,26 +198,38 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
-    padding: '30px',
-    borderRadius: '8px',
-    border: '3px solid #8B4513',
-    boxShadow: '0 5px 15px rgba(0, 0, 0, 0.5)',
+    padding: '0px',
+    borderRadius: '0px',
+    border: 'none',
+    boxShadow: 'none',
     color: '#2F1B14',
-    width: '350px',
+    width: '100vw',
+    height: '100vh',
     textAlign: 'center',
     fontFamily: 'Newrocker, serif',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    gap: '20px',
+    overflow: 'auto',
+    paddingTop: '60px',
+    paddingBottom: '60px',
+    boxSizing: 'border-box',
   },
   title: {
     fontFamily: 'KnightsQuest, serif',
     fontSize: '38px',
     fontWeight: 'bold',
-    marginBottom: '25px',
+    marginBottom: '0px',
     color: '#2F1B14',
     textShadow: '1px 1px 2px rgba(139, 69, 19, 0.3)',
   },
   inputGroup: {
-    marginBottom: '20px',
+    marginBottom: '15px',
     textAlign: 'left',
+    width: '100%',
+    maxWidth: '600px',
   },
   label: {
     display: 'block',
@@ -192,6 +262,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   button: {
     padding: '12px 25px',
     width: '50%',
+    maxWidth: '300px',
     border: '2px solid #654321',
     borderRadius: '4px',
     backgroundImage: 'url(/stone-texture-3.jpg)',
@@ -200,16 +271,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundRepeat: 'no-repeat',
     color: '#F5F5DC',
     fontSize: '22px',
-    // fontFamily: 'Newrocker, serif',
     fontFamily: 'KnightsQuest, serif',
     fontWeight: 'bold',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    // textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
     boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
   },
   controlsButtonMargin: {
-    marginTop: '10px',
+    marginTop: '15px',
+    marginBottom: '20px',
   },
   controlsDialog: {
     backgroundImage: 'url(/papyrus-texture-3.webp)',
@@ -221,9 +291,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: '3px solid #8B4513',
     boxShadow: '0 5px 15px rgba(0, 0, 0, 0.5)',
     color: '#2F1B14',
-    width: '400px',
+    width: '90%',
+    maxWidth: '500px',
+    maxHeight: '80vh',
     textAlign: 'center',
     fontFamily: 'Newrocker, serif',
+    overflow: 'auto',
   },
   controlsList: {
     marginBottom: '25px',
@@ -242,7 +315,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 'bold',
     color: '#654321',
     fontSize: '18px',
-    minWidth: '100px',
+    minWidth: '120px',
   },
   controlDescription: {
     fontFamily: 'Newrocker, serif',
@@ -250,6 +323,77 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '18px',
     flex: 1,
     textAlign: 'right',
+  },
+  characterCarousel: {
+    position: 'relative',
+    backgroundColor: 'rgba(245, 245, 220, 0.9)',
+    border: '2px solid #8B4513',
+    borderRadius: '8px',
+    minHeight: '280px',
+    padding: '20px',
+  },
+  carouselArrow: {
+    background: 'none',
+    border: 'none',
+    color: '#654321',
+    fontSize: '40px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s ease',
+    padding: '10px',
+    userSelect: 'none',
+    minWidth: '60px',
+  },
+
+  characterImage: {
+    width: '260px',
+    objectFit: 'cover',
+    borderRadius: '12px',
+    border: '4px solid #8B4513',
+    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4)',
+  },
+  characterInfo: {
+    position: 'absolute',
+    top: '20px',
+    left: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    textAlign: 'left',
+    gap: '8px',
+    zIndex: 10,
+  },
+  characterName: {
+    fontFamily: 'Newrocker, serif',
+    fontSize: '18px',
+    fontWeight: 'bold',
+    color: '#2F1B14',
+    marginBottom: '5px',
+    textShadow: '1px 1px 2px rgba(139, 69, 19, 0.3)',
+  },
+  characterDescription: {
+    fontFamily: 'Newrocker, serif',
+    fontSize: '14px',
+    color: '#5D4037',
+    fontStyle: 'italic',
+  },
+  characterNavigationContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '20px',
+    height: '100%',
+    minHeight: '240px',
+  },
+  characterImageContainer: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '250px',
   },
 };
 
