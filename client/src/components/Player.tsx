@@ -1280,7 +1280,7 @@ export const Player: React.FC<PlayerProps> = ({
         <Html position={[0, 2.4, 0]} center distanceFactor={10} style={{ zIndex: 10 }}>
             <div className="nametag">
             <div className="nametag-text">{playerData.username}</div>
-            <div className="nametag-class">{(playerData as any).xHandle || characterClass}</div>
+            <div className="nametag-class">{(playerData as any).xHandle || ''}</div>
             </div>
         </Html>
       )}
