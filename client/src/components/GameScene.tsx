@@ -31,8 +31,8 @@
  */
 
 import React, { useRef, useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Box, Plane, Grid, Sky, useTexture } from '@react-three/drei';
+import { Canvas, useThree } from '@react-three/fiber';
+import { Box, Plane, Grid, Environment, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { DirectionalLightHelper, CameraHelper } from 'three'; // Import the helper
 // Import generated types
@@ -52,16 +52,29 @@ interface GameSceneProps {
 // Textured Floor Component
 const TexturedFloor: React.FC = () => {
   const texture = useTexture('/environments/sand-dune-texture.avif');
+  const { gl } = useThree();
   
-  // Configure texture for tiling
+  // Configure texture for seamless tiling with improved filtering
   useMemo(() => {
     if (texture) {
+      // Basic wrapping settings
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.RepeatWrapping;
-      texture.repeat.set(20, 20); // Adjust this to control tiling frequency
+      texture.repeat.set(10, 10); // Reduced tiling for larger tiles to hide seams better
+      
+      // Improved texture filtering for seamless blending
+      texture.minFilter = THREE.LinearMipMapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      
+      // Enable anisotropic filtering for better quality at oblique angles
+      texture.anisotropy = gl.capabilities.getMaxAnisotropy();
+      
+      // Ensure mipmaps are generated for proper scaling
+      texture.generateMipmaps = true;
+      
       texture.needsUpdate = true;
     }
-  }, [texture]);
+  }, [texture, gl]);
 
   return (
     <Plane 
@@ -94,8 +107,8 @@ export const GameScene: React.FC<GameSceneProps> = ({
       {/* Remove solid color background */}
       {/* <color attach="background" args={['#add8e6']} /> */}
       
-      {/* Add Sky component */}
-      <Sky distance={450000} sunPosition={[5, 1, 8]} inclination={0} azimuth={0.25} />
+      {/* HDR Environment Background */}
+      <Environment files="/environments/cape_hill_4k.exr" background />
 
       {/* Ambient light for general scene illumination */}
       <ambientLight intensity={0.5} />

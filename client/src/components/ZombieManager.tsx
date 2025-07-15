@@ -28,247 +28,30 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { PlayerData } from '../generated';
-
-// Animation names for zombie
-const ZOMBIE_ANIMATIONS = {
-  IDLE: 'idle',
-  SCREAM: 'scream',
-  WALKING: 'walking',
-  RUNNING: 'running',
-  ATTACK: 'attack',
-  DEATH: 'death',
-};
+import { makeZombieDecision, ZOMBIE_ANIMATIONS, ZombieDecision } from './ZombieBrain';
 
 // Configurable spawn settings
 const SPAWN_SETTINGS = {
-  MIN_DISTANCE_FROM_PLAYERS: 8, // Default minimum distance (can be overridden via props)
+  MIN_DISTANCE_FROM_PLAYERS: 15, // Increased minimum distance due to extended zombie perception range
   WORLD_SIZE: 40, // Size of the game world for spawning
   MAX_SPAWN_ATTEMPTS: 50, // Maximum attempts to find a safe spawn position
   FALLBACK_EDGE_DISTANCE: 0.4 // Multiplier for edge distance in fallback scenarios
 };
 
-// Zombie AI Decision Types
-interface ZombieDecision {
-  action: 'pursue' | 'attack' | 'wander' | 'idle' | 'rotate' | 'scream_before_pursuit' | 'patrol';
-  targetPlayer?: PlayerData;
-  direction?: THREE.Vector3;
-  duration: number;
-  animation: string;
-  speed: number;
-  nextAction?: 'scream_before_pursuit' | 'pursue'; // For chaining behaviors
-}
 
-// Advanced AI Decision Making System
-const makeZombieDecision = (
-  zombiePosition: THREE.Vector3,
-  players: ReadonlyMap<string, PlayerData>,
-  lastDecisionTime: number = 0
-): ZombieDecision => {
-  // Base probabilities (0-100)
-  const baseProbabilities = {
-    pursue: 20,
-    attack: 5,
-    wander: 30,
-    idle: 25,
-    scream_before_pursuit: 15, // Higher chance since it leads to pursuit
-    patrol: 10
-  };
 
-  // Find all players and calculate distances
-  const playerDistances = Array.from(players.values()).map(player => {
-    const playerPos = new THREE.Vector3(player.position.x, player.position.y, player.position.z);
-    const distance = zombiePosition.distanceTo(playerPos);
-    return { player, distance };
-  }).sort((a, b) => a.distance - b.distance); // Sort by closest first
 
-  const nearestPlayer = playerDistances[0];
-  
-  // If no players, default to idle/wander
-  if (!nearestPlayer) {
-    const diceRoll = Math.random() * 100;
-    return {
-      action: diceRoll < 60 ? 'idle' : 'wander',
-      duration: 2 + Math.random() * 3,
-      animation: diceRoll < 60 ? ZOMBIE_ANIMATIONS.IDLE : ZOMBIE_ANIMATIONS.WALKING,
-      speed: 0,
-      direction: diceRoll >= 60 ? new THREE.Vector3(
-        (Math.random() - 0.5) * 2,
-        0,
-        (Math.random() - 0.5) * 2
-      ).normalize() : undefined
-    };
-  }
 
-  const closestDistance = nearestPlayer.distance;
-  
-  // Distance-based probability modifiers
-  let pursueBonus = 0;
-  let attackBonus = 0;
-  let aggressionMultiplier = 1;
 
-  // Very close (0-3 units): High aggression
-  if (closestDistance <= 3) {
-    pursueBonus = 40;
-    attackBonus = 35;
-    aggressionMultiplier = 2.5;
-  }
-  // Close (3-8 units): Moderate aggression  
-  else if (closestDistance <= 8) {
-    pursueBonus = 25;
-    attackBonus = 15;
-    aggressionMultiplier = 1.8;
-  }
-  // Medium (8-15 units): Some interest
-  else if (closestDistance <= 15) {
-    pursueBonus = 15;
-    attackBonus = 5;
-    aggressionMultiplier = 1.3;
-  }
-  // Far (15-25 units): Low interest
-  else if (closestDistance <= 25) {
-    pursueBonus = 5;
-    attackBonus = 0;
-    aggressionMultiplier = 0.8;
-  }
-  // Very far (25+ units): Minimal interest
-  else {
-    pursueBonus = 2;
-    attackBonus = 0;
-    aggressionMultiplier = 0.5;
-  }
 
-  // Multiple player bonus: more chaos when more players are nearby
-  const nearbyPlayerCount = playerDistances.filter(p => p.distance <= 12).length;
-  const chaosBonus = Math.min(nearbyPlayerCount * 5, 20);
-  
-  // Time-based variety: prevent getting stuck in same behavior
-  const timeSinceLastDecision = Date.now() - lastDecisionTime;
-  const varietyBonus = Math.min(timeSinceLastDecision / 1000, 10); // Up to 10% bonus for variety
-
-  // Calculate final probabilities with dice rolls
-  const diceRoll1 = Math.random() * 100; // Primary action dice
-  const diceRoll2 = Math.random() * 100; // Secondary modifier dice
-  const luckyRoll = Math.random() * 100;  // Chaos/lucky event dice
-
-  const finalProbabilities = {
-    pursue: Math.min(95, baseProbabilities.pursue + pursueBonus + chaosBonus + (diceRoll2 < 20 ? 10 : 0)),
-    attack: Math.min(90, baseProbabilities.attack + attackBonus + (nearbyPlayerCount > 1 ? 10 : 0)),
-    scream_before_pursuit: baseProbabilities.scream_before_pursuit + (closestDistance <= 12 ? 20 : 0), // Higher chance when close to player
-    wander: baseProbabilities.wander * (1 - aggressionMultiplier * 0.3) + varietyBonus,
-    idle: baseProbabilities.idle * (1 - aggressionMultiplier * 0.2),
-    patrol: baseProbabilities.patrol + (timeSinceLastDecision > 8000 ? 15 : 0) // Patrol if idle too long
-  };
-
-  // Decision logic with cumulative probability
-  let cumulativeProbability = 0;
-  let decision: ZombieDecision;
-
-  // Attack decision (highest priority when very close)
-  cumulativeProbability += finalProbabilities.attack;
-  if (diceRoll1 <= cumulativeProbability && closestDistance <= 4) {
-    decision = {
-      action: 'attack',
-      targetPlayer: nearestPlayer.player,
-      duration: 1.5 + Math.random() * 0.5,
-      animation: ZOMBIE_ANIMATIONS.ATTACK,
-      speed: 0
-    };
-  }
-  // Rotate before scream and pursuit decision (creates immersive sequence)
-  else {
-    cumulativeProbability += finalProbabilities.scream_before_pursuit;
-    if (diceRoll1 <= cumulativeProbability) {
-      decision = {
-        action: 'rotate',
-        targetPlayer: nearestPlayer.player,
-        duration: 1.0 + Math.random() * 0.5, // Rotation duration
-        animation: ZOMBIE_ANIMATIONS.IDLE, // Stay idle while rotating
-        speed: 0,
-        nextAction: 'scream_before_pursuit'
-      };
-    }
-    // Pursue decision (direct chase without scream)
-    else {
-      cumulativeProbability += finalProbabilities.pursue;
-      if (diceRoll1 <= cumulativeProbability) {
-        decision = {
-          action: 'pursue',
-          targetPlayer: nearestPlayer.player,
-          duration: 3 + Math.random() * 2,
-          animation: ZOMBIE_ANIMATIONS.RUNNING, // Always run when pursuing
-          speed: 6.75 // Always use running speed for pursuit (increased by 50%)
-        };
-      }
-      // Wander decision
-      else {
-        cumulativeProbability += finalProbabilities.wander;
-        if (diceRoll1 <= cumulativeProbability) {
-          // Wander with slight bias towards players if they're not too far
-          let wanderDirection = new THREE.Vector3(
-            (Math.random() - 0.5) * 2,
-            0,
-            (Math.random() - 0.5) * 2
-          ).normalize();
-          
-          // 30% chance to wander towards general player area if within 20 units
-          if (closestDistance <= 20 && Math.random() < 0.3) {
-            const playerPos = new THREE.Vector3(
-              nearestPlayer.player.position.x,
-              nearestPlayer.player.position.y,
-              nearestPlayer.player.position.z
-            );
-            const toPlayer = playerPos.sub(zombiePosition).normalize();
-            wanderDirection = wanderDirection.lerp(toPlayer, 0.4); // Slight bias towards player
-          }
-
-          decision = {
-            action: 'wander',
-            direction: wanderDirection,
-            duration: 4 + Math.random() * 3,
-            animation: ZOMBIE_ANIMATIONS.WALKING, // Always use walking for wandering
-            speed: 1.5 + Math.random() * 0.375 // Increased by 50% from original speed
-          };
-        }
-        // Patrol decision (systematic movement)
-        else {
-          cumulativeProbability += finalProbabilities.patrol;
-          if (diceRoll1 <= cumulativeProbability) {
-            // Create a patrol pattern (figure-8 or circular)
-            const patrolAngle = (Date.now() / 1000) % (Math.PI * 2);
-            const patrolDirection = new THREE.Vector3(
-              Math.cos(patrolAngle),
-              0,
-              Math.sin(patrolAngle)
-            );
-            
-            decision = {
-              action: 'patrol',
-              direction: patrolDirection,
-              duration: 5 + Math.random() * 3,
-              animation: ZOMBIE_ANIMATIONS.WALKING,
-              speed: 1.5 // Increased by 50% from original speed
-            };
-          }
-          // Default: Idle
-          else {
-            decision = {
-              action: 'idle',
-              duration: 2 + Math.random() * 4,
-              animation: ZOMBIE_ANIMATIONS.IDLE,
-              speed: 0
-            };
-          }
-        }
-      }
-    }
-  }
-
-  // Debug logging for interesting decisions
-  if (closestDistance <= 10 || decision!.action === 'attack' || decision!.action === 'rotate' || decision!.action === 'scream_before_pursuit') {
-    console.log(`[Zombie AI] Distance: ${closestDistance.toFixed(1)}u, Decision: ${decision!.action}, Duration: ${decision!.duration.toFixed(1)}s, Dice: ${diceRoll1.toFixed(0)}`);
-  }
-
-  return decision!;
+// Simple behavior execution - just idle for now
+const executeBehavior = (
+  decision: ZombieDecision,
+  zombiePosition: React.MutableRefObject<THREE.Vector3>,
+  zombieRotation: React.MutableRefObject<THREE.Euler>,
+  delta: number
+): void => {
+  // For now, zombies just idle in place - do nothing
 };
 
 // Shared zombie resources
@@ -433,7 +216,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
             instanceAnimations[ZOMBIE_ANIMATIONS.IDLE].play();
             setCurrentAnimation(ZOMBIE_ANIMATIONS.IDLE);
             // Initialize AI with the new system
-            const initialDecision = makeZombieDecision(zombiePosition.current, players, Date.now());
+            const initialDecision = makeZombieDecision(zombiePosition.current, players);
             setCurrentDecision(initialDecision);
             setDecisionTimer(0);
             setLastDecisionTime(Date.now());
@@ -508,234 +291,34 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
     return Math.atan2(direction.x, direction.z);
   }, []);
 
-  // Advanced AI Update System
+    // Simple AI Update System - just idle
   const updateAdvancedAI = useCallback((delta: number) => {
     // Update decision timer
     setDecisionTimer(prev => prev + delta);
     
     // Check if we need a new decision
     if (!currentDecision || decisionTimer >= currentDecision.duration) {
-      let newDecision: ZombieDecision;
-      
-      // Handle behavior transitions
-      if (currentDecision?.nextAction && currentDecision.targetPlayer) {
-        if (currentDecision.action === 'rotate' && currentDecision.nextAction === 'scream_before_pursuit') {
-          // Rotate → Scream transition
-          newDecision = {
-            action: 'scream_before_pursuit',
-            targetPlayer: currentDecision.targetPlayer,
-            duration: 1.5 + Math.random() * 0.5,
-            animation: ZOMBIE_ANIMATIONS.SCREAM,
-            speed: 0,
-            nextAction: 'pursue'
-          };
-          
-          if (zombieId === 'zombie-0' || zombieId === 'zombie-1') {
-            console.log(`[${zombieId}] Rotation finished, now screaming at ${currentDecision.targetPlayer.username}`);
-          }
-        } else if (currentDecision.action === 'scream_before_pursuit' && currentDecision.nextAction === 'pursue') {
-          // Scream → Pursue transition
-          newDecision = {
-            action: 'pursue',
-            targetPlayer: currentDecision.targetPlayer,
-            duration: 3 + Math.random() * 2,
-            animation: ZOMBIE_ANIMATIONS.RUNNING, // Always run when pursuing
-            speed: 6.75 // Increased by 50% from original speed
-          };
-          
-          if (zombieId === 'zombie-0' || zombieId === 'zombie-1') {
-            console.log(`[${zombieId}] Scream finished, now pursuing ${currentDecision.targetPlayer.username}`);
-          }
-        } else {
-          // Fallback to new decision
-          newDecision = makeZombieDecision(zombiePosition.current, players, lastDecisionTime);
-        }
-      } else if (currentDecision?.action === 'attack' && currentDecision.targetPlayer) {
-        // Special handling for attack completion
-        const targetPos = new THREE.Vector3(
-          currentDecision.targetPlayer.position.x,
-          currentDecision.targetPlayer.position.y,
-          currentDecision.targetPlayer.position.z
-        );
-        const distanceToPlayer = zombiePosition.current.distanceTo(targetPos);
-        
-        if (distanceToPlayer <= 3.0) {
-          // Player is still close - continue attacking or pursue briefly
-          if (Math.random() < 0.7) {
-            // 70% chance to attack again if player is still close
-            newDecision = {
-              action: 'attack',
-              targetPlayer: currentDecision.targetPlayer,
-              duration: 1.5 + Math.random() * 1.0,
-              animation: ZOMBIE_ANIMATIONS.ATTACK,
-              speed: 0
-            };
-            
-            if (zombieId === 'zombie-0' || zombieId === 'zombie-1') {
-              console.log(`[${zombieId}] Player still close, continuing attack!`);
-            }
-          } else {
-            // 30% chance to pursue for repositioning
-            newDecision = {
-              action: 'pursue',
-              targetPlayer: currentDecision.targetPlayer,
-              duration: 1.0 + Math.random() * 1.0, // Short pursuit
-              animation: ZOMBIE_ANIMATIONS.RUNNING,
-              speed: 6.75
-            };
-          }
-        } else if (distanceToPlayer <= 8.0) {
-          // Player moved away but is still nearby - pursue them
-          newDecision = {
-            action: 'pursue',
-            targetPlayer: currentDecision.targetPlayer,
-            duration: 3 + Math.random() * 2,
-            animation: ZOMBIE_ANIMATIONS.RUNNING,
-            speed: 6.75
-          };
-          
-          if (zombieId === 'zombie-0' || zombieId === 'zombie-1') {
-            console.log(`[${zombieId}] Player moved away, resuming pursuit`);
-          }
-        } else {
-          // Player is far away - make a new decision
-          newDecision = makeZombieDecision(zombiePosition.current, players, lastDecisionTime);
-        }
-      } else {
-        // Make a new decision normally
-        newDecision = makeZombieDecision(zombiePosition.current, players, lastDecisionTime);
-      }
+      // Use the brain for new decisions (which will just return idle)
+      const newDecision = makeZombieDecision(zombiePosition.current, players);
       
       setCurrentDecision(newDecision);
       setDecisionTimer(0);
       setLastDecisionTime(Date.now());
       
       // Update legacy states for compatibility
-      setTargetPlayer(newDecision.targetPlayer || null);
+      setTargetPlayer(null); // No targets in idle mode
       
       // Start the appropriate animation
       if (newDecision.animation !== currentAnimation) {
         playZombieAnimation(newDecision.animation);
       }
-      
-      // Debug logging for decision changes
-      if (zombieId === 'zombie-0' || zombieId === 'zombie-1') {
-        console.log(`[${zombieId}] New Decision: ${newDecision.action} for ${newDecision.duration.toFixed(1)}s`);
-      }
     }
     
-    // Execute current decision
+    // Execute current decision (which is just idle - do nothing)
     if (currentDecision) {
-      switch (currentDecision.action) {
-        case 'pursue':
-          if (currentDecision.targetPlayer) {
-            const targetPos = new THREE.Vector3(
-              currentDecision.targetPlayer.position.x,
-              currentDecision.targetPlayer.position.y,
-              currentDecision.targetPlayer.position.z
-            );
-            const distanceToPlayer = zombiePosition.current.distanceTo(targetPos);
-            
-            // Check if close enough to attack (within 2.5 units)
-            if (distanceToPlayer <= 2.5) {
-              // Stop and transition to attack
-              const attackDecision: ZombieDecision = {
-                action: 'attack',
-                targetPlayer: currentDecision.targetPlayer,
-                duration: 2.0 + Math.random() * 1.0, // Attack for 2-3 seconds
-                animation: ZOMBIE_ANIMATIONS.ATTACK,
-                speed: 0
-              };
-              
-              setCurrentDecision(attackDecision);
-              setDecisionTimer(0);
-              playZombieAnimation(ZOMBIE_ANIMATIONS.ATTACK);
-              
-              if (zombieId === 'zombie-0' || zombieId === 'zombie-1') {
-                console.log(`[${zombieId}] Close enough to player, starting attack!`);
-              }
-            } else {
-              // Continue pursuing - move towards target
-              const direction = new THREE.Vector3()
-                .subVectors(targetPos, zombiePosition.current)
-                .normalize();
-              
-              const moveAmount = direction.multiplyScalar(currentDecision.speed * delta);
-              zombiePosition.current.add(moveAmount);
-            }
-            
-            // Always face target during pursuit
-            zombieRotation.current.y = calculateAngleToTarget(targetPos);
-          }
-          break;
-          
-        case 'attack':
-          if (currentDecision.targetPlayer) {
-            // Face target during attack
-            const targetPos = new THREE.Vector3(
-              currentDecision.targetPlayer.position.x,
-              currentDecision.targetPlayer.position.y,
-              currentDecision.targetPlayer.position.z
-            );
-            zombieRotation.current.y = calculateAngleToTarget(targetPos);
-          }
-          // Attack animation plays automatically
-          break;
-          
-        case 'wander':
-        case 'patrol':
-          if (currentDecision.direction) {
-            // Move in the specified direction
-            const moveAmount = currentDecision.direction
-              .clone()
-              .multiplyScalar(currentDecision.speed * delta);
-            zombiePosition.current.add(moveAmount);
-            
-            // Face movement direction
-            zombieRotation.current.y = Math.atan2(currentDecision.direction.x, currentDecision.direction.z);
-          }
-          break;
-          
-        case 'rotate':
-          if (currentDecision.targetPlayer) {
-            // Slowly rotate to face target
-            const targetPos = new THREE.Vector3(
-              currentDecision.targetPlayer.position.x,
-              currentDecision.targetPlayer.position.y,
-              currentDecision.targetPlayer.position.z
-            );
-            const targetAngle = calculateAngleToTarget(targetPos);
-            const currentAngle = zombieRotation.current.y;
-            const angleDiff = targetAngle - currentAngle;
-            const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-            
-            // Smooth rotation - slower than normal turning
-            const rotationSpeed = 1.5; // Slower rotation for dramatic effect
-            if (Math.abs(normalizedDiff) > 0.05) {
-              const rotationAmount = Math.sign(normalizedDiff) * rotationSpeed * delta;
-              zombieRotation.current.y += rotationAmount;
-            }
-          }
-          break;
-          
-        case 'scream_before_pursuit':
-          if (currentDecision.targetPlayer) {
-            // Face target while screaming (should already be facing from rotation)
-            const targetPos = new THREE.Vector3(
-              currentDecision.targetPlayer.position.x,
-              currentDecision.targetPlayer.position.y,
-              currentDecision.targetPlayer.position.z
-            );
-            zombieRotation.current.y = calculateAngleToTarget(targetPos);
-          }
-          break;
-          
-        case 'idle':
-          // Do nothing, just stay in place
-          break;
-      }
+      executeBehavior(currentDecision, zombiePosition, zombieRotation, delta);
     }
-  }, [currentDecision, decisionTimer, lastDecisionTime, players, playZombieAnimation, currentAnimation, zombieId, calculateAngleToTarget]);
+  }, [currentDecision, decisionTimer, players, playZombieAnimation, currentAnimation]);
 
   // Frame update using React Three Fiber's useFrame hook
   useFrame((state, delta) => {
@@ -764,7 +347,6 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
         if (group.current) {
           const worldPos = new THREE.Vector3();
           group.current.getWorldPosition(worldPos);
-          console.log(`[${zombieId}] Group world position:`, worldPos.toArray(), 'Group scale:', group.current.scale.toArray());
           
           // Check model scale within group
           if (instanceModel) {
@@ -793,7 +375,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
           }}>
             {zombieId} - Action: {currentDecision?.action || 'None'}<br/>
             Timer: {decisionTimer.toFixed(1)}s / {currentDecision?.duration.toFixed(1) || '0'}s<br/>
-            Target: {currentDecision?.targetPlayer?.username || 'None'}
+            Target: None (Idle Mode)
           </div>
         </Html>
       )}
@@ -840,16 +422,14 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     let loadedModel: THREE.Group | null = null;
     const loadedClips: Record<string, THREE.AnimationClip> = {};
     
-    console.log('[ZombieManager] Loading shared zombie resources...');
+    
     
     // Load main model
     loader.load(
       '/models/zombie-2-converted/zombie.glb',
       (gltf) => {
-        console.log('[ZombieManager] Shared model loaded');
+        
         const model = gltf.scene;
-        console.log('[ZombieManager] Shared model initial scale:', model.scale);
-        console.log('[ZombieManager] Shared model initial position:', model.position);
         
         // Ensure shared model has default scale (don't scale the shared model itself)
         model.scale.set(1, 1, 1);
@@ -1026,8 +606,6 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
           const dist = zombiePos.distanceTo(playerPos);
           return Math.min(minDist, dist);
         }, Infinity);
-        
-        console.log(`[ZombieManager] Zombie ${index} spawned at [${position[0].toFixed(1)}, ${position[2].toFixed(1)}], nearest player: ${nearestPlayerDistance.toFixed(1)}u`);
       }
       
       return position;
