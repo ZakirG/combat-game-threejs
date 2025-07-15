@@ -46,7 +46,7 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
   return (
     <div style={styles.overlay}>
       <form style={styles.dialog} onSubmit={handleSubmit}>
-        <h2>Join Game</h2>
+        <h2 style={styles.title}>Welcome to Bloodwake</h2>
         <div style={styles.inputGroup}>
           <label htmlFor="username" style={styles.label}>Character Name:</label>
           <input
@@ -71,7 +71,7 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
             {/* Add more classes later */}
           </select>
         </div>
-        <button type="submit" style={styles.button}>Join Game</button>
+        <button type="submit" style={styles.button}>Join the Map</button>
       </form>
     </div>
   );
@@ -92,14 +92,26 @@ const styles: { [key: string]: React.CSSProperties } = {
     zIndex: 1000,
   },
   dialog: {
-    backgroundColor: '#2a2a3a',
+    backgroundImage: 'url(/papyrus-texture-3.webp)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
     padding: '30px',
     borderRadius: '8px',
-    border: '1px solid #444',
+    border: '3px solid #8B4513',
     boxShadow: '0 5px 15px rgba(0, 0, 0, 0.5)',
-    color: '#eee',
+    color: '#2F1B14',
     width: '350px',
     textAlign: 'center',
+    fontFamily: 'Newrocker, serif',
+  },
+  title: {
+    fontFamily: 'Newrocker, serif',
+    fontSize: '24px',
+    fontWeight: 'bold',
+    marginBottom: '25px',
+    color: '#2F1B14',
+    textShadow: '1px 1px 2px rgba(139, 69, 19, 0.3)',
   },
   inputGroup: {
     marginBottom: '20px',
@@ -108,36 +120,47 @@ const styles: { [key: string]: React.CSSProperties } = {
   label: {
     display: 'block',
     marginBottom: '8px',
-    color: '#aaa',
+    color: '#5D4037',
     fontSize: '14px',
+    fontFamily: 'Newrocker, serif',
+    fontWeight: 'bold',
   },
   input: {
     width: 'calc(100% - 20px)',
     padding: '10px',
-    border: '1px solid #555',
+    border: '2px solid #8B4513',
     borderRadius: '4px',
-    backgroundColor: '#333',
-    color: '#eee',
+    backgroundColor: 'rgba(245, 245, 220, 0.9)',
+    color: '#2F1B14',
     fontSize: '16px',
+    fontFamily: 'Newrocker, serif',
   },
   select: {
      width: '100%',
      padding: '10px',
-     border: '1px solid #555',
+     border: '2px solid #8B4513',
      borderRadius: '4px',
-     backgroundColor: '#333',
-     color: '#eee',
+     backgroundColor: 'rgba(245, 245, 220, 0.9)',
+     color: '#2F1B14',
      fontSize: '16px',
+     fontFamily: 'Newrocker, serif',
   },
   button: {
     padding: '12px 25px',
-    border: 'none',
+    border: '2px solid #654321',
     borderRadius: '4px',
-    backgroundColor: '#4a90e2',
-    color: 'white',
+    backgroundImage: 'url(/stone-texture-1.jpg)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    color: '#F5F5DC',
     fontSize: '16px',
+    fontFamily: 'Newrocker, serif',
+    fontWeight: 'bold',
     cursor: 'pointer',
-    transition: 'background-color 0.2s ease',
+    transition: 'all 0.2s ease',
+    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
   },
 };
 

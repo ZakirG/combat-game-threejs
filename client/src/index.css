@@ -13,6 +13,12 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Add the Newrocker font face */
+@font-face {
+  font-family: 'Newrocker';
+  src: url('/Newrocker.ttf') format('truetype');
+}
+
 a {
   font-weight: 500;
   color: #646cff;
