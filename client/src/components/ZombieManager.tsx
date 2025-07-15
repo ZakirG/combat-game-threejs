@@ -44,14 +44,74 @@ const SPAWN_SETTINGS = {
 
 
 
-// Simple behavior execution - just idle for now
+// Execute zombie behavior based on AI decision
 const executeBehavior = (
   decision: ZombieDecision,
   zombiePosition: React.MutableRefObject<THREE.Vector3>,
   zombieRotation: React.MutableRefObject<THREE.Euler>,
   delta: number
 ): void => {
-  // For now, zombies just idle in place - do nothing
+  switch (decision.action) {
+    case 'chase':
+    case 'wander':
+      if (decision.targetPosition) {
+        // Move toward target position
+        const direction = new THREE.Vector3()
+          .subVectors(decision.targetPosition, zombiePosition.current)
+          .normalize();
+        
+        const moveAmount = direction.multiplyScalar(decision.speed * delta);
+        const oldPos = zombiePosition.current.clone();
+        zombiePosition.current.add(moveAmount);
+        
+        // Debug movement for first zombie
+        if (Math.random() < 0.02) {
+          console.log(`[Movement] ${decision.action}: moved from [${oldPos.x.toFixed(2)}, ${oldPos.z.toFixed(2)}] to [${zombiePosition.current.x.toFixed(2)}, ${zombiePosition.current.z.toFixed(2)}], distance: ${moveAmount.length().toFixed(3)}`);
+        }
+        
+        // Rotate to face movement direction
+        if (direction.length() > 0) {
+          const targetRotation = Math.atan2(direction.x, direction.z);
+          zombieRotation.current.y = targetRotation;
+        }
+      }
+      break;
+      
+    case 'rotate':
+    case 'scream':
+      if (decision.targetRotation !== undefined) {
+        // Smooth rotation toward target
+        const currentRotation = zombieRotation.current.y;
+        const targetRotation = decision.targetRotation;
+        const rotationDiff = targetRotation - currentRotation;
+        const normalizedDiff = Math.atan2(Math.sin(rotationDiff), Math.cos(rotationDiff));
+        
+        // Smooth rotation over the decision duration (0.5 seconds for rotate action)
+        const rotationSpeed = decision.action === 'rotate' ? Math.PI : Math.PI * 2; // Slower for rotate action
+        const rotationAmount = Math.sign(normalizedDiff) * Math.min(Math.abs(normalizedDiff), rotationSpeed * delta);
+        zombieRotation.current.y += rotationAmount;
+      }
+      break;
+      
+    case 'attack':
+      if (decision.targetPosition) {
+        // Face the target but don't move
+        const direction = new THREE.Vector3()
+          .subVectors(decision.targetPosition, zombiePosition.current)
+          .normalize();
+        
+        if (direction.length() > 0) {
+          const targetRotation = Math.atan2(direction.x, direction.z);
+          zombieRotation.current.y = targetRotation;
+        }
+      }
+      break;
+      
+    case 'idle':
+    default:
+      // Do nothing for idle
+      break;
+  }
 };
 
 // Shared zombie resources
@@ -113,6 +173,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
   const [currentDecision, setCurrentDecision] = useState<ZombieDecision | null>(null);
   const [decisionTimer, setDecisionTimer] = useState<number>(0);
   const [lastDecisionTime, setLastDecisionTime] = useState<number>(Date.now());
+  const zombieStateRef = useRef<import('./ZombieBrain').ZombieState>({ mode: 'idle' });
   
   // Legacy AI states for compatibility (can be removed later)
   const [aiState, setAiState] = useState<ZombieState>(ZombieState.IDLE);
@@ -215,12 +276,12 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
           if (instanceAnimations[ZOMBIE_ANIMATIONS.IDLE]) {
             instanceAnimations[ZOMBIE_ANIMATIONS.IDLE].play();
             setCurrentAnimation(ZOMBIE_ANIMATIONS.IDLE);
-            // Initialize AI with the new system
-            const initialDecision = makeZombieDecision(zombiePosition.current, players);
+            // Initialize AI with the new system and persistent state
+            const initialDecision = makeZombieDecision(zombiePosition.current, players, zombieStateRef.current);
             setCurrentDecision(initialDecision);
             setDecisionTimer(0);
             setLastDecisionTime(Date.now());
-            console.log(`[${zombieId}] Initialized with fresh model - Decision: ${initialDecision.action}, Position: ${zombiePosition.current.toArray()}`);
+            console.log(`[${zombieId}] Initialized with fresh model - Decision: ${initialDecision.action}, Mode: ${zombieStateRef.current.mode}, Position: ${zombiePosition.current.toArray()}`);
           }
         }, 100);
       },
@@ -291,34 +352,48 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
     return Math.atan2(direction.x, direction.z);
   }, []);
 
-    // Simple AI Update System - just idle
+    // Advanced AI Update System with persistent state
   const updateAdvancedAI = useCallback((delta: number) => {
     // Update decision timer
     setDecisionTimer(prev => prev + delta);
     
-    // Check if we need a new decision
-    if (!currentDecision || decisionTimer >= currentDecision.duration) {
-      // Use the brain for new decisions (which will just return idle)
-      const newDecision = makeZombieDecision(zombiePosition.current, players);
+    // Check if we need a new decision (convert duration from ms to seconds)
+    if (!currentDecision || decisionTimer >= (currentDecision.duration / 1000)) {
+      // Use the brain for new decisions with persistent state
+      const newDecision = makeZombieDecision(zombiePosition.current, players, zombieStateRef.current);
       
       setCurrentDecision(newDecision);
       setDecisionTimer(0);
       setLastDecisionTime(Date.now());
       
       // Update legacy states for compatibility
-      setTargetPlayer(null); // No targets in idle mode
+      if (zombieStateRef.current.targetPlayerId) {
+        const targetPlayerData = Array.from(players.values()).find(p => 
+          p.identity.toHexString() === zombieStateRef.current.targetPlayerId
+        );
+        setTargetPlayer(targetPlayerData || null);
+      } else {
+        setTargetPlayer(null);
+      }
       
       // Start the appropriate animation
       if (newDecision.animation !== currentAnimation) {
         playZombieAnimation(newDecision.animation);
       }
+      
+      console.log(`[${zombieId}] New AI Decision: ${newDecision.action} (mode: ${zombieStateRef.current.mode})`);
     }
     
-    // Execute current decision (which is just idle - do nothing)
+    // Execute current decision with actual behavior
     if (currentDecision) {
       executeBehavior(currentDecision, zombiePosition, zombieRotation, delta);
+      
+      // Debug logging for first zombie to see what's happening
+      if (zombieId === 'zombie-0' && Math.random() < 0.1) {
+        console.log(`[${zombieId}] Executing ${currentDecision.action}, Position: [${zombiePosition.current.x.toFixed(2)}, ${zombiePosition.current.z.toFixed(2)}], Target: ${currentDecision.targetPosition ? `[${currentDecision.targetPosition.x.toFixed(2)}, ${currentDecision.targetPosition.z.toFixed(2)}]` : 'None'}, Speed: ${currentDecision.speed}`);
+      }
     }
-  }, [currentDecision, decisionTimer, players, playZombieAnimation, currentAnimation]);
+  }, [currentDecision, decisionTimer, players, playZombieAnimation, currentAnimation, zombieId]);
 
   // Frame update using React Three Fiber's useFrame hook
   useFrame((state, delta) => {
@@ -367,8 +442,10 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
             fontSize: '12px'
           }}>
             {zombieId} - Action: {currentDecision?.action || 'None'}<br/>
-            Timer: {decisionTimer.toFixed(1)}s / {currentDecision?.duration.toFixed(1) || '0'}s<br/>
-            Target: None (Idle Mode)
+            Timer: {decisionTimer.toFixed(1)}s / {((currentDecision?.duration || 0) / 1000).toFixed(1)}s<br/>
+            Mode: {zombieStateRef.current.mode}<br/>
+            Target: {zombieStateRef.current.targetPlayerId ? `Player ${zombieStateRef.current.targetPlayerId.slice(-4)}` : 'None'}<br/>
+            Pos: [{zombiePosition.current.x.toFixed(1)}, {zombiePosition.current.z.toFixed(1)}]
           </div>
         </Html>
       )}
