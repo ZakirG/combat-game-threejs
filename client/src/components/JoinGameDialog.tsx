@@ -36,6 +36,7 @@ interface JoinGameDialogProps {
 export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
   const [username, setUsername] = useState('Adventurer');
   const [characterClass, setCharacterClass] = useState('Wizard');
+  const [showControls, setShowControls] = useState(false);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -43,10 +44,14 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
     onJoin(finalUsername, characterClass);
   };
 
+  const handleControlsToggle = () => {
+    setShowControls(!showControls);
+  };
+
   return (
     <div style={styles.overlay}>
       <form style={styles.dialog} onSubmit={handleSubmit}>
-        <h2 style={styles.title}>Welcome to Bloodwake</h2>
+        <h2 style={styles.title}>Welcome to XCombat</h2>
         <div style={styles.inputGroup}>
           <label htmlFor="username" style={styles.label}>Character Name:</label>
           <input
@@ -71,8 +76,47 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
             {/* Add more classes later */}
           </select>
         </div>
-        <button type="submit" style={styles.button}>Join the Map</button>
+        <button type="submit" style={styles.button}>Join the Map</button><br/>
+        <button type="button" onClick={handleControlsToggle} style={{...styles.button, ...styles.controlsButtonMargin}}>
+          Controls
+        </button>
       </form>
+      
+      {/* Controls Modal */}
+      {showControls && (
+        <div style={styles.overlay}>
+          <div style={styles.controlsDialog}>
+            <h2 style={styles.title}>Controls</h2>
+            <div style={styles.controlsList}>
+              <div style={styles.controlItem}>
+                <span style={styles.controlKey}>WASD:</span>
+                <span style={styles.controlDescription}>Movement</span>
+              </div>
+              <div style={styles.controlItem}>
+                <span style={styles.controlKey}>Shift:</span>
+                <span style={styles.controlDescription}>Sprint</span>
+              </div>
+              <div style={styles.controlItem}>
+                <span style={styles.controlKey}>Space:</span>
+                <span style={styles.controlDescription}>Jump</span>
+              </div>
+              <div style={styles.controlItem}>
+                <span style={styles.controlKey}>Left Click:</span>
+                <span style={styles.controlDescription}>Attack</span>
+              </div>
+              <div style={styles.controlItem}>
+                <span style={styles.controlKey}>Mouse:</span>
+                <span style={styles.controlDescription}>Look around</span>
+              </div>
+              <div style={styles.controlItem}>
+                <span style={styles.controlKey}>Mouse Wheel:</span>
+                <span style={styles.controlDescription}>Zoom</span>
+              </div>
+            </div>
+            <button onClick={handleControlsToggle} style={styles.button}>Back</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -85,7 +129,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 1)',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -106,8 +150,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontFamily: 'Newrocker, serif',
   },
   title: {
-    fontFamily: 'Newrocker, serif',
-    fontSize: '24px',
+    fontFamily: 'KnightsQuest, serif',
+    fontSize: '38px',
     fontWeight: 'bold',
     marginBottom: '25px',
     color: '#2F1B14',
@@ -147,20 +191,65 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   button: {
     padding: '12px 25px',
+    width: '50%',
     border: '2px solid #654321',
     borderRadius: '4px',
-    backgroundImage: 'url(/stone-texture-1.jpg)',
-    backgroundSize: 'cover',
+    backgroundImage: 'url(/stone-texture-3.jpg)',
+    backgroundSize: '100%',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
     color: '#F5F5DC',
-    fontSize: '16px',
-    fontFamily: 'Newrocker, serif',
+    fontSize: '22px',
+    // fontFamily: 'Newrocker, serif',
+    fontFamily: 'KnightsQuest, serif',
     fontWeight: 'bold',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+    // textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
     boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+  },
+  controlsButtonMargin: {
+    marginTop: '10px',
+  },
+  controlsDialog: {
+    backgroundImage: 'url(/papyrus-texture-3.webp)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    padding: '30px',
+    borderRadius: '8px',
+    border: '3px solid #8B4513',
+    boxShadow: '0 5px 15px rgba(0, 0, 0, 0.5)',
+    color: '#2F1B14',
+    width: '400px',
+    textAlign: 'center',
+    fontFamily: 'Newrocker, serif',
+  },
+  controlsList: {
+    marginBottom: '25px',
+    textAlign: 'left',
+  },
+  controlItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px',
+    padding: '8px 0',
+    borderBottom: '1px solid rgba(139, 69, 19, 0.3)',
+  },
+  controlKey: {
+    fontFamily: 'Newrocker, serif',
+    fontWeight: 'bold',
+    color: '#654321',
+    fontSize: '18px',
+    minWidth: '100px',
+  },
+  controlDescription: {
+    fontFamily: 'Newrocker, serif',
+    color: '#5D4037',
+    fontSize: '18px',
+    flex: 1,
+    textAlign: 'right',
   },
 };
 

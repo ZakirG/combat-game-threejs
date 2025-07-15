@@ -19,6 +19,18 @@
   src: url('/Newrocker.ttf') format('truetype');
 }
 
+/* Add the KnightsQuest font face */
+@font-face {
+  font-family: 'KnightsQuest';
+  src: url('/KnightsQuest.ttf') format('truetype');
+}
+
+/* Add the MountainKing font face */
+@font-face {
+  font-family: 'MountainKing';
+  src: url('/MountainKing.ttf') format('truetype');
+}
+
 a {
   font-weight: 500;
   color: #646cff;
