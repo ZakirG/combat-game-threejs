@@ -30,9 +30,9 @@
  * - Socket handlers for network communication
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Box, Plane, Grid, Sky } from '@react-three/drei';
+import { Box, Plane, Grid, Sky, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { DirectionalLightHelper, CameraHelper } from 'three'; // Import the helper
 // Import generated types
@@ -48,6 +48,32 @@ interface GameSceneProps {
   currentInputRef?: React.MutableRefObject<InputState>; // Add input state ref prop
   isDebugPanelVisible?: boolean; // Prop to indicate if the debug panel is visible
 }
+
+// Textured Floor Component
+const TexturedFloor: React.FC = () => {
+  const texture = useTexture('/environments/sand-dune-texture.avif');
+  
+  // Configure texture for tiling
+  useMemo(() => {
+    if (texture) {
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(20, 20); // Adjust this to control tiling frequency
+      texture.needsUpdate = true;
+    }
+  }, [texture]);
+
+  return (
+    <Plane 
+      args={[200, 200]} 
+      rotation={[-Math.PI / 2, 0, 0]} 
+      position={[0, -0.001, 0]} 
+      receiveShadow={true} 
+    >
+      <meshStandardMaterial map={texture} />
+    </Plane>
+  );
+};
 
 export const GameScene: React.FC<GameSceneProps> = ({ 
   players, 
@@ -100,24 +126,8 @@ export const GameScene: React.FC<GameSceneProps> = ({
         </>
       )}
       
-      {/* Visible Background Plane (darker, receives shadows) */}
-      <Plane 
-        args={[200, 200]} 
-        rotation={[-Math.PI / 2, 0, 0]} 
-        position={[0, -0.001, 0]} 
-        receiveShadow={true} 
-      >
-        <meshStandardMaterial color="#606060" /> { /* Changed to darker gray */ }
-      </Plane>
-o
-      {/* Simplified Grid Helper (mid-gray lines) */}
-      <Grid 
-        position={[0, 0, 0]} 
-        args={[200, 200]} 
-        cellSize={2} 
-        cellThickness={1}
-        cellColor={new THREE.Color('#888888')} // Mid-gray grid lines
-      />
+      {/* Textured Floor with Sand Dune Pattern */}
+      <TexturedFloor />
 
       {/* Render Players */}
       {Array.from(players.values()).map((player) => {
