@@ -28,29 +28,26 @@
  */
 
 import React, { useState, Suspense } from 'react';
+import { AVAILABLE_CHARACTERS } from '../characterConfigs';
 
 interface JoinGameDialogProps {
   onJoin: (username: string, characterClass: string) => void;
 }
 
-// Character data for the carousel
-const characters = [
-  {
-    name: 'Zaqir Mufasa',
-    image: '/zaqir-mufasa.png',
-    description: 'Legendary warrior'
-  },
-  {
-    name: 'Wizard',
-    image: '/zaqir-mufasa.png',
-    description: 'Master of arcane arts'
-  },
-  {
-    name: 'Paladin', 
-    image: '/zaqir-mufasa.png', // Using same image for now, can be updated later
-    description: 'Holy warrior'
-  }
-];
+// Character data generated from configuration
+const characters = AVAILABLE_CHARACTERS.map(characterName => ({
+  name: characterName,
+  image: '/zaqir-mufasa.png', // Can be extended to use character-specific images
+  description: getCharacterDescription(characterName)
+}));
+
+// Helper function to get character descriptions
+function getCharacterDescription(characterName: string): string {
+  const descriptions: Record<string, string> = {
+    'Zaqir Mufasa': 'x.com/jaguarsoftio'
+  };
+  return descriptions[characterName] || 'Skilled fighter';
+}
 
 export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
   const [username, setUsername] = useState('X-' + Math.floor(Math.random() * 100000));

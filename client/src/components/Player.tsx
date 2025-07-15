@@ -38,6 +38,13 @@ import { useAnimations, Html, Sphere } from '@react-three/drei';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { TextureLoader } from 'three';
 import { PlayerData, InputState } from '../generated';
+import { 
+  getCharacterConfig, 
+  getAnimationPath, 
+  getAnimationTimeScale,
+  CharacterConfig,
+  CharacterAnimationTable 
+} from '../characterConfigs';
 
 // Define animation names for reuse
 const ANIMATIONS = {
@@ -57,9 +64,7 @@ const ANIMATIONS = {
   DEATH: 'death',
 };
 
-// --- Client-side Constants ---
-const PLAYER_SPEED = 5.0; // Match server logic
-const SPRINT_MULTIPLIER = 1.8; // Match server logic
+// Note: Movement speeds are now defined per-character in characterConfigs.ts
 
 // --- Client-side Prediction Constants ---
 const SERVER_TICK_RATE = 60; // Assuming server runs at 60Hz
@@ -94,7 +99,10 @@ export const Player: React.FC<PlayerProps> = ({
   const group = useRef<THREE.Group>(null!);
   const { camera } = useThree();
   const dataRef = useRef<PlayerData>(playerData);
-  const characterClass = playerData.characterClass || 'Wizard';
+  const characterClass = playerData.characterClass || 'Zaqir Mufasa';
+  
+  // Get character configuration
+  const characterConfig = getCharacterConfig(characterClass);
   
   // Model management
   const [modelLoaded, setModelLoaded] = useState(false);
@@ -128,13 +136,6 @@ export const Player: React.FC<PlayerProps> = ({
   
   // Ref to track if animations have been loaded already to prevent multiple loading attempts
   const animationsLoadedRef = useRef(false);
-  
-  // Main character model path
-  const mainModelPath = characterClass === 'Paladin' 
-    ? '/models/paladin/paladin.fbx'
-    : characterClass === 'Zaqir Mufasa'
-    ? '/models/zaqir-2/Idle.fbx'
-    : '/models/wizard/wizard.fbx';
 
   // --- State variables ---
   const pointLightRef = useRef<THREE.PointLight>(null!); // Ref for the declarative light
@@ -149,7 +150,7 @@ export const Player: React.FC<PlayerProps> = ({
     }
 
     let worldMoveVector = new THREE.Vector3();
-    const speed = inputState.sprint ? PLAYER_SPEED * SPRINT_MULTIPLIER : PLAYER_SPEED;
+    const speed = inputState.sprint ? characterConfig.movement.runSpeed : characterConfig.movement.walkSpeed;
     let rotationYaw = 0;
 
     // 1. Calculate local movement vector based on WASD
@@ -208,17 +209,11 @@ export const Player: React.FC<PlayerProps> = ({
     const textureLoader = new TextureLoader();
 
     loader.load(
-      mainModelPath,
+      characterConfig.modelPath,
       (fbx) => {
         
-        // Simplified: Just add the model, setup scale, shadows etc.
-        if (characterClass === 'Paladin') {
-          fbx.scale.setScalar(1.0);
-        } else if (characterClass === 'Zaqir Mufasa') {
-          fbx.scale.setScalar(0.012); // 50% smaller than other characters
-        } else {
-          fbx.scale.setScalar(0.02); // Default/Wizard scale
-        }
+        // Apply character-specific scaling
+        fbx.scale.setScalar(characterConfig.scale);
         fbx.position.set(0, 0, 0);
 
         // DEBUG: Dump skeleton information to verify that the model really has a skinned armature and to see bone names.
@@ -256,114 +251,105 @@ export const Player: React.FC<PlayerProps> = ({
           console.log(`%c[Debug] ⚠️ You need to re-export from Mixamo with "With Skin" option enabled.`, "color: #ff0000");
         }
 
-                // Zaqir Mufasa model now uses zaqir-2 with baked-in textures
-        // No separate texture loading needed
+        // Process materials for better lighting and shadows
+        console.log(`[Player Model Effect ${playerData.username}] Processing materials for ${characterClass} model`);
         
-        // Since textures are baked into the FBX, we just need to ensure proper material settings
-        if (characterClass === 'Zaqir Mufasa') {
-          console.log(`[Player Model Effect ${playerData.username}] Using baked-in textures for Zaqir Mufasa model`);
-          
-          fbx.traverse((child) => {
-            if (child instanceof THREE.Mesh) {
-              console.log(`[Player Model Effect ${playerData.username}] Found mesh: ${child.name || 'Unnamed'}`);
-              console.log(`[Player Model Effect ${playerData.username}] Material type:`, child.material?.type);
-              console.log(`[Player Model Effect ${playerData.username}] Material:`, child.material);
+        fbx.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            console.log(`[Player Model Effect ${playerData.username}] Found mesh: ${child.name || 'Unnamed'}`);
+            console.log(`[Player Model Effect ${playerData.username}] Material type:`, child.material?.type);
+            console.log(`[Player Model Effect ${playerData.username}] Material:`, child.material);
+            
+            // Check if material exists and debug its properties
+            if (child.material) {
+              const materials = Array.isArray(child.material) ? child.material : [child.material];
+              console.log(`[Player Model Effect ${playerData.username}] Found ${materials.length} material(s) for mesh`);
               
-              // Check if material exists and debug its properties
-              if (child.material) {
-                const materials = Array.isArray(child.material) ? child.material : [child.material];
-                console.log(`[Player Model Effect ${playerData.username}] Found ${materials.length} material(s) for mesh`);
+              // Process each material
+              const newMaterials = materials.map((material: any, index: number) => {
+                console.log(`[Player Model Effect ${playerData.username}] Processing material ${index}:`, {
+                  type: material.type,
+                  map: !!material.map,
+                  color: material.color?.getHexString(),
+                  emissive: material.emissive?.getHexString(),
+                  visible: material.visible,
+                  transparent: material.transparent,
+                  opacity: material.opacity
+                });
                 
-                // Process each material
-                const newMaterials = materials.map((material: any, index: number) => {
-                  console.log(`[Player Model Effect ${playerData.username}] Processing material ${index}:`, {
-                    type: material.type,
-                    map: !!material.map,
-                    color: material.color?.getHexString(),
-                    emissive: material.emissive?.getHexString(),
-                    visible: material.visible,
-                    transparent: material.transparent,
-                    opacity: material.opacity
+                // Convert MeshPhongMaterial to MeshStandardMaterial for better PBR lighting
+                if (material.type === 'MeshPhongMaterial' || material.type === 'MeshBasicMaterial' || material.type === 'MeshLambertMaterial') {
+                  console.log(`[Player Model Effect ${playerData.username}] Converting ${material.type} to MeshStandardMaterial for material ${index}`);
+                  
+                  const newMaterial = new THREE.MeshStandardMaterial({
+                    map: material.map,
+                    color: material.color || new THREE.Color(1, 1, 1),
+                    emissive: material.emissive || new THREE.Color(0, 0, 0),
+                    transparent: material.transparent || false,
+                    opacity: material.opacity !== undefined ? material.opacity : 1.0,
+                    roughness: 0.7,
+                    metalness: 0.1,
                   });
                   
-                  // Convert MeshPhongMaterial to MeshStandardMaterial for better PBR lighting
-                  if (material.type === 'MeshPhongMaterial' || material.type === 'MeshBasicMaterial' || material.type === 'MeshLambertMaterial') {
-                    console.log(`[Player Model Effect ${playerData.username}] Converting ${material.type} to MeshStandardMaterial for material ${index}`);
-                    
-                    const newMaterial = new THREE.MeshStandardMaterial({
-                      map: material.map,
-                      color: material.color || new THREE.Color(1, 1, 1),
-                      emissive: material.emissive || new THREE.Color(0, 0, 0),
-                      transparent: material.transparent || false,
-                      opacity: material.opacity !== undefined ? material.opacity : 1.0,
-                      roughness: 0.7,
-                      metalness: 0.1,
-                    });
-                    
-                    // Enable skinning for animations
-                    (newMaterial as any).skinning = true;
-                    return newMaterial;
-                  } else {
-                    // Material is already StandardMaterial, just ensure skinning
-                    if ('skinning' in material) {
-                      (material as any).skinning = true;
-                    }
-                    
-                    // Fix any color issues
-                    if (material.color && material.color.r === 0 && material.color.g === 0 && material.color.b === 0) {
-                      console.log(`[Player Model Effect ${playerData.username}] Material ${index} color is black, setting to white`);
-                      material.color.setRGB(1, 1, 1);
-                    }
-                    
-                    return material;
-                  }
-                });
-                
-                // Apply the processed materials back to the mesh
-                child.material = newMaterials.length === 1 ? newMaterials[0] : newMaterials;
-                
-                // Ensure shadows are enabled
-                child.castShadow = true;
-                child.receiveShadow = true;
-                
-                // Force material update
-                if (Array.isArray(child.material)) {
-                  child.material.forEach(mat => mat.needsUpdate = true);
+                  // Enable skinning for animations
+                  (newMaterial as any).skinning = true;
+                  return newMaterial;
                 } else {
-                  child.material.needsUpdate = true;
+                  // Material is already StandardMaterial, just ensure skinning
+                  if ('skinning' in material) {
+                    (material as any).skinning = true;
+                  }
+                  
+                  // Fix any color issues
+                  if (material.color && material.color.r === 0 && material.color.g === 0 && material.color.b === 0) {
+                    console.log(`[Player Model Effect ${playerData.username}] Material ${index} color is black, setting to white`);
+                    material.color.setRGB(1, 1, 1);
+                  }
+                  
+                  return material;
                 }
-                
-                console.log(`[Player Model Effect ${playerData.username}] Configured ${newMaterials.length} material(s) for mesh: ${child.name || 'Unnamed'}`);
+              });
+              
+              // Apply the processed materials back to the mesh
+              child.material = newMaterials.length === 1 ? newMaterials[0] : newMaterials;
+              
+              // Ensure shadows are enabled
+              child.castShadow = true;
+              child.receiveShadow = true;
+              
+              // Force material update
+              if (Array.isArray(child.material)) {
+                child.material.forEach(mat => mat.needsUpdate = true);
               } else {
-                console.warn(`[Player Model Effect ${playerData.username}] No material found for mesh: ${child.name || 'Unnamed'}`);
-                
-                // Create a basic material if none exists
-                const defaultMaterial = new THREE.MeshStandardMaterial({
-                  color: new THREE.Color(0.8, 0.6, 0.4), // Skin-like color
-                  roughness: 0.7,
-                  metalness: 0.1,
-                });
-                (defaultMaterial as any).skinning = true;
-                child.material = defaultMaterial;
-                child.castShadow = true;
-                child.receiveShadow = true;
-                
-                console.log(`[Player Model Effect ${playerData.username}] Applied default material to mesh: ${child.name || 'Unnamed'}`);
+                child.material.needsUpdate = true;
               }
+              
+              console.log(`[Player Model Effect ${playerData.username}] Configured ${newMaterials.length} material(s) for mesh: ${child.name || 'Unnamed'}`);
+            } else {
+              console.warn(`[Player Model Effect ${playerData.username}] No material found for mesh: ${child.name || 'Unnamed'}`);
+              
+              // Create a basic material if none exists
+              const defaultMaterial = new THREE.MeshStandardMaterial({
+                color: new THREE.Color(0.8, 0.6, 0.4), // Skin-like color
+                roughness: 0.7,
+                metalness: 0.1,
+              });
+              (defaultMaterial as any).skinning = true;
+              child.material = defaultMaterial;
+              child.castShadow = true;
+              child.receiveShadow = true;
+              
+              console.log(`[Player Model Effect ${playerData.username}] Applied default material to mesh: ${child.name || 'Unnamed'}`);
             }
-          });
-        }
+          }
+        });
 
         setModel(fbx); 
         
         if (group.current) {
           group.current.add(fbx);
-          // Apply position adjustment after adding to group
-          if (characterClass === 'Zaqir Mufasa') {
-            fbx.position.y = -0.3; // Lower Zaqir Mufasa more due to smaller size
-          } else {
-            fbx.position.y = -0.1; // Default lowering for other characters
-          }
+          // Apply character-specific position adjustment
+          fbx.position.y = characterConfig.yOffset;
           
           // --- Remove embedded lights safely --- 
           try { 
@@ -402,7 +388,7 @@ export const Player: React.FC<PlayerProps> = ({
       },
       (progress) => { /* Optional progress log */ },
       (error: any) => {
-        console.error(`[Player Model Effect ${playerData.username}] Error loading model ${mainModelPath}:`, error);
+        console.error(`[Player Model Effect ${playerData.username}] Error loading model ${characterConfig.modelPath}:`, error);
       }
     );
 
@@ -416,7 +402,7 @@ export const Player: React.FC<PlayerProps> = ({
       setModelLoaded(false);
       animationsLoadedRef.current = false;
     };
-  }, [mainModelPath, characterClass]); // ONLY depend on model path and class
+      }, [characterConfig.modelPath, characterClass]); // ONLY depend on model path and class
 
   // New useEffect to load animations when mixer is ready
   useEffect(() => {
@@ -427,7 +413,7 @@ export const Player: React.FC<PlayerProps> = ({
     }
   }, [mixer, model, characterClass]);
 
-  // Function to load animations
+  // Function to load animations using character configuration
   const loadAnimations = (mixerInstance: THREE.AnimationMixer) => {
     if (!mixerInstance) {
       console.error("Cannot load animations: mixer is not initialized");
@@ -436,46 +422,10 @@ export const Player: React.FC<PlayerProps> = ({
     
     console.log(`Loading animations for ${characterClass}...`);
     
+    // Build animation paths from character configuration
     const animationPaths: Record<string, string> = {};
-    const basePath = characterClass === 'Paladin' ? '/models/paladin/' : 
-                    characterClass === 'Zaqir Mufasa' ? '/models/zaqir-2/' : '/models/wizard/';
-    
-    // Map animation keys to file paths, ensuring exact matching of key names
-    // Define all animation keys with their exact matching paths
-    const animKeys = {
-      idle: characterClass === 'Wizard' ? 'wizard-standing-idle.fbx' : 
-            characterClass === 'Paladin' ? 'paladin-idle.fbx' : 'Idle.fbx',
-      'walk-forward': characterClass === 'Wizard' ? 'wizard-standing-walk-forward.fbx' : 
-                      characterClass === 'Paladin' ? 'paladin-walk-forward.fbx' : 'Walk forward.fbx',
-      'walk-back': characterClass === 'Wizard' ? 'wizard-standing-walk-back.fbx' : 
-                   characterClass === 'Paladin' ? 'paladin-walk-back.fbx' : 'Standing Walk Back.fbx',
-      'walk-left': characterClass === 'Wizard' ? 'wizard-standing-walk-left.fbx' : 
-                   characterClass === 'Paladin' ? 'paladin-walk-left.fbx' : 'Standing Walk Left.fbx',
-      'walk-right': characterClass === 'Wizard' ? 'wizard-standing-walk-right.fbx' : 
-                    characterClass === 'Paladin' ? 'paladin-walk-right.fbx' : 'Standing Walk Right.fbx',
-      'run-forward': characterClass === 'Wizard' ? 'wizard-standing-run-forward.fbx' : 
-                     characterClass === 'Paladin' ? 'paladin-run-forward.fbx' : 'Fast Run.fbx',
-      'run-back': characterClass === 'Wizard' ? 'wizard-standing-run-back.fbx' : 
-                  characterClass === 'Paladin' ? 'paladin-run-back.fbx' : 'Standing Walk Back.fbx',
-      'run-left': characterClass === 'Wizard' ? 'wizard-standing-run-left.fbx' : 
-                  characterClass === 'Paladin' ? 'paladin-run-left.fbx' : 'Standing Walk Left.fbx',
-      'run-right': characterClass === 'Wizard' ? 'wizard-standing-run-right.fbx' : 
-                   characterClass === 'Paladin' ? 'paladin-run-right.fbx' : 'Standing Walk Right.fbx',
-      jump: characterClass === 'Wizard' ? 'wizard-standing-jump.fbx' : 
-            characterClass === 'Paladin' ? 'paladin-jump.fbx' : 'Jumping.fbx',
-      attack1: characterClass === 'Wizard' ? 'wizard-standing-1h-magic-attack-01.fbx' : 
-               characterClass === 'Paladin' ? 'paladin-attack.fbx' : 'Standing Melee Punch.fbx',
-      cast: characterClass === 'Wizard' ? 'wizard-standing-2h-magic-area-attack-02.fbx' : 
-            characterClass === 'Paladin' ? 'paladin-cast.fbx' : 'Roundhouse Kick.fbx',
-      damage: characterClass === 'Wizard' ? 'wizard-standing-react-small-from-front.fbx' : 
-              characterClass === 'Paladin' ? 'paladin-damage.fbx' : 'Receive Hit.fbx',
-      death: characterClass === 'Wizard' ? 'wizard-standing-react-death-backward.fbx' : 
-             characterClass === 'Paladin' ? 'paladin-death.fbx' : 'death.fbx',
-    };
-    
-    // Create animation paths
-    Object.entries(animKeys).forEach(([key, filename]) => {
-      animationPaths[key] = `${basePath}${filename}`;
+    Object.entries(characterConfig.animationTable).forEach(([key, filename]) => {
+      animationPaths[key] = getAnimationPath(characterConfig, key as keyof CharacterAnimationTable);
     });
     
     console.log('Animation paths:', animationPaths);
@@ -690,7 +640,7 @@ export const Player: React.FC<PlayerProps> = ({
     
     // Get source file basename (without extension)
     const sourceFileName = sourceModelPath.split('/').pop()?.split('.')[0] || '';
-    const targetFileName = mainModelPath.split('/').pop()?.split('.')[0] || '';
+    const targetFileName = characterConfig.modelPath.split('/').pop()?.split('.')[0] || '';
     
     if (sourceFileName === targetFileName) {
       // console.log(`Source and target models are the same (${sourceFileName}), no retargeting needed`);
@@ -805,8 +755,12 @@ export const Player: React.FC<PlayerProps> = ({
     }
     
     console.log(`▶️ Starting animation: ${name}`);
+    
+    // Get character-specific animation time scale
+    const timeScale = getAnimationTimeScale(characterConfig, name);
+    
     targetAction.reset()
-                .setEffectiveTimeScale(1)
+                .setEffectiveTimeScale(timeScale)
                 .setEffectiveWeight(1)
                 .fadeIn(crossfadeDuration)
                 .play();
