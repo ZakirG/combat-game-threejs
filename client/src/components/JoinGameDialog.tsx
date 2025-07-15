@@ -53,7 +53,7 @@ const characters = [
 ];
 
 export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
-  const [username, setUsername] = useState('Adventurer');
+  const [username, setUsername] = useState('X-' + Math.floor(Math.random() * 100000));
   const [currentCharacterIndex, setCurrentCharacterIndex] = useState(0);
   const [showControls, setShowControls] = useState(false);
 
@@ -84,15 +84,17 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
       <form style={styles.dialog} onSubmit={handleSubmit}>
         <h2 style={styles.title}>Welcome to XCombat</h2>
         <div style={styles.inputGroup}>
-          <label htmlFor="username" style={styles.label}>Character Name:</label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            maxLength={16} // Limit username length
-            style={styles.input}
-          />
+          <div style={styles.inputWithLabel}>
+            <div style={styles.labelBox}>Character Name:</div>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              maxLength={16} // Limit username length
+              style={styles.mergedInput}
+            />
+          </div>
         </div>
         <div style={styles.inputGroup}>
           <label style={styles.label}>Class:</label>
@@ -394,6 +396,60 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: '250px',
+  },
+  inputWithLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0px',
+    width: '100%',
+  },
+  inlineLabel: {
+    fontFamily: 'Newrocker, serif',
+    fontWeight: 'bold',
+    color: '#5D4037',
+    fontSize: '14px',
+  },
+  separator: {
+    width: '1px',
+    height: '20px',
+    backgroundColor: '#5D4037',
+  },
+  inlineInput: {
+    flex: 1,
+    width: 'calc(100% - 20px)',
+    padding: '10px',
+    border: '2px solid #8B4513',
+    borderRadius: '4px',
+    backgroundColor: 'rgba(245, 245, 220, 0.9)',
+    color: '#2F1B14',
+    fontSize: '16px',
+    fontFamily: 'Newrocker, serif',
+  },
+  labelBox: {
+    fontFamily: 'Newrocker, serif',
+    fontWeight: 'bold',
+    color: '#5D4037',
+    fontSize: '14px',
+    padding: '10px',
+    border: '2px solid #8B4513',
+    borderRadius: '4px 0 0 4px',
+    backgroundColor: 'rgba(245, 245, 220, 0.9)',
+    minWidth: '150px',
+    textAlign: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mergedInput: {
+    flex: 1,
+    padding: '10px',
+    border: '2px solid #8B4513',
+    borderLeft: 'none',
+    borderRadius: '0 4px 4px 0',
+    backgroundColor: 'rgba(245, 245, 220, 0.9)',
+    color: '#2F1B14',
+    fontSize: '16px',
+    fontFamily: 'Newrocker, serif',
   },
 };
 
