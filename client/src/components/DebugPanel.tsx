@@ -164,6 +164,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
               <strong>Local Player:</strong>
               <div>Username: {localPlayer.username}</div>
               <div>Character: {localPlayer.characterClass}</div>
+              <div>X Handle: {(localPlayer as any).xHandle || 'None'}</div>
               <div>Position: ({Math.round(localPlayer.position.x)}, {Math.round(localPlayer.position.y)}, {Math.round(localPlayer.position.z)})</div>
               <div>Health: {localPlayer.health}</div>
               <div>Current Animation: <span style={{color: '#ffcc00'}}>{localPlayer.currentAnimation || 'none'}</span></div>
@@ -175,7 +176,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
             <ul style={{ maxHeight: '200px', overflow: 'auto', padding: '0 0 0 20px' }}>
               {Array.from(playerMap.values()).map(player => (
                 <li key={player.identity.toHexString()}>
-                  {player.username} ({player.characterClass}) - {player.identity.toHexString().substring(0, 8)}...
+                  {player.username} ({(player as any).xHandle || player.characterClass}) - {player.identity.toHexString().substring(0, 8)}...
                   {player.currentAnimation && <span style={{color: '#a0e0ff'}}> [{player.currentAnimation}]</span>}
                 </li>
               ))}

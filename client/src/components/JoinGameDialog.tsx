@@ -31,7 +31,7 @@ import React, { useState, Suspense } from 'react';
 import { AVAILABLE_CHARACTERS } from '../characterConfigs';
 
 interface JoinGameDialogProps {
-  onJoin: (username: string, characterClass: string) => void;
+  onJoin: (username: string, characterClass: string, xHandle?: string) => void;
 }
 
 // Character data generated from configuration
@@ -40,6 +40,16 @@ const characters = AVAILABLE_CHARACTERS.map(characterName => ({
   image: getCharacterImage(characterName),
   description: getCharacterDescription(characterName)
 }));
+
+// Helper function to get character-specific background videos
+function getCharacterVideo(characterName: string): string {
+  const videoMap: Record<string, string> = {
+    'Zaqir Mufasa': '/character-select-bg-1.mp4',
+    'Grok Ani': '/grok-ani-background.mp4',
+    'Grok Rudi': '/grok-rudi-background.mp4'
+  };
+  return videoMap[characterName] || '/character-select-bg-1.mp4'; // Fallback to default
+}
 
 // Helper function to get character-specific images
 function getCharacterImage(characterName: string): string {
@@ -63,13 +73,15 @@ function getCharacterDescription(characterName: string): string {
 
 export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
   const [username, setUsername] = useState('X-' + Math.floor(Math.random() * 100000));
+  const [xHandle, setXHandle] = useState('');
   const [currentCharacterIndex, setCurrentCharacterIndex] = useState(0);
   const [showControls, setShowControls] = useState(false);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     const finalUsername = username.trim() || `Player${Math.floor(Math.random() * 1000)}`;
-    onJoin(finalUsername, characters[currentCharacterIndex].name);
+    const finalXHandle = xHandle.trim() || undefined; // Convert empty string to undefined
+    onJoin(finalUsername, characters[currentCharacterIndex].name, finalXHandle);
   };
 
   const handleControlsToggle = () => {
@@ -94,7 +106,7 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
         <h2 style={styles.title}>Welcome to X-Combat</h2>
         <div style={styles.inputGroup}>
           <div style={styles.inputWithLabel}>
-            <div style={styles.labelBox}>Character Name:</div>
+            <div style={styles.labelBox}>Name:</div>
             <input
               type="text"
               id="username"
@@ -106,7 +118,21 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
           </div>
         </div>
         <div style={styles.inputGroup}>
-          <label style={styles.label}>Class:</label>
+          <div style={styles.inputWithLabel}>
+            <div style={styles.labelBox}>X Handle:</div>
+            <input
+              type="text"
+              id="xhandle"
+              value={xHandle}
+              onChange={(e) => setXHandle(e.target.value)}
+              placeholder="x.com/you"
+              maxLength={32} // Limit X handle length
+              style={styles.mergedInput}
+            />
+          </div>
+        </div>
+        <div style={styles.inputGroup}>
+          <label id="choose-your-fighter" style={styles.fighterLabel}>CHOOSE YOUR FIGHTER</label>
           <div style={styles.characterCarousel}>
             {/* Character info in top left */}
             <div style={styles.characterInfo}>
@@ -128,6 +154,16 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
                 ‹
               </button>
               <div style={styles.characterImageContainer}>
+                <video 
+                  key={characters[currentCharacterIndex].name}
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  style={styles.characterVideoBackground}
+                >
+                  <source src={getCharacterVideo(characters[currentCharacterIndex].name)} type="video/mp4" />
+                </video>
                 <img 
                   src={characters[currentCharacterIndex].image} 
                   alt={characters[currentCharacterIndex].name}
@@ -224,7 +260,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     gap: '20px',
     overflow: 'auto',
-    paddingTop: '60px',
     paddingBottom: '60px',
     boxSizing: 'border-box',
   },
@@ -237,14 +272,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     textShadow: '1px 1px 2px rgba(139, 69, 19, 0.3)',
   },
   inputGroup: {
-    marginBottom: '15px',
+    marginBottom: '0px',
     textAlign: 'left',
     width: '100%',
     maxWidth: '600px',
   },
   label: {
     display: 'block',
-    marginBottom: '8px',
+    marginBottom: '0px',
     color: '#5D4037',
     fontSize: '14px',
     fontFamily: 'Newrocker, serif',
@@ -340,7 +375,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: 'rgba(245, 245, 220, 0.9)',
     border: '2px solid #8B4513',
     borderRadius: '8px',
-    minHeight: '280px',
+    height: '600px',
     padding: '20px',
   },
   carouselArrow: {
@@ -361,10 +396,19 @@ const styles: { [key: string]: React.CSSProperties } = {
 
   characterImage: {
     width: '260px',
-    objectFit: 'cover',
-    borderRadius: '12px',
-    border: '4px solid #8B4513',
-    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4)',
+    height: '450px',
+    objectFit: 'cover' as const,
+    position: 'relative',
+    zIndex: 2,
+  },
+  characterVideoBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover' as const,
+    zIndex: 1,
   },
   characterInfo: {
     position: 'absolute',
@@ -404,7 +448,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: '250px',
+    minWidth: '280px',
+    width: '280px',
+    height: '450px',
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: '12px',
+    border: '4px solid #8B4513',
+    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4)',
   },
   inputWithLabel: {
     display: 'flex',

@@ -50,6 +50,7 @@ pub struct PlayerData {
     identity: Identity,
     username: String,
     character_class: String,
+    x_handle: Option<String>, // Optional X handle field
     position: Vector3,
     rotation: Vector3,
     health: i32,
@@ -73,6 +74,7 @@ pub struct LoggedOutPlayerData {
     identity: Identity,
     username: String,
     character_class: String,
+    x_handle: Option<String>, // Optional X handle field
     position: Vector3,
     rotation: Vector3,
     health: i32,
@@ -130,6 +132,7 @@ pub fn identity_disconnected(ctx: &ReducerContext) {
             identity: player.identity,
             username: player.username.clone(),
             character_class: player.character_class.clone(),
+            x_handle: player.x_handle.clone(), // Include x_handle
             position: player.position.clone(),
             rotation: player.rotation.clone(),
             health: player.health,
@@ -153,13 +156,14 @@ pub fn identity_disconnected(ctx: &ReducerContext) {
 // --- Game Specific Reducers ---
 
 #[spacetimedb::reducer]
-pub fn register_player(ctx: &ReducerContext, username: String, character_class: String) {
+pub fn register_player(ctx: &ReducerContext, username: String, character_class: String, x_handle: Option<String>) {
     let player_identity: Identity = ctx.sender;
     spacetimedb::log::info!(
-        "Registering player {} ({}) with class {}",
+        "Registering player {} ({}) with class {} and X handle {:?}",
         username,
         player_identity,
-        character_class
+        character_class,
+        x_handle
     );
 
     if ctx.db.player().identity().find(player_identity).is_some() {
@@ -185,6 +189,7 @@ pub fn register_player(ctx: &ReducerContext, username: String, character_class: 
             identity: logged_out_player.identity,
             username: logged_out_player.username.clone(),
             character_class: logged_out_player.character_class.clone(),
+            x_handle: x_handle.or(logged_out_player.x_handle.clone()), // Use new x_handle or keep existing
             position: spawn_position,
             rotation: logged_out_player.rotation.clone(),
             health: logged_out_player.health,
@@ -213,6 +218,7 @@ pub fn register_player(ctx: &ReducerContext, username: String, character_class: 
             identity: player_identity,
             username,
             character_class,
+            x_handle, // Use the provided x_handle
             position: spawn_position,
             rotation: Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             health: 100,

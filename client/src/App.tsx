@@ -419,13 +419,14 @@ function App() {
   }, []);
 
   // --- handleJoinGame ---
-  const handleJoinGame = (username: string, characterClass: string) => {
+  const handleJoinGame = (username: string, characterClass: string, xHandle?: string) => {
     if (!conn) {
         console.error("Cannot join game, not connected.");
         return;
     }
-    console.log(`Registering as ${username} (${characterClass})...`);
-    conn.reducers.registerPlayer(username, characterClass);
+    console.log(`Registering as ${username} (${characterClass}) with X handle: ${xHandle || 'none'}...`);
+    // @ts-ignore - Temporary fix until TypeScript bindings are regenerated
+    conn.reducers.registerPlayer(username, characterClass, xHandle || null);
     setShowJoinDialog(false);
   };
 
