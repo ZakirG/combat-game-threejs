@@ -39,6 +39,7 @@ import { DirectionalLightHelper, CameraHelper } from 'three'; // Import the help
 import { PlayerData, InputState } from '../generated';
 import { Identity } from '@clockworklabs/spacetimedb-sdk';
 import { Player } from './Player';
+import { Zombie } from './Zombie';
 
 interface GameSceneProps {
   players: ReadonlyMap<string, PlayerData>; // Receive the map
@@ -133,6 +134,13 @@ o
           />
         );
       })}
+
+      {/* Render Zombie NPC */}
+      <Zombie 
+        position={[15, 0, 10]}
+        players={players}
+        isDebugVisible={isDebugPanelVisible}
+      />
 
       {/* Remove OrbitControls as we're using our own camera controls */}
     </Canvas>
