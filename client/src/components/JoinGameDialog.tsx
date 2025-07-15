@@ -167,7 +167,12 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
                 <img 
                   src={characters[currentCharacterIndex].image} 
                   alt={characters[currentCharacterIndex].name}
-                  style={styles.characterImage}
+                  style={{
+                    ...styles.characterImage,
+                    filter: characters[currentCharacterIndex].name === 'Zaqir Mufasa' 
+                      ? 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 20px rgba(255, 255, 255, 0.4)) drop-shadow(0 0 30px rgba(255, 255, 255, 0.2))' 
+                      : 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 20px rgba(255, 255, 255, 0.4)) drop-shadow(0 0 30px rgba(255, 255, 255, 0.2))'
+                  }}
                 />
               </div>
               <button 

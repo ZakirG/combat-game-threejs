@@ -52,7 +52,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     modelPath: "/models/zaqir-2/Idle.fbx",
     basePath: "/models/zaqir-2/",
     scale: 0.012,
-    yOffset: -0.3,
+    yOffset: 0.0, // Adjusted for ground level positioning
     movement: {
       walkSpeed: 3.0,
       runSpeed: 6.0
@@ -86,7 +86,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     modelPath: "/models/grok-ani/Gothic_Elegance_0715203917_texture_fbx/Gothic_Elegance_0715203917_texture.fbx",
     basePath: "/models/zaqir-2/", // Use Zaqir's animations as fallback
     scale: 0.012,
-    yOffset: -0.3,
+    yOffset: 0.0, // Adjusted for ground level positioning
     movement: {
       walkSpeed: 2.8,
       runSpeed: 5.5
@@ -117,7 +117,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     modelPath: "/models/grok-rudi/Red_Panda_Pal_0715205437_texture_fbx/Red_Panda_Pal_0715205437_texture.fbx",
     basePath: "/models/zaqir-2/", // Use Zaqir's animations as fallback
     scale: 0.012,
-    yOffset: -0.3,
+    yOffset: 0.0, // Adjusted for ground level positioning
     movement: {
       walkSpeed: 3.2,
       runSpeed: 6.5
@@ -148,6 +148,20 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     }
   }
 } as const;
+
+// Zombie configuration interface
+export interface ZombieConfig {
+  modelPath: string;
+  scale: number;
+  yOffset: number;
+}
+
+// Zombie configuration
+export const ZOMBIE_CONFIG: ZombieConfig = {
+  modelPath: "/models/zombie-2-converted/zombie.glb",
+  scale: 1.1,
+  yOffset: 0.0 // Adjusted for ground level positioning
+};
 
 // Helper function to get character config with fallback
 export function getCharacterConfig(characterClass: string): CharacterConfig {

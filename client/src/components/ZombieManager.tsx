@@ -29,6 +29,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { PlayerData } from '../generated';
 import { makeZombieDecision, ZOMBIE_ANIMATIONS, ZombieDecision } from './ZombieBrain';
+import { ZOMBIE_CONFIG } from '../characterConfigs';
 
 // Configurable spawn settings
 const SPAWN_SETTINGS = {
@@ -206,15 +207,15 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
     
     const loader = new GLTFLoader();
     loader.load(
-      '/models/zombie-2-converted/zombie.glb',
+      ZOMBIE_CONFIG.modelPath,
       (gltf) => {
         console.log(`[${zombieId}] Fresh model loaded`);
         
         const model = gltf.scene;
         
-        // Apply proper scaling and positioning
-        model.scale.setScalar(1.1); // Doubled the size to make zombies bigger
-        model.position.set(0, -0.1, 0);
+        // Apply standardized scaling and positioning
+        model.scale.setScalar(ZOMBIE_CONFIG.scale);
+        model.position.set(0, ZOMBIE_CONFIG.yOffset, 0);
         
         // Enable shadows and process materials
         model.traverse((child) => {
@@ -496,12 +497,12 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     
     // Load main model
     loader.load(
-      '/models/zombie-2-converted/zombie.glb',
+      ZOMBIE_CONFIG.modelPath,
       (gltf) => {
         
         const model = gltf.scene;
         
-        // Ensure shared model has default scale (don't scale the shared model itself)
+        // Ensure shared model has default scale and position (don't transform the shared model itself)
         model.scale.set(1, 1, 1);
         model.position.set(0, 0, 0);
         

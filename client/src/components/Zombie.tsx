@@ -28,6 +28,7 @@ import * as THREE from 'three';
 import { Html } from '@react-three/drei';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { PlayerData } from '../generated';
+import { ZOMBIE_CONFIG } from '../characterConfigs';
 
 // AI States
 enum ZombieState {
@@ -92,14 +93,14 @@ export const Zombie: React.FC<ZombieProps> = ({
     
       // Load main zombie model
       loader.load(
-      '/models/zombie-2-converted/zombie.glb',
+      ZOMBIE_CONFIG.modelPath,
       (gltf) => {
         console.log('[Zombie] Main model loaded');
         
         const model = gltf.scene;
         
-        // Set scale and position
-        model.scale.setScalar(0.04); // Doubled the size to make zombies bigger
+        // Set standardized scale and position
+        model.scale.setScalar(ZOMBIE_CONFIG.scale);
         model.position.set(0, 0, 0);
         
         // Enable shadows
@@ -126,7 +127,7 @@ export const Zombie: React.FC<ZombieProps> = ({
         
         if (group.current) {
           group.current.add(model);
-          model.position.y = -0.1; // Lower the model slightly
+          model.position.y = ZOMBIE_CONFIG.yOffset; // Use standardized Y positioning
         }
         
         setModel(model);
