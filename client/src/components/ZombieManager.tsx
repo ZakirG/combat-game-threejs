@@ -26,7 +26,7 @@ import React, { createContext, useContext, useRef, useEffect, useState, useCallb
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { PlayerData } from '../generated';
 
 // Animation names for zombie
@@ -125,23 +125,25 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
     setIsModelLoading(true);
     console.log(`[ZombieInstance ${zombieId}] Starting batched model load`);
     
-    const loader = new FBXLoader();
+    const loader = new GLTFLoader();
     loader.load(
-      '/models/zombie-2/zombie.fbx',
-      (fbx) => {
+      '/models/zombie-2-converted/zombie.glb',
+      (gltf) => {
         console.log(`[${zombieId}] Fresh model loaded`);
         
+        const model = gltf.scene;
+        
         // Apply proper scaling and positioning
-        fbx.scale.setScalar(0.02);
-        fbx.position.set(0, -0.1, 0);
+        model.scale.setScalar(1.1); // Doubled the size to make zombies bigger
+        model.position.set(0, -0.1, 0);
         
         // Enable shadows and process materials
-        fbx.traverse((child) => {
+        model.traverse((child) => {
           if (child instanceof THREE.Mesh) {
             child.castShadow = true;
             child.receiveShadow = true;
             
-            // Convert material to standard material
+            // Convert material to standard material if needed
             if (child.material && child.material.type === 'MeshPhongMaterial') {
               const standardMaterial = new THREE.MeshStandardMaterial({
                 map: child.material.map,
@@ -158,11 +160,11 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
         });
         
         if (group.current) {
-          group.current.add(fbx);
+          group.current.add(model);
         }
         
         // Create mixer for this instance
-        const instanceMixer = new THREE.AnimationMixer(fbx);
+        const instanceMixer = new THREE.AnimationMixer(model);
         
         // Create actions from shared clips
         const instanceAnimations: Record<string, THREE.AnimationAction> = {};
@@ -180,7 +182,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
           instanceAnimations[name] = action;
         });
         
-        setInstanceModel(fbx);
+        setInstanceModel(model);
         setMixer(instanceMixer);
         setAnimations(instanceAnimations);
         setIsModelLoading(false);
@@ -408,12 +410,6 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
 
   return (
     <group ref={group} castShadow>
-      {/* Temporary debug marker for all zombies */}
-      <mesh position={[0, 1, 0]}>
-        <sphereGeometry args={[0.2, 8, 8]} />
-        <meshBasicMaterial color={zombieId === 'zombie-0' ? 'red' : 'blue'} />
-      </mesh>
-      
       {/* Debug info */}
       {isDebugVisible && instanceModel && (
         <Html position={[0, 3, 0]} center>
@@ -467,7 +463,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
 
   // Load shared resources once
   useEffect(() => {
-    const loader = new FBXLoader();
+    const loader = new GLTFLoader();
     let loadedModel: THREE.Group | null = null;
     const loadedClips: Record<string, THREE.AnimationClip> = {};
     
@@ -475,20 +471,21 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     
     // Load main model
     loader.load(
-      '/models/zombie-2/zombie.fbx',
-      (fbx) => {
+      '/models/zombie-2-converted/zombie.glb',
+      (gltf) => {
         console.log('[ZombieManager] Shared model loaded');
-        console.log('[ZombieManager] Shared model initial scale:', fbx.scale);
-        console.log('[ZombieManager] Shared model initial position:', fbx.position);
+        const model = gltf.scene;
+        console.log('[ZombieManager] Shared model initial scale:', model.scale);
+        console.log('[ZombieManager] Shared model initial position:', model.position);
         
         // Ensure shared model has default scale (don't scale the shared model itself)
-        fbx.scale.set(1, 1, 1);
-        fbx.position.set(0, 0, 0);
+        model.scale.set(1, 1, 1);
+        model.position.set(0, 0, 0);
         
-        loadedModel = fbx;
+        loadedModel = model;
         
         // Process materials
-        fbx.traverse((child) => {
+        model.traverse((child) => {
           if (child instanceof THREE.Mesh) {
             if (child.material && child.material.type === 'MeshPhongMaterial') {
               const standardMaterial = new THREE.MeshStandardMaterial({
@@ -505,7 +502,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
           }
         });
         
-        console.log('[ZombieManager] Shared model after processing scale:', fbx.scale);
+        console.log('[ZombieManager] Shared model after processing scale:', model.scale);
         checkLoadComplete();
       },
       undefined,
@@ -514,14 +511,14 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       }
     );
 
-    // Load animations
+    // Load animations from converted GLB files
     const animationPaths: Record<string, string> = {
-      [ZOMBIE_ANIMATIONS.IDLE]: '/models/zombie-2/Zombie Walk.fbx',
-      [ZOMBIE_ANIMATIONS.SCREAM]: '/models/zombie-2/Zombie Scream.fbx',
-      [ZOMBIE_ANIMATIONS.WALKING]: '/models/zombie-2/Zombie Walk.fbx',
-      [ZOMBIE_ANIMATIONS.RUNNING]: '/models/zombie-2/Zombie Running.fbx',
-      [ZOMBIE_ANIMATIONS.ATTACK]: '/models/zombie-2/Zombie Punching.fbx',
-      [ZOMBIE_ANIMATIONS.DEATH]: '/models/zombie-2/Zombie Death.fbx',
+      [ZOMBIE_ANIMATIONS.IDLE]: '/models/zombie-2-converted/Zombie Walk.glb',
+      [ZOMBIE_ANIMATIONS.SCREAM]: '/models/zombie-2-converted/Zombie Scream.glb',
+      [ZOMBIE_ANIMATIONS.WALKING]: '/models/zombie-2-converted/Zombie Walk.glb',
+      [ZOMBIE_ANIMATIONS.RUNNING]: '/models/zombie-2-converted/Zombie Running.glb',
+      [ZOMBIE_ANIMATIONS.ATTACK]: '/models/zombie-2-converted/Zombie Punching.glb',
+      [ZOMBIE_ANIMATIONS.DEATH]: '/models/zombie-2-converted/Zombie Death.glb',
     };
 
     let loadedAnimations = 0;
@@ -530,9 +527,9 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     Object.entries(animationPaths).forEach(([name, path]) => {
       loader.load(
         path,
-        (animFbx) => {
-          if (animFbx.animations && animFbx.animations.length > 0) {
-            const clip = animFbx.animations[0].clone();
+        (animGltf) => {
+          if (animGltf.animations && animGltf.animations.length > 0) {
+            const clip = animGltf.animations[0].clone();
             clip.name = name;
             
             // Remove root motion

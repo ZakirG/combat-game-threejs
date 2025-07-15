@@ -26,7 +26,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Html } from '@react-three/drei';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { PlayerData } from '../generated';
 
 // AI States
@@ -88,20 +88,22 @@ export const Zombie: React.FC<ZombieProps> = ({
   
   // Load zombie model and animations
   useEffect(() => {
-    const loader = new FBXLoader();
+    const loader = new GLTFLoader();
     
       // Load main zombie model
-  loader.load(
-    '/models/zombie-2/zombie.fbx',
-      (fbx) => {
+      loader.load(
+      '/models/zombie-2-converted/zombie.glb',
+      (gltf) => {
         console.log('[Zombie] Main model loaded');
         
+        const model = gltf.scene;
+        
         // Set scale and position
-        fbx.scale.setScalar(0.02); // Same scale as other characters
-        fbx.position.set(0, 0, 0);
+        model.scale.setScalar(0.04); // Doubled the size to make zombies bigger
+        model.position.set(0, 0, 0);
         
         // Enable shadows
-        fbx.traverse((child) => {
+        model.traverse((child) => {
           if (child instanceof THREE.Mesh) {
             child.castShadow = true;
             child.receiveShadow = true;
@@ -123,12 +125,12 @@ export const Zombie: React.FC<ZombieProps> = ({
         });
         
         if (group.current) {
-          group.current.add(fbx);
-          fbx.position.y = -0.1; // Lower the model slightly
+          group.current.add(model);
+          model.position.y = -0.1; // Lower the model slightly
         }
         
-        setModel(fbx);
-        const newMixer = new THREE.AnimationMixer(fbx);
+        setModel(model);
+        const newMixer = new THREE.AnimationMixer(model);
         setMixer(newMixer);
         setModelLoaded(true);
       },
@@ -162,17 +164,17 @@ export const Zombie: React.FC<ZombieProps> = ({
       return;
     }
     
-    const loader = new FBXLoader();
-    const basePath = '/models/zombie-2/';
+    const loader = new GLTFLoader();
+    const basePath = '/models/zombie-2-converted/';
     
-    // Map animation keys to zombie FBX files
+    // Map animation keys to zombie GLB files
     const animationPaths: Record<string, string> = {
-      [ZOMBIE_ANIMATIONS.IDLE]: `${basePath}Zombie Walk.fbx`, // Use walk as idle fallback
-      [ZOMBIE_ANIMATIONS.SCREAM]: `${basePath}Zombie Scream.fbx`,
-      [ZOMBIE_ANIMATIONS.WALKING]: `${basePath}Zombie Walk.fbx`,
-      [ZOMBIE_ANIMATIONS.RUNNING]: `${basePath}Zombie Running.fbx`,
-      [ZOMBIE_ANIMATIONS.ATTACK]: `${basePath}Zombie Punching.fbx`,
-      [ZOMBIE_ANIMATIONS.DEATH]: `${basePath}Zombie Death.fbx`,
+      [ZOMBIE_ANIMATIONS.IDLE]: `${basePath}Zombie Walk.glb`, // Use walk as idle fallback
+      [ZOMBIE_ANIMATIONS.SCREAM]: `${basePath}Zombie Scream.glb`,
+      [ZOMBIE_ANIMATIONS.WALKING]: `${basePath}Zombie Walk.glb`,
+      [ZOMBIE_ANIMATIONS.RUNNING]: `${basePath}Zombie Running.glb`,
+      [ZOMBIE_ANIMATIONS.ATTACK]: `${basePath}Zombie Punching.glb`,
+      [ZOMBIE_ANIMATIONS.DEATH]: `${basePath}Zombie Death.glb`,
     };
     
     const newAnimations: Record<string, THREE.AnimationAction> = {};
@@ -200,15 +202,15 @@ export const Zombie: React.FC<ZombieProps> = ({
     Object.entries(animationPaths).forEach(([name, path]) => {
       loader.load(
         path,
-        (animFbx) => {
+        (animGltf) => {
           try {
-            if (!animFbx.animations || animFbx.animations.length === 0) {
+            if (!animGltf.animations || animGltf.animations.length === 0) {
               console.error(`[Zombie] No animations found in ${path}`);
               checkCompletedLoading();
               return;
             }
             
-            const clip = animFbx.animations[0];
+            const clip = animGltf.animations[0];
             clip.name = name;
             
             // Remove root motion for in-place animation

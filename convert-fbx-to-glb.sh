@@ -34,14 +34,21 @@ if [ $# -eq 0 ]; then
 fi
 
 FOLDER_NAME="$1"
-MODELS_DIR="client/public/models"
+MODELS_DIR="combat-game-threejs/client/public/models"
 SOURCE_DIR="${MODELS_DIR}/${FOLDER_NAME}"
 TARGET_DIR="${MODELS_DIR}/${FOLDER_NAME}-converted"
 
-# Check if fbx2gltf is installed
-if ! command -v fbx2gltf &> /dev/null; then
+# Check if fbx2gltf is installed (try local first, then global)
+FBX2GLTF_CMD=""
+if [ -f "./combat-game-threejs/client/node_modules/fbx2gltf/bin/Darwin/FBX2glTF" ]; then
+    FBX2GLTF_CMD="./combat-game-threejs/client/node_modules/fbx2gltf/bin/Darwin/FBX2glTF"
+elif [ -f "./client/node_modules/fbx2gltf/bin/Darwin/FBX2glTF" ]; then
+    FBX2GLTF_CMD="./client/node_modules/fbx2gltf/bin/Darwin/FBX2glTF"
+elif command -v fbx2gltf &> /dev/null; then
+    FBX2GLTF_CMD="fbx2gltf"
+else
     echo "Error: fbx2gltf is not installed or not in PATH"
-    echo "Please install it using: npm install -g fbx2gltf"
+    echo "Please install it using: npm install fbx2gltf (local) or npm install -g fbx2gltf (global)"
     exit 1
 fi
 
@@ -74,11 +81,8 @@ find "$SOURCE_DIR" -name "*.fbx" -type f | while read -r fbx_file; do
     echo "Converting: $filename.fbx -> $filename.glb"
     
     # Convert with performance optimizations
-    if fbx2gltf \
+    if $FBX2GLTF_CMD \
         --binary \
-        --draco \
-        --optimize-materials \
-        --simplify-mesh \
         --input "$fbx_file" \
         --output "$glb_file" \
         2>/dev/null; then
