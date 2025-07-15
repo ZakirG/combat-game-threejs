@@ -39,7 +39,7 @@ import { DirectionalLightHelper, CameraHelper } from 'three'; // Import the help
 import { PlayerData, InputState } from '../generated';
 import { Identity } from '@clockworklabs/spacetimedb-sdk';
 import { Player } from './Player';
-import { Zombie } from './Zombie';
+import { ZombieManager } from './ZombieManager';
 
 interface GameSceneProps {
   players: ReadonlyMap<string, PlayerData>; // Receive the map
@@ -135,9 +135,9 @@ o
         );
       })}
 
-      {/* Render Zombie NPC */}
-      <Zombie 
-        position={[15, 0, 10]}
+      {/* Render Optimized Zombie Manager */}
+      <ZombieManager 
+        zombieCount={10}
         players={players}
         isDebugVisible={isDebugPanelVisible}
       />
