@@ -120,7 +120,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
   
   // Movement and rotation
   const zombiePosition = useRef<THREE.Vector3>(new THREE.Vector3(...position));
-  const zombieRotation = useRef<THREE.Euler>(new THREE.Euler(0, 0, 0));
+  const zombieRotation = useRef<THREE.Euler>(new THREE.Euler(0, Math.random() * Math.PI * 2, 0)); // Random Y rotation
   const targetRotation = useRef<number>(0);
   
   // Apply initial position to group
@@ -340,18 +340,11 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
   // Debug logging for the first few zombies
   useEffect(() => {
     if ((zombieId === 'zombie-0' || zombieId === 'zombie-1') && instanceModel) {
-      console.log(`[${zombieId}] Model loaded at position:`, zombiePosition.current.toArray(), 'spawn position:', position, 'animations:', Object.keys(animations));
-      
       // Check group world position after next frame
       setTimeout(() => {
         if (group.current) {
           const worldPos = new THREE.Vector3();
           group.current.getWorldPosition(worldPos);
-          
-          // Check model scale within group
-          if (instanceModel) {
-            console.log(`[${zombieId}] Instance model scale:`, instanceModel.scale.toArray());
-          }
         }
       }, 500);
     }

@@ -81,6 +81,71 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-right': 1.0,    // Normal speed for run right
       idle: 0.8 // Slightly slower idle for more dramatic effect
     }
+  },
+  "Grok Ani": {
+    modelPath: "/models/grok-ani/Gothic_Elegance_0715203917_texture_fbx/Gothic_Elegance_0715203917_texture.fbx",
+    basePath: "/models/zaqir-2/", // Use Zaqir's animations as fallback
+    scale: 0.012,
+    yOffset: -0.3,
+    movement: {
+      walkSpeed: 2.8,
+      runSpeed: 5.5
+    },
+    animationTable: {
+      idle: "Idle.fbx",
+      'walk-forward': "Mutant Walk.fbx",
+      'walk-back': "Standing Walk Back.fbx", 
+      'walk-left': "Standing Walk Left.fbx",
+      'walk-right': "Standing Walk Right.fbx",
+      'run-forward': "Fast Run.fbx",
+      'run-back': "Standing Run Back.fbx",
+      'run-left': "Standing Run Left.fbx",
+      'run-right': "Standing Run Right.fbx",
+      jump: "Jumping.fbx",
+      attack1: "Standing Melee Punch.fbx",
+      cast: "Roundhouse Kick.fbx",
+      damage: "Receive Hit.fbx",
+      death: "death.fbx"
+    },
+    timeScale: {
+      'walk-forward': 0.9, // Slightly more elegant movement
+      'run-forward': 1.0,
+      idle: 0.7 // Slower, more regal idle
+    }
+  },
+  "Grok Rudi": {
+    modelPath: "/models/grok-rudi/Red_Panda_Pal_0715205437_texture_fbx/Red_Panda_Pal_0715205437_texture.fbx",
+    basePath: "/models/zaqir-2/", // Use Zaqir's animations as fallback
+    scale: 0.012,
+    yOffset: -0.3,
+    movement: {
+      walkSpeed: 3.2,
+      runSpeed: 6.5
+    },
+    animationTable: {
+      idle: "Idle.fbx",
+      'walk-forward': "Mutant Walk.fbx",
+      'walk-back': "Standing Walk Back.fbx", 
+      'walk-left': "Standing Walk Left.fbx",
+      'walk-right': "Standing Walk Right.fbx",
+      'run-forward': "Fast Run.fbx",
+      'run-back': "Standing Run Back.fbx",
+      'run-left': "Standing Run Left.fbx",
+      'run-right': "Standing Run Right.fbx",
+      jump: "Jumping.fbx",
+      attack1: "Standing Melee Punch.fbx",
+      cast: "Roundhouse Kick.fbx",
+      damage: "Receive Hit.fbx",
+      death: "death.fbx"
+    },
+    timeScale: {
+      'walk-forward': 1.1, // More energetic movement
+      'run-forward': 1.2,  // Faster, more agile
+      'run-back': 1.1,
+      'run-left': 1.1,
+      'run-right': 1.1,
+      idle: 0.9 // Slightly more active idle
+    }
   }
 } as const;
 

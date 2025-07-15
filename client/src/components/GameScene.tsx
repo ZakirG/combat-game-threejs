@@ -51,7 +51,7 @@ interface GameSceneProps {
 
 // Textured Floor Component
 const TexturedFloor: React.FC = () => {
-  const texture = useTexture('/environments/sand-dune-texture.avif');
+  const texture = useTexture('/environments/SandG_001.jpg');
   const { gl } = useThree();
   
   // Configure texture for seamless tiling with improved filtering

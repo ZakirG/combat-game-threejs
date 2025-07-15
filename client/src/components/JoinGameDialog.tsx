@@ -37,14 +37,26 @@ interface JoinGameDialogProps {
 // Character data generated from configuration
 const characters = AVAILABLE_CHARACTERS.map(characterName => ({
   name: characterName,
-  image: '/zaqir-mufasa.png', // Can be extended to use character-specific images
+  image: getCharacterImage(characterName),
   description: getCharacterDescription(characterName)
 }));
+
+// Helper function to get character-specific images
+function getCharacterImage(characterName: string): string {
+  const imageMap: Record<string, string> = {
+    'Zaqir Mufasa': '/zaqir-mufasa.png',
+    'Grok Ani': '/grok-ani.png',
+    'Grok Rudi': '/grok-rudi.png'
+  };
+  return imageMap[characterName] || '/zaqir-mufasa.png'; // Fallback to default
+}
 
 // Helper function to get character descriptions
 function getCharacterDescription(characterName: string): string {
   const descriptions: Record<string, string> = {
-    'Zaqir Mufasa': 'x.com/jaguarsoftio'
+    'Zaqir Mufasa': 'x.com/jaguarsoftio',
+    'Grok Ani': 'x.com/grok',
+    'Grok Rudi': 'x.com/grok'
   };
   return descriptions[characterName] || 'Skilled fighter';
 }
@@ -79,7 +91,7 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
   return (
     <div style={styles.overlay}>
       <form style={styles.dialog} onSubmit={handleSubmit}>
-        <h2 style={styles.title}>Welcome to XCombat</h2>
+        <h2 style={styles.title}>Welcome to X-Combat</h2>
         <div style={styles.inputGroup}>
           <div style={styles.inputWithLabel}>
             <div style={styles.labelBox}>Character Name:</div>
