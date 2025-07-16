@@ -66,7 +66,7 @@ const TexturedFloor: React.FC = () => {
       // Basic wrapping settings
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.RepeatWrapping;
-      texture.repeat.set(20, 20); // Doubled repeat for quadruple floor size to maintain texture scale
+      texture.repeat.set(200, 200); // High repeat for massive floor size to maintain texture scale
       
       // Improved texture filtering for seamless blending
       texture.minFilter = THREE.LinearMipMapLinearFilter;
@@ -84,7 +84,7 @@ const TexturedFloor: React.FC = () => {
 
   return (
     <Plane 
-      args={[400, 400]} 
+      args={[4000, 4000]} 
       rotation={[-Math.PI / 2, 0, 0]} 
       position={[0, -0.001, 0]} 
       receiveShadow={true} 
@@ -177,7 +177,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
         zombieCount={15}
         players={players}
         isDebugVisible={isDebugPanelVisible}
-        minSpawnDistance={30} // Minimum 20 units from any player for more spread out spawning
+        minSpawnDistance={15} // Minimum 15 units from any player for closer zombie spawning
         gameReadyCallbacks={gameReadyCallbacks} // Pass GameReady callbacks
       />
 

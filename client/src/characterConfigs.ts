@@ -73,14 +73,14 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     modelPath: "/models/zaqir-2/Idle.fbx",
     basePath: "/models/zaqir-2/",
     scale: 0.016, // 1.3x bigger (0.012 * 1.3)
-    yOffset: 1.2, // Increased to prevent feet from going into ground
+    yOffset: 2.5, // Increased to prevent feet from going into ground
     preview: {
       scale: 0.010, // 1.3x bigger (0.012 * 1.3)
       yOffset: 0.4 // Adjusted for ground level positioning
     },
     gameplay: {
        scale: 0.016, // 1.3x bigger (0.012 * 1.3)
-       yOffset: 1.2, // Increased to prevent feet from going into ground
+       yOffset: 1.8, // Increased to prevent feet from going into ground
        highAltitudeSpawn: SPAWN_ALTITUDE
      },
     movement: {
@@ -112,6 +112,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-left': 1.0,     // Normal speed for run left  
       'run-right': 1.0,    // Normal speed for run right
       idle: 0.8, // Slightly slower idle for more dramatic effect
+      jump: 1.3, // Double speed for faster jumping animation
       falling: 1.0, // Normal falling speed
       landing: 1.2 // Slightly faster landing for quicker recovery
     }
@@ -156,6 +157,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'walk-forward': 0.9, // Slightly more elegant movement
       'run-forward': 1.0,
       idle: 0.7, // Slower, more regal idle
+      jump: 1.3, // Double speed for faster jumping animation
       falling: 1.0, // Normal falling speed
       landing: 1.1 // Slightly faster landing
     }
@@ -208,6 +210,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       idle: 0.8,           // Slower, more menacing combat idle
       attack1: 1.2,        // Quick punches
       cast: 1.1,           // Slightly faster second punch
+      jump: 1.3,           // Double speed for faster jumping animation
       falling: 1.0,        // Normal falling speed
       landing: 1.0,        // Normal landing speed
       death: 0.9           // Slightly slower death for dramatic effect

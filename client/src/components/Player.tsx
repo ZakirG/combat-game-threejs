@@ -86,8 +86,8 @@ const CAMERA_MODES = {
 };
 
 // --- Physics Constants ---
-const GRAVITY = -18.0; // Faster downward acceleration for quicker falling
-const JUMP_FORCE = 12.0; // Higher upward velocity for faster jumping
+const GRAVITY = -50.0; // Much stronger gravity for snappier jumping
+const JUMP_FORCE = 20.0; // Higher upward velocity for faster, more responsive jumping
 const GROUND_LEVEL = 0.0; // Ground Y position
 const TERMINAL_VELOCITY = -80.0; // Higher maximum falling speed for faster descent
 
