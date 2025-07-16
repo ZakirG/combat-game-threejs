@@ -34,16 +34,17 @@ import { GameReadyCallbacks } from '../types/gameReady';
 
 // Configurable spawn settings
 const SPAWN_SETTINGS = {
-  MIN_DISTANCE_FROM_PLAYERS: 20, // Farther spawn distance for more challenging gameplay
-  WORLD_SIZE: 120, // Size of the game world for spawning (increased from 40 to accommodate 30+ unit distance)
+  MIN_DISTANCE_FROM_PLAYERS: 12, // Minimum distance from players (closer than before)
+  MAX_DISTANCE_FROM_PLAYERS: 35, // Maximum distance from players (keeps farthest zombies closer)
+  WORLD_SIZE: 60, // Smaller spawn area for tighter action (reduced from 120)
   MAX_SPAWN_ATTEMPTS: 50, // Maximum attempts to find a safe spawn position
   FALLBACK_EDGE_DISTANCE: 0.4 // Multiplier for edge distance in fallback scenarios
 };
 
 // Configurable knockback physics for player attacks
 const KNOCKBACK_CONFIG = {
-  ATTACK_RANGE: 15.0,     // How far the attack reaches (increased from 9.0 for easier hits)
-  FACING_LENIENCY: -1.0,  // Dot product, -1.0 means you can hit from ANY direction
+  ATTACK_RANGE: 4.0,      // How far the attack reaches (reduced from 15.0)
+  FACING_LENIENCY: 0.3,   // Dot product, > 0 means "in front" (was -1.5)
   FORCE: 90.0,            // How far back the zombie flies (tripled from 30.0)
   HEIGHT: 24.0,           // How high the zombie flies (tripled from 8.0)
   GRAVITY: -60.0,         // Gravity applied to the falling zombie
@@ -615,6 +616,8 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   
   // Death tracking
   const [deadZombies, setDeadZombies] = useState<Set<string>>(new Set());
+  const [killCount, setKillCount] = useState<number>(0);
+  const [nextZombieId, setNextZombieId] = useState<number>(zombieCount); // Track next available ID
   
   // Registry for zombie instances (for attack collision detection)
   const zombieInstancesRef = useRef<Map<string, { positionRef: React.MutableRefObject<THREE.Vector3>; triggerDeath: (direction: THREE.Vector3) => void }>>(new Map());
@@ -747,35 +750,57 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
 
   }, []);
 
-  // Smart zombie position generation with distance checks
+  // Smart zombie position generation with distance checks and better randomness
   const generateSafeZombiePosition = useCallback((
     players: ReadonlyMap<string, PlayerData>, 
     minDistance: number,
     maxAttempts: number = SPAWN_SETTINGS.MAX_SPAWN_ATTEMPTS
   ): [number, number, number] => {
     const worldSize = SPAWN_SETTINGS.WORLD_SIZE;
+    const maxDistance = SPAWN_SETTINGS.MAX_DISTANCE_FROM_PLAYERS;
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      // Generate random position within world bounds
-      const x = (Math.random() - 0.5) * worldSize;
-      const z = (Math.random() - 0.5) * worldSize;
+      let x: number, z: number;
+      
+      // Use polar coordinates for more random distribution around players
+      if (players.size > 0 && Math.random() < 0.7) { // 70% chance to spawn relative to nearest player
+        const nearestPlayer = Array.from(players.values())[0];
+        const playerPos = new THREE.Vector3(nearestPlayer.position.x, 0, nearestPlayer.position.z);
+        
+        // Random angle and distance from player
+        const angle = Math.random() * Math.PI * 2;
+        const distance = minDistance + Math.random() * (maxDistance - minDistance);
+        
+        // Add some noise to break perfect circles
+        const noiseX = (Math.random() - 0.5) * 8; // ±4 units of noise
+        const noiseZ = (Math.random() - 0.5) * 8;
+        
+        x = playerPos.x + Math.cos(angle) * distance + noiseX;
+        z = playerPos.z + Math.sin(angle) * distance + noiseZ;
+      } else {
+        // 30% chance for completely random position within world bounds
+        x = (Math.random() - 0.5) * worldSize;
+        z = (Math.random() - 0.5) * worldSize;
+      }
+      
       const candidatePos = new THREE.Vector3(x, 0, z);
       
       // Check distance to all players - use horizontal distance only to avoid Y-axis issues
-      let tooClose = false;
+      let validPosition = true;
       for (const player of players.values()) {
         // Use horizontal distance only to prevent spawn issues when players are at high altitude
         const playerPos = new THREE.Vector3(player.position.x, 0, player.position.z);
         const distance = candidatePos.distanceTo(playerPos);
         
-        if (distance < minDistance) {
-          tooClose = true;
+        // Check both minimum and maximum distance constraints
+        if (distance < minDistance || distance > maxDistance) {
+          validPosition = false;
           break;
         }
       }
       
-      // If safe distance from all players, return this position
-      if (!tooClose) {
+      // If valid distance from all players, return this position
+      if (validPosition) {
         return [x, 0, z];
       }
     }
@@ -805,8 +830,8 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     ];
   }, []);
 
-  // Generate zombie positions with safety checks (regenerate only when player count changes)
-  const zombiePositions = useMemo(() => {
+  // Dynamic zombie positions (can be updated during gameplay)
+  const [zombiePositions, setZombiePositions] = useState<[number, number, number][]>(() => {
     const minDistance = minSpawnDistance || SPAWN_SETTINGS.MIN_DISTANCE_FROM_PLAYERS;
     
     // Take a snapshot of current player positions for spawn calculation
@@ -837,7 +862,36 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       
       return position;
     });
-  }, [zombieCount, players.size, minSpawnDistance, generateSafeZombiePosition]);
+  });
+
+  // Function to spawn additional zombies
+  const spawnNewZombies = useCallback((count: number) => {
+    const minDistance = minSpawnDistance || SPAWN_SETTINGS.MIN_DISTANCE_FROM_PLAYERS;
+    const newPositions: [number, number, number][] = [];
+    
+    // Take snapshot of current player positions
+    const playerSnapshot = Array.from(players.values()).map(player => ({
+      x: player.position.x,
+      y: 0,
+      z: player.position.z
+    }));
+    
+    for (let i = 0; i < count; i++) {
+      const snapshotPlayers = new Map(Array.from(players.entries()).map(([id, player], j) => [
+        id, 
+        { ...player, position: playerSnapshot[j] || { x: 0, y: 0, z: 0 } }
+      ]));
+      
+      const position = generateSafeZombiePosition(snapshotPlayers, minDistance);
+      newPositions.push(position);
+    }
+    
+    // Add new positions to existing ones
+    setZombiePositions(prev => [...prev, ...newPositions]);
+    setNextZombieId(prev => prev + count);
+    
+    console.log(`[ZombieManager] 🆕 Spawned ${count} new zombies! Total positions: ${zombiePositions.length + count}`);
+  }, [players, minSpawnDistance, generateSafeZombiePosition, zombiePositions.length]);
 
   // Handle zombie loading completion
   const handleZombieLoadComplete = useCallback(() => {
@@ -872,7 +926,34 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   const handleZombieDeath = useCallback((zombieId: string) => {
     console.log(`[ZombieManager] Zombie ${zombieId} has died, removing from scene`);
     setDeadZombies(prev => new Set(prev).add(zombieId));
-  }, []);
+    
+    // Track kills and trigger respawn every 3 kills
+    setKillCount(prev => {
+      const newKillCount = prev + 1;
+      console.log(`[ZombieManager] 💀 Kill count: ${newKillCount}`);
+      
+      if (newKillCount % 3 === 0) {
+                 console.log(`[ZombieManager] 🎯 RESPAWN TRIGGER! Killed ${newKillCount} zombies, spawning 3 more...`);
+         
+         // Emit progress update for respawn event
+         if (gameReadyCallbacks) {
+           gameReadyCallbacks.onZombieProgress(100, '💀 3 zombies killed! Spawning reinforcements...');
+         }
+         
+         // Spawn 3 new zombies after a short delay
+         setTimeout(() => {
+           spawnNewZombies(3);
+           if (gameReadyCallbacks) {
+             gameReadyCallbacks.onZombieProgress(100, '🆕 3 new zombies spawned!');
+           }
+         }, 1000); // 1 second delay for dramatic effect
+        
+        return 0; // Reset kill counter
+      }
+      
+      return newKillCount;
+    });
+  }, [spawnNewZombies]);
 
   // Handle zombie registration for attack detection
   const handleZombieRegister = useCallback((zombieId: string, positionRef: React.MutableRefObject<THREE.Vector3>, triggerDeath: (direction: THREE.Vector3) => void) => {
@@ -887,26 +968,41 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   const checkPlayerAttack = useCallback((playerPosition: THREE.Vector3, playerRotation: THREE.Euler, attackRange: number = KNOCKBACK_CONFIG.ATTACK_RANGE) => {
     const hitZombies: Array<{ zombieId: string; position: THREE.Vector3; distance: number }> = [];
     
-    // Get forward direction from player rotation  
-    const forwardDirection = new THREE.Vector3(0, 0, -1).applyEuler(playerRotation);
+    // Get forward direction from player rotation - FLIPPED Z-axis from -1 to 1 to fix direction
+    const forwardDirection = new THREE.Vector3(0, 0, 1).applyEuler(playerRotation);
+    
+    console.log(`[ZombieManager] 🗡️ ATTACK CHECK STARTED`);
+    console.log(`[ZombieManager] 📍 Player pos: (${playerPosition.x.toFixed(2)}, ${playerPosition.y.toFixed(2)}, ${playerPosition.z.toFixed(2)})`);
+    console.log(`[ZombieManager] 📐 Player rotation: (${playerRotation.x.toFixed(3)}, ${playerRotation.y.toFixed(3)}, ${playerRotation.z.toFixed(3)})`);
+    console.log(`[ZombieManager] ➡️ Forward direction: (${forwardDirection.x.toFixed(3)}, ${forwardDirection.y.toFixed(3)}, ${forwardDirection.z.toFixed(3)})`);
+    console.log(`[ZombieManager] 📏 Attack range: ${attackRange} units`);
+    console.log(`[ZombieManager] 🎯 Facing leniency: ${KNOCKBACK_CONFIG.FACING_LENIENCY} (lower = more lenient)`);
+    console.log(`[ZombieManager] 🧟 Checking ${zombieInstancesRef.current.size} zombies...`);
     
     // Check each zombie
     for (const [zombieId, zombieData] of zombieInstancesRef.current) {
       const zombiePos = zombieData.positionRef.current;
       const distance = playerPosition.distanceTo(zombiePos);
       
+      console.log(`[ZombieManager] 🔍 Checking ${zombieId}:`);
+      console.log(`[ZombieManager]   📍 Zombie pos: (${zombiePos.x.toFixed(2)}, ${zombiePos.y.toFixed(2)}, ${zombiePos.z.toFixed(2)})`);
+      console.log(`[ZombieManager]   📏 Distance: ${distance.toFixed(2)} units`);
+      
       // Check if zombie is within attack range
       if (distance <= attackRange) {
+        console.log(`[ZombieManager]   ✅ DISTANCE OK: ${distance.toFixed(2)} <= ${attackRange}`);
+        
         // Check if player is roughly facing the zombie
         const directionToZombie = new THREE.Vector3().subVectors(zombiePos, playerPosition).normalize();
         const dot = forwardDirection.dot(directionToZombie);
         
+        console.log(`[ZombieManager]   ➡️ Direction to zombie: (${directionToZombie.x.toFixed(3)}, ${directionToZombie.y.toFixed(3)}, ${directionToZombie.z.toFixed(3)})`);
+        console.log(`[ZombieManager]   🎯 Dot product: ${dot.toFixed(3)} (need > ${KNOCKBACK_CONFIG.FACING_LENIENCY})`);
+        
         // If dot product > a lenient value, player is facing zombie
         if (dot > KNOCKBACK_CONFIG.FACING_LENIENCY) {
+          console.log(`[ZombieManager]   ✅ FACING OK: ${dot.toFixed(3)} > ${KNOCKBACK_CONFIG.FACING_LENIENCY}`);
           console.log(`[ZombieManager] 💀 ZOMBIE KILLED! ${zombieId} hit at distance ${distance.toFixed(2)} (facing: ${dot.toFixed(3)})`);
-          console.log(`[ZombieManager] 🎯 Player pos: (${playerPosition.x.toFixed(2)}, ${playerPosition.y.toFixed(2)}, ${playerPosition.z.toFixed(2)})`);
-          console.log(`[ZombieManager] 🧟 Zombie pos: (${zombiePos.x.toFixed(2)}, ${zombiePos.y.toFixed(2)}, ${zombiePos.z.toFixed(2)})`);
-          console.log(`[ZombieManager] ➡️ Knockback direction: (${directionToZombie.x.toFixed(3)}, ${directionToZombie.y.toFixed(3)}, ${directionToZombie.z.toFixed(3)})`);
           
           hitZombies.push({ zombieId, position: zombiePos, distance });
           
@@ -914,10 +1010,15 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
           // directionToZombie is FROM player TO zombie, which is the correct direction for knockback
           const knockbackDirection = directionToZombie.clone();
           zombieData.triggerDeath(knockbackDirection);
+        } else {
+          console.log(`[ZombieManager]   ❌ FACING FAILED: ${dot.toFixed(3)} <= ${KNOCKBACK_CONFIG.FACING_LENIENCY} (player not facing zombie)`);
         }
+      } else {
+        console.log(`[ZombieManager]   ❌ DISTANCE FAILED: ${distance.toFixed(2)} > ${attackRange} (too far away)`);
       }
     }
     
+    console.log(`[ZombieManager] 🗡️ ATTACK CHECK COMPLETE: Hit ${hitZombies.length} zombies`);
     return hitZombies;
   }, []);
 
@@ -934,27 +1035,28 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       {/* Only render zombies when resources are loaded */}
       {resources.isLoaded && zombiePositions.map((position, index) => {
         const zombieId = `zombie-${index}`;
-        const shouldLoad = index <= currentLoadingIndex;
+        // For initial zombies, use loading index. For respawned zombies (index >= zombieCount), load immediately
+        const shouldLoad = index <= currentLoadingIndex || index >= zombieCount;
         
         // Skip rendering dead zombies
         if (deadZombies.has(zombieId)) {
           return null;
         }
         
-                  return (
-            <ZombieInstance
-              key={zombieId}
-              zombieId={zombieId}
-              position={position}
-              players={players}
-              isDebugVisible={isDebugVisible}
-              shouldLoad={shouldLoad}
-              onLoadComplete={handleZombieLoadComplete}
-              onZombieDeath={handleZombieDeath}
-              onRegisterInstance={handleZombieRegister}
-              onUnregisterInstance={handleZombieUnregister}
-            />
-          );
+        return (
+          <ZombieInstance
+            key={zombieId}
+            zombieId={zombieId}
+            position={position}
+            players={players}
+            isDebugVisible={isDebugVisible}
+            shouldLoad={shouldLoad}
+            onLoadComplete={handleZombieLoadComplete}
+            onZombieDeath={handleZombieDeath}
+            onRegisterInstance={handleZombieRegister}
+            onUnregisterInstance={handleZombieUnregister}
+          />
+        );
       })}
     </ZombieResourceContext.Provider>
   );

@@ -1156,7 +1156,7 @@ export const Player: React.FC<PlayerProps> = ({
                 const hitZombies = (window as any).checkZombieAttack(
                   localPositionRef.current, 
                   localRotationRef.current, 
-                  15.0 // Attack range of 15 units (matches KNOCKBACK_CONFIG.ATTACK_RANGE)
+                  4.0 // Attack range of 4 units (matches new KNOCKBACK_CONFIG.ATTACK_RANGE)
                 );
                 
                 if (hitZombies.length > 0) {

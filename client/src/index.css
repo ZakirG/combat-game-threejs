@@ -100,6 +100,8 @@ button:focus-visible {
   pointer-events: none;
   user-select: none;
   opacity: 0.7; /* Make the entire nametag more transparent */
+  min-width: 120px; /* Ensure minimum width to prevent wrapping */
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 .nametag-text {
@@ -107,6 +109,7 @@ button:focus-visible {
   font-weight: bold;
   margin-bottom: 1px;
   opacity: 0.8; /* Additional transparency for name */
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 .nametag-color {
@@ -121,6 +124,7 @@ button:focus-visible {
   color: #a0e0ff; /* Light blue for class names */
   font-style: italic;
   opacity: 0.6; /* Additional transparency for class */
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 /* Cursor style for when pointer-lock is active */

@@ -72,14 +72,14 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
   "Grok Ani": {
     modelPath: "/models/grok-ani/base.fbx",
     basePath: "/models/grok-ani/", // Use Grok Ani's own animations
-    scale: 0.01,
+    scale: 0.018,
     yOffset: 0.0, // Adjusted for ground level positioning
     preview: {
       scale: 0.011,
       yOffset: 0.2
     },
     gameplay: {
-       scale: 0.01,
+       scale: 0.012,
        yOffset: 0.0, // Adjusted for ground level positioning
        highAltitudeSpawn: SPAWN_ALTITUDE
      },
@@ -145,8 +145,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-left': "Standing Run Left.fbx", // Use dedicated run left animation
       'run-right': "Standing Run Right.fbx", // Use dedicated run right animation
       jump: "Jumping.fbx",
-      attack1: "Standing Melee Punch.fbx",
-      cast: "Roundhouse Kick.fbx",
+      attack1: "Roundhouse Kick.fbx", // Changed from Standing Melee Punch
+      cast: "Standing Melee Punch.fbx", // Changed from Roundhouse Kick
       damage: "Receive Hit.fbx",
       death: "death.fbx",
       falling: "Falling.fbx",

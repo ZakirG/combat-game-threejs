@@ -270,6 +270,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '20px',
+    left: '15px',
+    position: 'relative',
     marginBottom: '-40px',
     flexWrap: 'wrap',
   },
@@ -284,6 +286,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   statueImage: {
     position: 'relative',
     top: '15px',
+    left: '15px',
     filter: 'drop-shadow(4px 4px 4px black)',
     width: '100px',
     objectFit: 'contain' as const,

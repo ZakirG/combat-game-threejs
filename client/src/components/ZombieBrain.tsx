@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { PlayerData } from '../generated';
 
 // Configurable distances
-const DISTANCE_TO_PLAYER_BEFORE_CHASING = 15.0;
-export const STRIKING_DISTANCE = 4.5; // Increased to maintain proper spacing from player
+const DISTANCE_TO_PLAYER_BEFORE_CHASING = 55.0; // Increased from 15.0 for more aggressive zombies
+export const STRIKING_DISTANCE = 2.0; // How close zombies get before attacking (was 4.5)
 
 // Animation constants
 export const ZOMBIE_ANIMATIONS = {
