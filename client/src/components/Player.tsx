@@ -132,6 +132,10 @@ export const Player: React.FC<PlayerProps> = ({
   const [isModelVisible, setIsModelVisible] = useState<boolean>(false);
   const [physicsEnabled, setPhysicsEnabled] = useState<boolean>(false);
   
+  // Attack animation state
+  const [isAttacking, setIsAttacking] = useState<boolean>(false);
+  const attackTimeoutRef = useRef<number | null>(null);
+  
   // --- Client Prediction State ---
   // For gameplay, force high altitude spawn on first entrance
   const initialY = SPAWN_ALTITUDE; // Always force high altitude regardless of server
@@ -449,6 +453,9 @@ export const Player: React.FC<PlayerProps> = ({
     return () => {
       if (mixer) mixer.stopAllAction();
       if (model && group.current) group.current.remove(model);
+      if (attackTimeoutRef.current) {
+        clearTimeout(attackTimeoutRef.current);
+      }
       // Dispose geometry/material if needed
       setModel(null);
       setMixer(null);
@@ -1129,22 +1136,42 @@ export const Player: React.FC<PlayerProps> = ({
             wasJumpPressed.current = false;
           }
           
-          // Handle attack input (only trigger once per press)
-          if (currentInput.attack && !wasAttackPressed.current) {
+          // Handle attack input (only trigger once per press, complete one-shot attack)
+          if (currentInput.attack && !wasAttackPressed.current && !isAttacking) {
             wasAttackPressed.current = true;
+            setIsAttacking(true);
             
-            // Check for zombie attacks using global function
-            if ((window as any).checkZombieAttack) {
-              const hitZombies = (window as any).checkZombieAttack(
-                localPositionRef.current, 
-                localRotationRef.current, 
-                6.0 // Attack range of 6 units
-              );
-              
-              if (hitZombies.length > 0) {
-                console.log(`[Player] ⚔️ Attack successful! Hit ${hitZombies.length} zombie(s)`);
-              }
+            // Clear any existing attack timeout
+            if (attackTimeoutRef.current) {
+              clearTimeout(attackTimeoutRef.current);
             }
+            
+            // Play attack animation immediately
+            playAnimation(ANIMATIONS.ATTACK, 0.1); // Quick crossfade for responsiveness
+            
+            // Schedule zombie hit detection after animation starts
+            setTimeout(() => {
+              // Check for zombie attacks using global function
+              if ((window as any).checkZombieAttack) {
+                const hitZombies = (window as any).checkZombieAttack(
+                  localPositionRef.current, 
+                  localRotationRef.current, 
+                  15.0 // Attack range of 15 units (matches KNOCKBACK_CONFIG.ATTACK_RANGE)
+                );
+                
+                if (hitZombies.length > 0) {
+                  console.log(`[Player] ⚔️ Attack successful! Hit ${hitZombies.length} zombie(s)`);
+                }
+              }
+            }, 300); // 300ms delay to let attack animation play
+            
+            // Complete the attack after full animation duration
+            attackTimeoutRef.current = setTimeout(() => {
+              setIsAttacking(false);
+              attackTimeoutRef.current = null;
+              console.log(`[Player] 🏁 Attack animation completed`);
+            }, 1000); // 1 second for full attack animation to complete
+            
           } else if (!currentInput.attack) {
             wasAttackPressed.current = false;
           }
@@ -1473,11 +1500,13 @@ export const Player: React.FC<PlayerProps> = ({
       // Don't allow server to override falling animation during high altitude descent
       const isHighAltitudeFalling = currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
 
-      console.log(`🎯 [Anim Check] Received ServerAnim: ${serverAnim}, Current LocalAnim: ${currentAnimation}, High Alt Falling: ${isHighAltitudeFalling}, Is Available: ${!!animations[serverAnim]}`);
+      console.log(`🎯 [Anim Check] Received ServerAnim: ${serverAnim}, Current LocalAnim: ${currentAnimation}, High Alt Falling: ${isHighAltitudeFalling}, Is Attacking: ${isAttacking}, Is Available: ${!!animations[serverAnim]}`);
 
-      // Play animation if it's different and available, but not during high altitude falling
+      // Play animation if it's different and available, but not during high altitude falling or local attacks
       if (isHighAltitudeFalling) {
         console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during high altitude falling at Y=${localPositionRef.current.y.toFixed(1)}`);
+      } else if (isAttacking) {
+        console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during local attack animation`);
       } else if (serverAnim && serverAnim !== currentAnimation && animations[serverAnim]) {
          console.log(`🎬 [Anim Play] Server requested animation change to: ${serverAnim}`);
         try {
@@ -1493,7 +1522,7 @@ export const Player: React.FC<PlayerProps> = ({
          console.warn(`⚠️ [Anim Warn] Server requested unavailable animation: ${serverAnim}. Available: ${Object.keys(animations).join(', ')}`);
       }
     }
-  }, [playerData.currentAnimation, animations, mixer, playAnimation, currentAnimation]); // Dependencies include things that trigger animation changes
+  }, [playerData.currentAnimation, animations, mixer, playAnimation, currentAnimation, isAttacking]); // Dependencies include things that trigger animation changes
 
   return (
     <group ref={group} castShadow>

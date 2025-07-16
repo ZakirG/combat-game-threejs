@@ -42,10 +42,10 @@ const SPAWN_SETTINGS = {
 
 // Configurable knockback physics for player attacks
 const KNOCKBACK_CONFIG = {
-  ATTACK_RANGE: 9.0,      // How far the attack reaches (increased from 6.0)
-  FACING_LENIENCY: 0.2,   // Dot product, lower is more lenient (was 0.5)
-  FORCE: 30.0,            // How far back the zombie flies
-  HEIGHT: 18.0,           // How high the zombie flies
+  ATTACK_RANGE: 15.0,     // How far the attack reaches (increased from 9.0 for easier hits)
+  FACING_LENIENCY: -1.0,  // Dot product, -1.0 means you can hit from ANY direction
+  FORCE: 90.0,            // How far back the zombie flies (tripled from 30.0)
+  HEIGHT: 24.0,           // How high the zombie flies (tripled from 8.0)
   GRAVITY: -60.0,         // Gravity applied to the falling zombie
   DECAY: 0.96,            // How quickly horizontal movement slows (closer to 1 is slower)
 };
@@ -355,14 +355,20 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
   const triggerDeath = useCallback((knockbackDirection: THREE.Vector3) => {
     if (isDead || isDeathSequenceStarted) return; // Prevent multiple deaths
     
-    console.log(`[${zombieId}] Death triggered with knockback direction:`, knockbackDirection);
+    console.log(`[${zombieId}] 💀 Death triggered with knockback direction:`, knockbackDirection);
     
     setIsDeathSequenceStarted(true);
     setIsDead(true);
     
-    // Apply knockback velocity from config
-    knockbackVelocity.current.copy(knockbackDirection.normalize().multiplyScalar(KNOCKBACK_CONFIG.FORCE));
-    knockbackVelocity.current.y = KNOCKBACK_CONFIG.HEIGHT; // Add upward force
+    // Apply knockback velocity - ensure zombies fly away from player, not towards
+    const normalizedDirection = knockbackDirection.clone().normalize();
+    knockbackVelocity.current.set(
+      normalizedDirection.x * KNOCKBACK_CONFIG.FORCE,
+      KNOCKBACK_CONFIG.HEIGHT, // Simple upward force
+      normalizedDirection.z * KNOCKBACK_CONFIG.FORCE
+    );
+    
+    console.log(`[${zombieId}] 🚀 Applied knockback velocity: (${knockbackVelocity.current.x.toFixed(2)}, ${knockbackVelocity.current.y.toFixed(2)}, ${knockbackVelocity.current.z.toFixed(2)})`);
     
     // Play death animation
     if (animations[ZOMBIE_ANIMATIONS.DEATH]) {
@@ -898,9 +904,14 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
         // If dot product > a lenient value, player is facing zombie
         if (dot > KNOCKBACK_CONFIG.FACING_LENIENCY) {
           console.log(`[ZombieManager] 💀 ZOMBIE KILLED! ${zombieId} hit at distance ${distance.toFixed(2)} (facing: ${dot.toFixed(3)})`);
+          console.log(`[ZombieManager] 🎯 Player pos: (${playerPosition.x.toFixed(2)}, ${playerPosition.y.toFixed(2)}, ${playerPosition.z.toFixed(2)})`);
+          console.log(`[ZombieManager] 🧟 Zombie pos: (${zombiePos.x.toFixed(2)}, ${zombiePos.y.toFixed(2)}, ${zombiePos.z.toFixed(2)})`);
+          console.log(`[ZombieManager] ➡️ Knockback direction: (${directionToZombie.x.toFixed(3)}, ${directionToZombie.y.toFixed(3)}, ${directionToZombie.z.toFixed(3)})`);
+          
           hitZombies.push({ zombieId, position: zombiePos, distance });
           
-          // Trigger zombie death with knockback direction
+          // Trigger zombie death with knockback direction (AWAY from player)
+          // directionToZombie is FROM player TO zombie, which is the correct direction for knockback
           const knockbackDirection = directionToZombie.clone();
           zombieData.triggerDeath(knockbackDirection);
         }

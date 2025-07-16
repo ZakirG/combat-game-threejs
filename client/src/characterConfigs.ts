@@ -98,15 +98,15 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-left': "Standing Run Left.fbx",
       'run-right': "Standing Run Right.fbx",
       jump: "Crouch Torch Walk Back.fbx", // Using available animation as placeholder
-      attack1: "Elbow Punch.fbx",
-      cast: "Mma Kick.fbx",
+      attack1: "Mma Kick.fbx",
+      cast: "Elbow Punch.fbx",
       damage: "Hit To Body.fbx",
       death: "Standing React Death Backward.fbx",
       falling: "Falling Idle.fbx", // Use available falling animation
       landing: "Falling To Landing.fbx" // Use available landing animation
     },
     timeScale: {
-      'walk-forward': 0.9, // Slightly more elegant movement
+      'walk-forward': 1.8, // Double speed for faster walking (was 0.9)
       'run-forward': 1.0,
       idle: 0.7, // Slower, more regal idle
       jump: 1.3, // Double speed for faster jumping animation
