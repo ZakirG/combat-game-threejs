@@ -450,8 +450,8 @@ export const Zombie: React.FC<ZombieProps> = ({
         </Html>
       )}
       
-      {/* Zombie nameplate */}
-      {model && (
+      {/* Zombie nameplate - HIDDEN */}
+      {model && false && (
         <Html position={[0, 2.5, 0]} center distanceFactor={10}>
           <div className="nametag">
             <div className="nametag-text" style={{ color: '#ff6666' }}>Zombie</div>

@@ -50,6 +50,8 @@ import {
 } from '../characterConfigs';
 import { GameReadyCallbacks } from '../types/gameReady';
 import { triggerScreenshake, updateScreenshake, SCREENSHAKE_PRESETS } from '../utils/screenshake';
+import { BloodEffectManager } from '../utils/bloodEffect';
+import { playBloodSpurtSound } from '../utils/audioUtils';
 
 // Define animation names for reuse
 const ANIMATIONS = {
@@ -145,6 +147,9 @@ export const Player: React.FC<PlayerProps> = ({
   const [comboActive, setComboActive] = useState<boolean>(false);
   const [comboStage, setComboStage] = useState<number>(0); // 0=none, 1=waiting for attack2, 2=waiting for attack3, 3=waiting for attack4
   const COMBO_WINDOW = 2000; // 2 seconds to perform combo (changed from 3 to match requirement)
+  
+  // Blood effect system
+  const bloodEffectManagerRef = useRef<BloodEffectManager | null>(null);
   
   // --- Client Prediction State ---
   // For gameplay, force high altitude spawn on first entrance
@@ -1105,6 +1110,17 @@ export const Player: React.FC<PlayerProps> = ({
     {
       const dt = Math.min(delta, 1 / 30);
 
+      // Initialize blood effect manager if not already done
+      if (!bloodEffectManagerRef.current && group.current?.parent) {
+        bloodEffectManagerRef.current = new BloodEffectManager(group.current.parent as THREE.Scene);
+        console.log(`[Player] 🩸 Blood effect manager initialized`);
+      }
+
+      // Update blood effects
+      if (bloodEffectManagerRef.current) {
+        bloodEffectManagerRef.current.update(delta);
+      }
+
       // Update screenshake effect (only for local player)
       if (isLocalPlayer) {
         updateScreenshake(camera, delta);
@@ -1235,6 +1251,9 @@ export const Player: React.FC<PlayerProps> = ({
                 if (hitZombies.length > 0) {
                   console.log(`[Player] ⚔️ Attack successful! Hit ${hitZombies.length} zombie(s)`);
                   
+                  // Play blood spurt sound effect
+                  playBloodSpurtSound();
+                  
                   // Trigger screenshake effect for impact feedback based on attack type
                   let shakeIntensity = SCREENSHAKE_PRESETS.LIGHT;
                   if (comboDescription === 'SECOND') {
@@ -1246,6 +1265,21 @@ export const Player: React.FC<PlayerProps> = ({
                   }
                   triggerScreenshake(camera, shakeIntensity);
                   console.log(`[Player] 📳 Screenshake triggered - ${comboDescription} attack intensity`);
+                  
+                  // Trigger blood spurt effects for each hit zombie
+                  if (bloodEffectManagerRef.current) {
+                    hitZombies.forEach((zombie: any) => {
+                      if (zombie.position) {
+                        const bloodPosition = new THREE.Vector3(
+                          zombie.position.x,
+                          zombie.position.y + 1.0, // Slightly above zombie center
+                          zombie.position.z
+                        );
+                        bloodEffectManagerRef.current!.createBloodSpurt(bloodPosition);
+                        console.log(`[Player] 🩸 Blood spurt created at zombie position`);
+                      }
+                    });
+                  }
                 }
               }
             }, 300); // 300ms delay to let attack animation play
@@ -1624,6 +1658,16 @@ export const Player: React.FC<PlayerProps> = ({
       }
     }
   }, [playerData.currentAnimation, animations, mixer, playAnimation, currentAnimation, isAttacking]); // Dependencies include things that trigger animation changes
+
+  // Cleanup blood effects on unmount
+  useEffect(() => {
+    return () => {
+      if (bloodEffectManagerRef.current) {
+        bloodEffectManagerRef.current.cleanup();
+        console.log(`[Player] 🧹 Blood effect manager cleaned up on unmount`);
+      }
+    };
+  }, []);
 
   return (
     <group ref={group} castShadow>

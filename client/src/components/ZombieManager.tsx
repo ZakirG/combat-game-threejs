@@ -584,13 +584,15 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
         </Html>
       )}
       
-      {/* Zombie nameplate - always show for now */}
-      <Html position={[0, 1.8, 0]} center distanceFactor={10}>
-        <div className="nametag">
-          <div className="nametag-text" style={{ color: '#ff6666' }}>{zombieId}</div>
-          <div className="nametag-class" style={{ color: '#cc4444' }}>Enemy NPC</div>
-        </div>
-      </Html>
+      {/* Zombie nameplate - HIDDEN */}
+      {false && (
+        <Html position={[0, 1.8, 0]} center distanceFactor={10}>
+          <div className="nametag">
+            <div className="nametag-text" style={{ color: '#ff6666' }}>{zombieId}</div>
+            <div className="nametag-class" style={{ color: '#cc4444' }}>Enemy NPC</div>
+          </div>
+        </Html>
+      )}
     </group>
   );
 };
