@@ -159,7 +159,7 @@ pub fn identity_disconnected(ctx: &ReducerContext) {
 pub fn register_player(ctx: &ReducerContext, username: String, character_class: String, x_handle: Option<String>) {
     let player_identity: Identity = ctx.sender;
     spacetimedb::log::info!(
-        "Registering player {} ({}) with class {} and X handle {:?}",
+        "[DEBUG] REGISTER_PLAYER CALLED! Player {} ({}) with class {} and X handle {:?}",
         username,
         player_identity,
         character_class,

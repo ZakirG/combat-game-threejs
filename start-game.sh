@@ -3,6 +3,8 @@
 # Vibe Coding 3D Multiplayer Game - Auto Start Script
 # This script automatically opens Warp terminal tabs and starts the game
 
+nvm use 22
+
 set -e
 
 # Get the absolute path of the script directory
@@ -20,6 +22,26 @@ if [ ! -d "$SERVER_DIR" ] || [ ! -d "$CLIENT_DIR" ]; then
     exit 1
 fi
 
+# Stop any existing game processes first to prevent conflicts
+echo "🛑 Stopping any existing game processes..."
+if [ -f "./stop-game.sh" ]; then
+    ./stop-game.sh
+    echo "✅ Existing processes stopped"
+    # Wait a moment for processes to fully terminate
+    sleep 2
+else
+    echo "⚠️  stop-game.sh not found, checking for running SpacetimeDB processes..."
+    # Try to kill any existing spacetime processes manually
+    if pgrep -f "spacetime" > /dev/null; then
+        echo "🔍 Found running SpacetimeDB processes, terminating..."
+        pkill -f "spacetime" || true
+        sleep 2
+        echo "✅ SpacetimeDB processes terminated"
+    else
+        echo "✅ No existing SpacetimeDB processes found"
+    fi
+fi
+
 # Create server startup script
 cat > "$SERVER_DIR/start-server.sh" << 'EOF'
 #!/bin/bash
@@ -31,6 +53,15 @@ export PATH="/Users/zakirgowani/.local/bin:$PATH"
 
 echo "🔧 Building SpacetimeDB module..."
 spacetime build
+
+echo "🔄 Regenerating TypeScript client bindings..."
+spacetime generate --lang typescript --out-dir ../client/src/generated
+if [ $? -eq 0 ]; then
+    echo "✅ TypeScript bindings regenerated successfully"
+else
+    echo "❌ Failed to regenerate TypeScript bindings"
+    exit 1
+fi
 
 echo "🚀 Starting SpacetimeDB server..."
 spacetime start &
@@ -47,6 +78,7 @@ echo "✅ SpacetimeDB server is running!"
 echo "🌐 Server URL: http://127.0.0.1:3000"
 echo "📊 Database: vibe-multiplayer"
 echo ""
+echo "📝 Note: TypeScript client bindings are automatically regenerated on each start"
 echo "Press Ctrl+C to stop the server"
 
 # Wait for server process
@@ -63,7 +95,22 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
 echo "🔧 Setting up Node.js environment..."
-nvm use 22
+echo "Current Node.js version: $(node --version)"
+
+# Force use Node 22 (compatible with Vite)
+echo "🔄 Switching to Node.js 22..."
+if nvm use 22 2>/dev/null; then
+    echo "✅ Successfully switched to Node.js 22: $(node --version)"
+elif nvm install 22 && nvm use 22; then
+    echo "✅ Installed and switched to Node.js 22: $(node --version)"
+else
+    echo "❌ Failed to install/switch to Node.js 22"
+    echo "   Manual steps:"
+    echo "   1. Install nvm: https://github.com/nvm-sh/nvm"
+    echo "   2. Run: nvm install 22 && nvm use 22"
+    echo "   3. Try starting the client again"
+    exit 1
+fi
 
 echo "📦 Installing dependencies..."
 npm install
@@ -171,5 +218,6 @@ echo ""
 echo "📝 Tips:"
 echo "   - Server runs on port 3000"
 echo "   - Client runs on port 5173"
+echo "   - TypeScript bindings are automatically regenerated on server start"
 echo "   - Press Ctrl+C in each terminal to stop services"
 echo "   - Check browser console for any errors" 
