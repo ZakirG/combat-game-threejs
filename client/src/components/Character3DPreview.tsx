@@ -153,11 +153,19 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
       characterConfig.modelPath,
       (fbx) => {
         console.log(`[Character3DPreview] Model loaded for ${characterName}`);
+        console.log(`[Character3DPreview] Model scale: ${characterConfig.scale}, yOffset: ${characterConfig.yOffset}`);
+        
+        // Calculate bounding box for debugging
+        const bbox = new THREE.Box3().setFromObject(fbx);
+        console.log(`[Character3DPreview] Model bounding box:`, bbox);
         
         // Apply character-specific scaling and positioning
         fbx.scale.setScalar(characterConfig.scale);
         // Push character DOWN to prevent floating up
         fbx.position.set(0, characterConfig.yOffset - 0.5, 0); // Extra downward offset to prevent floating
+        
+        console.log(`[Character3DPreview] Model positioned at:`, fbx.position);
+        console.log(`[Character3DPreview] Model scaled to:`, fbx.scale);
         
         // Load external textures if needed
         const processModelWithTextures = async () => {
@@ -233,6 +241,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
       undefined,
       (error) => {
         console.error(`[Character3DPreview] Error loading model for ${characterName}:`, error);
+        console.error(`[Character3DPreview] Model path was: ${characterConfig.modelPath}`);
         if (onLoadError) onLoadError(error);
       }
     );
@@ -255,28 +264,31 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
         setAnimations(loadedAnimations);
         setCurrentState(PreviewState.ATTACK1);
         setStateTimer(0);
-        if (onLoadComplete) onLoadComplete();
         
         // Start with attack animation instead of idle
-        // Also make model visible now that animations are ready
         if (loadedAnimations['attack1']) {
           playAnimation('attack1', loadedAnimations);
         } else if (loadedAnimations['idle']) {
           playAnimation('idle', loadedAnimations);
         }
         
-        // Make model visible now that animations are loaded
-        if (model && group.current) {
-          model.visible = true;
-          console.log(`[Character3DPreview] Model now visible for ${characterName}`);
-          // Notify parent that model is ready and visible
-          if (onLoadComplete) onLoadComplete();
-        }
+        // Make model visible after a delay to ensure animation is actually playing
+        setTimeout(() => {
+          if (model && group.current) {
+            model.visible = true;
+            setIsModelVisible(true);
+            console.log(`[Character3DPreview] Model now visible for ${characterName} with animation playing`);
+            
+            // Notify parent that model is ready and visible
+            if (onLoadComplete) onLoadComplete();
+          }
+        }, 1000); // Wait for fadeIn to complete + small buffer
       }
     };
     
     animationsToLoad.forEach((animName) => {
       const animPath = getAnimationPath(characterConfig, animName as keyof typeof characterConfig.animationTable);
+      console.log(`[Character3DPreview] Loading animation "${animName}" from: ${animPath}`);
       
       const loader = new FBXLoader();
       loader.load(

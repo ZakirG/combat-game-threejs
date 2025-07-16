@@ -72,6 +72,16 @@ function getCharacterDescription(characterName: string): string {
   return descriptions[characterName] || 'Skilled fighter';
 }
 
+// Helper function to get character-specific profile pictures
+function getCharacterProfilePicture(characterName: string): string {
+  const profilePictureMap: Record<string, string> = {
+    'Zaqir Mufasa': '/profile-zaqir.jpg', // Dummy profile picture file
+    'Grok Ani': '/grok-pfp.jpg', // Dummy profile picture file
+    'Grok Rudi': '/grok-pfp.jpg'
+  };
+  return profilePictureMap[characterName] || '/profile-default.png'; // Fallback to default profile pic
+}
+
 export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
   const [username, setUsername] = useState('X-' + Math.floor(Math.random() * 100000));
   const [xHandle, setXHandle] = useState('');
@@ -104,32 +114,40 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
   return (
     <div style={styles.overlay}>
       <form style={styles.dialog} onSubmit={handleSubmit}>
-        <h2 style={styles.title}>Welcome to X-Combat</h2>
-        <div style={styles.inputGroup}>
-          <div style={styles.inputWithLabel}>
-            <div style={styles.labelBox}>Name:</div>
-            <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              maxLength={16} // Limit username length
-              style={styles.mergedInput}
-            />
-          </div>
+        <div style={styles.titleContainer}>
+          <h2 style={styles.title}>Welcome to X-Combat</h2>
         </div>
+        <img 
+            src="/x-statue.png" 
+            alt="X Statue" 
+            style={styles.statueImage}
+          />
+        {/* Combined Name and X Handle inputs on same line */}
         <div style={styles.inputGroup}>
-          <div style={styles.inputWithLabel}>
-            <div style={styles.labelBox}>X Handle:</div>
-            <input
-              type="text"
-              id="xhandle"
-              value={xHandle}
-              onChange={(e) => setXHandle(e.target.value)}
-              placeholder="x.com/you"
-              maxLength={32} // Limit X handle length
-              style={styles.mergedInput}
-            />
+          <div style={styles.doubleInputContainer}>
+            <div style={styles.inputWithLabel}>
+              <div style={styles.labelBox}>Name:</div>
+              <input
+                type="text"
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                maxLength={16} // Limit username length
+                style={styles.mergedInput}
+              />
+            </div>
+            <div style={styles.inputWithLabel}>
+              <div style={styles.labelBox}>X Handle:</div>
+              <input
+                type="text"
+                id="xhandle"
+                value={xHandle}
+                onChange={(e) => setXHandle(e.target.value)}
+                placeholder="x.com/you"
+                maxLength={32} // Limit X handle length
+                style={styles.mergedInput}
+              />
+            </div>
           </div>
         </div>
         <div style={styles.inputGroup}>
@@ -187,8 +205,17 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
                   </div>
                   <div style={{
                     fontSize: '14px',
-                    opacity: 0.9
+                    opacity: 0.9,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    justifyContent: 'center'
                   }}>
+                    <img 
+                      src={getCharacterProfilePicture(characters[currentCharacterIndex].name)}
+                      alt={`${characters[currentCharacterIndex].name} Profile`}
+                      style={styles.characterProfilePicture}
+                    />
                     {characters[currentCharacterIndex].description}
                   </div>
                 </div>
@@ -294,6 +321,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     paddingBottom: '60px',
     boxSizing: 'border-box',
   },
+  titleContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '20px',
+    marginBottom: '-40px',
+    flexWrap: 'wrap',
+  },
   title: {
     fontFamily: 'KnightsQuest, serif',
     fontSize: '38px',
@@ -302,8 +337,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#2F1B14',
     textShadow: '1px 1px 2px rgba(139, 69, 19, 0.3)',
   },
+  statueImage: {
+    position: 'relative',
+    top: '15px',
+    filter: 'drop-shadow(4px 4px 4px black)',
+    width: '60px',
+    height: '60px',
+    objectFit: 'contain' as const,
+  },
   inputGroup: {
     marginBottom: '0px',
+    margin: 'auto',
     textAlign: 'left',
     width: '100%',
     maxWidth: '600px',
@@ -338,6 +382,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   button: {
     padding: '12px 25px',
+    marginBottom: '-15px',
     width: '50%',
     maxWidth: '300px',
     border: '2px solid #654321',
@@ -433,6 +478,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     objectFit: 'cover' as const,
     position: 'relative',
     zIndex: 2,
+    filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 30px rgba(255, 255, 255, 0.4))',
   },
   characterVideoBackground: {
     position: 'absolute',
@@ -503,6 +549,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4)',
     backgroundColor: 'rgba(0, 0, 0, 0.8)', // Dark background for better contrast
   },
+  doubleInputContainer: {
+    display: 'flex',
+    gap: '60px',
+    paddingLeft: '40px',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   inputWithLabel: {
     display: 'flex',
     alignItems: 'center',
@@ -540,7 +594,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: '2px solid #8B4513',
     borderRadius: '4px 0 0 4px',
     backgroundColor: 'rgba(245, 245, 220, 0.9)',
-    minWidth: '150px',
+    minWidth: '80px',
     textAlign: 'center',
     display: 'flex',
     alignItems: 'center',
@@ -556,6 +610,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#2F1B14',
     fontSize: '16px',
     fontFamily: 'Newrocker, serif',
+  },
+  characterProfilePicture: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    border: '1px solid grey',
+    objectFit: 'cover',
+    flexShrink: 0, // Prevent shrinking
   },
 };
 

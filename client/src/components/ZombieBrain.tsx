@@ -87,11 +87,6 @@ export function makeZombieDecision(
   const currentTime = Date.now();
   const closestPlayerInfo = findClosestPlayer(zombiePosition, players);
 
-  // Debug logging for player detection (occasionally)
-  if (Math.random() < 0.01 && closestPlayerInfo) {
-    console.log(`[ZombieBrain] Closest player at distance ${closestPlayerInfo.distance.toFixed(2)} (chase threshold: ${DISTANCE_TO_PLAYER_BEFORE_CHASING})`);
-  }
-
   // Check if player is nearby for chasing
   if (closestPlayerInfo && closestPlayerInfo.distance <= DISTANCE_TO_PLAYER_BEFORE_CHASING) {
     const playerPos = new THREE.Vector3(

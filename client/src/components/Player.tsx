@@ -79,6 +79,12 @@ const CAMERA_MODES = {
   ORBITAL: 'orbital' // Orbital camera that rotates around the player
 };
 
+// --- Physics Constants ---
+const GRAVITY = -15.0; // Downward acceleration
+const JUMP_FORCE = 8.0; // Upward velocity when jumping
+const GROUND_LEVEL = 0.0; // Ground Y position
+const TERMINAL_VELOCITY = -20.0; // Maximum falling speed
+
 interface PlayerProps {
   playerData: PlayerData;
   isLocalPlayer: boolean;
@@ -117,6 +123,11 @@ export const Player: React.FC<PlayerProps> = ({
   const localRotationRef = useRef<THREE.Euler>(new THREE.Euler(0, 0, 0, 'YXZ')); // Initialize with zero rotation
   const debugArrowRef = useRef<THREE.ArrowHelper | null>(null); // Declare the ref for the debug arrow
   
+  // --- Physics State ---
+  const velocityY = useRef<number>(0); // Y velocity for gravity and jumping
+  const isOnGround = useRef<boolean>(true); // Track if player is on ground
+  const wasJumpPressed = useRef<boolean>(false); // Track jump input to prevent continuous jumping
+  
   // Camera control variables
   const isPointerLocked = useRef(false);
   const zoomLevel = useRef(5);
@@ -139,7 +150,6 @@ export const Player: React.FC<PlayerProps> = ({
   const animationsLoadedRef = useRef(false);
 
   // --- State variables ---
-  const pointLightRef = useRef<THREE.PointLight>(null!); // Ref for the declarative light
 
   // --- Client-Side Movement Calculation (Matches Server Logic *before* Sign Flip) ---
   const calculateClientMovement = useCallback((currentPos: THREE.Vector3, currentRot: THREE.Euler, inputState: InputState, delta: number): THREE.Vector3 => {
@@ -390,14 +400,6 @@ export const Player: React.FC<PlayerProps> = ({
           localRotationRef.current.set(0, playerData.rotation.y, 0, 'YXZ');
         }
         
-        // Make model visible after a short delay to ensure animations are loaded
-        setTimeout(() => {
-          if (fbx && fbx.visible !== undefined) {
-            fbx.visible = true;
-            setIsModelVisible(true);
-            console.log(`[Player] Model now visible for ${playerData.username}`);
-          }
-        }, 200); // Small delay to let animations initialize
       },
       (progress) => { /* Optional progress log */ },
       (error: any) => {
@@ -506,8 +508,15 @@ export const Player: React.FC<PlayerProps> = ({
                            .fadeIn(0.3)
                            .play();
                  setCurrentAnimation('idle');
+                 
+                 // Make model visible now that idle animation is playing
+                 if (model && model.visible !== undefined) {
+                   model.visible = true;
+                   setIsModelVisible(true);
+                   console.log(`[Player] Model now visible for ${playerData.username} with idle animation playing`);
+                 }
              }
-          }, 100); 
+          }, 1500); // Longer delay to ensure animation is fully playing before showing model
         } else {
           console.error('Idle animation not found among loaded animations! Player might not animate initially.');
         }
@@ -617,7 +626,11 @@ export const Player: React.FC<PlayerProps> = ({
         const values = rootPositionTrack.values;
         for (let i = 0; i < values.length; i += 3) {
           values[i] = 0;     // Remove X
-          // values[i + 1] = 0; // Keep Y
+          // Remove Y for Zaqir Mufasa due to tiny scale amplifying movements
+          if (characterClass === 'Zaqir Mufasa') {
+            values[i + 1] = 0; // Remove Y to prevent floating
+          }
+          // values[i + 1] = 0; // Keep Y for other characters
           values[i + 2] = 0; // Remove Z
         }
       }
@@ -976,21 +989,7 @@ export const Player: React.FC<PlayerProps> = ({
     {
       const dt = Math.min(delta, 1 / 30);
 
-      // --- Parent Check & Position Log --- 
-      if (pointLightRef.current && group.current && Math.random() < 0.01) { 
-        const lightWorldPos = new THREE.Vector3();
-        const groupWorldPos = new THREE.Vector3();
-        pointLightRef.current.getWorldPosition(lightWorldPos);
-        group.current.getWorldPosition(groupWorldPos);
-
-        /*if (pointLightRef.current.parent !== group.current) {
-          console.error(`[Player Frame ${playerData.username}] Light parent mismatch!`);
-        } else {
-          // Log world positions for comparison
-          console.log(`[Player Frame ${playerData.username}] Group World: (${groupWorldPos.x.toFixed(2)}, ${groupWorldPos.y.toFixed(2)}, ${groupWorldPos.z.toFixed(2)}), Light World: (${lightWorldPos.x.toFixed(2)}, ${lightWorldPos.y.toFixed(2)}, ${lightWorldPos.z.toFixed(2)})`);
-        }*/
-      }
-      // --- END LOG --- 
+ 
 
       // Update latest server data ref for local player
       if (isLocalPlayer) {
@@ -1009,6 +1008,34 @@ export const Player: React.FC<PlayerProps> = ({
             SERVER_TICK_DELTA // Use FIXED delta for prediction to match server
           );
           localPositionRef.current.copy(predictedPosition);
+          
+          // 1.5. Apply gravity and jumping physics
+          const currentY = localPositionRef.current.y;
+          
+          // Handle jumping input (only trigger once per press)
+          if (currentInput.jump && !wasJumpPressed.current && isOnGround.current) {
+            velocityY.current = JUMP_FORCE;
+            isOnGround.current = false;
+            wasJumpPressed.current = true;
+          } else if (!currentInput.jump) {
+            wasJumpPressed.current = false;
+          }
+          
+          // Apply gravity
+          if (!isOnGround.current) {
+            velocityY.current += GRAVITY * dt; // Use frame delta for smooth physics
+            velocityY.current = Math.max(velocityY.current, TERMINAL_VELOCITY); // Clamp to terminal velocity
+          }
+          
+          // Update Y position with velocity
+          localPositionRef.current.y += velocityY.current * dt;
+          
+          // Ground collision detection
+          if (localPositionRef.current.y <= GROUND_LEVEL) {
+            localPositionRef.current.y = GROUND_LEVEL;
+            velocityY.current = 0;
+            isOnGround.current = true;
+          }
 
           // 2. RECONCILIATION (Position)
           const serverPosition = new THREE.Vector3(dataRef.current.position.x, dataRef.current.position.y, dataRef.current.position.z);
@@ -1267,21 +1294,10 @@ export const Player: React.FC<PlayerProps> = ({
 
   return (
     <group ref={group} castShadow>
-      {/* Declarative PointLight */}
-      <pointLight 
-        ref={pointLightRef} 
-        position={[0, -0.5, 0]} // Lowered position further
-        color={0xffccaa} 
-        intensity={2.5} // Increased intensity
-        distance={5} 
-        decay={2} 
-        castShadow={false} 
-      />
-
       {/* Debug Marker Sphere */}
       <Sphere 
         args={[0.1, 16, 16]} 
-        position={[0, -0.5, 0]} // Match the new light position
+        position={[0, -0.5, 0]} 
         visible={isDebugPanelVisible} 
       >
         <meshBasicMaterial color="red" wireframe /> 

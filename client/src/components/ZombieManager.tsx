@@ -33,7 +33,7 @@ import { ZOMBIE_CONFIG } from '../characterConfigs';
 
 // Configurable spawn settings
 const SPAWN_SETTINGS = {
-  MIN_DISTANCE_FROM_PLAYERS: 15, // Increased minimum distance due to extended zombie perception range
+  MIN_DISTANCE_FROM_PLAYERS: 20, // Farther spawn distance for more challenging gameplay
   WORLD_SIZE: 40, // Size of the game world for spawning
   MAX_SPAWN_ATTEMPTS: 50, // Maximum attempts to find a safe spawn position
   FALLBACK_EDGE_DISTANCE: 0.4 // Multiplier for edge distance in fallback scenarios
@@ -64,11 +64,6 @@ const executeBehavior = (
         const moveAmount = direction.multiplyScalar(decision.speed * delta);
         const oldPos = zombiePosition.current.clone();
         zombiePosition.current.add(moveAmount);
-        
-        // Debug movement for first zombie
-        if (Math.random() < 0.02) {
-          console.log(`[Movement] ${decision.action}: moved from [${oldPos.x.toFixed(2)}, ${oldPos.z.toFixed(2)}] to [${zombiePosition.current.x.toFixed(2)}, ${zombiePosition.current.z.toFixed(2)}], distance: ${moveAmount.length().toFixed(3)}`);
-        }
         
         // Rotate to face movement direction
         if (direction.length() > 0) {
@@ -189,7 +184,6 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
   useEffect(() => {
     if (group.current) {
       group.current.position.copy(zombiePosition.current);
-      console.log(`[${zombieId}] Set initial group position to:`, zombiePosition.current.toArray());
     }
   }, [zombieId]);
   
@@ -203,13 +197,11 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
     if (!isLoaded || !shouldLoad || instanceModel || isModelLoading) return;
     
     setIsModelLoading(true);
-    console.log(`[ZombieInstance ${zombieId}] Starting batched model load`);
     
     const loader = new GLTFLoader();
     loader.load(
       ZOMBIE_CONFIG.modelPath,
       (gltf) => {
-        console.log(`[${zombieId}] Fresh model loaded`);
         
         const model = gltf.scene;
         
@@ -241,6 +233,8 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
         
         if (group.current) {
           group.current.add(model);
+          // Hide model initially to prevent T-pose visibility
+          model.visible = false;
         }
         
         // Create mixer for this instance
@@ -277,12 +271,17 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
           if (instanceAnimations[ZOMBIE_ANIMATIONS.IDLE]) {
             instanceAnimations[ZOMBIE_ANIMATIONS.IDLE].play();
             setCurrentAnimation(ZOMBIE_ANIMATIONS.IDLE);
+            
+            // Make model visible now that idle animation is playing
+            if (model && model.visible !== undefined) {
+              model.visible = true;
+            }
+            
             // Initialize AI with the new system and persistent state
             const initialDecision = makeZombieDecision(zombiePosition.current, players, zombieStateRef.current);
             setCurrentDecision(initialDecision);
             setDecisionTimer(0);
             setLastDecisionTime(Date.now());
-            console.log(`[${zombieId}] Initialized with fresh model - Decision: ${initialDecision.action}, Mode: ${zombieStateRef.current.mode}, Position: ${zombiePosition.current.toArray()}`);
           }
         }, 100);
       },
@@ -382,17 +381,12 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
         playZombieAnimation(newDecision.animation);
       }
       
-      console.log(`[${zombieId}] New AI Decision: ${newDecision.action} (mode: ${zombieStateRef.current.mode})`);
     }
     
     // Execute current decision with actual behavior
     if (currentDecision) {
       executeBehavior(currentDecision, zombiePosition, zombieRotation, delta);
       
-      // Debug logging for first zombie to see what's happening
-      if (zombieId === 'zombie-0' && Math.random() < 0.1) {
-        console.log(`[${zombieId}] Executing ${currentDecision.action}, Position: [${zombiePosition.current.x.toFixed(2)}, ${zombiePosition.current.z.toFixed(2)}], Target: ${currentDecision.targetPosition ? `[${currentDecision.targetPosition.x.toFixed(2)}, ${currentDecision.targetPosition.z.toFixed(2)}]` : 'None'}, Speed: ${currentDecision.speed}`);
-      }
     }
   }, [currentDecision, decisionTimer, players, playZombieAnimation, currentAnimation, zombieId]);
 
@@ -526,7 +520,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
           }
         });
         
-        console.log('[ZombieManager] Shared model after processing scale:', model.scale);
+        
         checkLoadComplete();
       },
       undefined,
@@ -577,7 +571,6 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
             }
             
             loadedClips[name] = clip;
-            console.log(`[ZombieManager] Animation "${name}" loaded`);
           }
           
           loadedAnimations++;
@@ -594,7 +587,6 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
 
     const checkLoadComplete = () => {
       if (loadedModel && loadedAnimations === totalAnimations) {
-        console.log('[ZombieManager] All resources loaded, ready to spawn zombies');
         setResources({
           model: loadedModel,
           animationClips: loadedClips,
@@ -664,7 +656,6 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   // Generate zombie positions with safety checks (regenerate when players change)
   const zombiePositions = useMemo(() => {
     const minDistance = minSpawnDistance || SPAWN_SETTINGS.MIN_DISTANCE_FROM_PLAYERS;
-    console.log(`[ZombieManager] Generating ${zombieCount} zombie positions with ${minDistance}u minimum distance`);
     
     return Array.from({ length: zombieCount }, (_, index) => {
       const position = generateSafeZombiePosition(players, minDistance);
@@ -690,12 +681,11 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       
       // Move to next zombie after delay
       if (newCount < zombieCount) {
-        console.log(`[ZombieManager] Zombie ${newCount-1} loaded, starting zombie ${newCount} in ${LOADING_DELAY}ms`);
         setTimeout(() => {
           setCurrentLoadingIndex(newCount);
         }, LOADING_DELAY);
       } else {
-        console.log(`[ZombieManager] All ${zombieCount} zombies loaded!`);
+        // console.log(`[ZombieManager] All ${zombieCount} zombies loaded!`);
       }
       
       return newCount;

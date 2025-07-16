@@ -35,6 +35,8 @@ export interface CharacterAnimationTable {
   cast: string;
   damage: string;
   death: string;
+  falling: string;
+  landing: string;
 }
 
 export interface CharacterConfig {
@@ -51,8 +53,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
   "Zaqir Mufasa": {
     modelPath: "/models/zaqir-2/Idle.fbx",
     basePath: "/models/zaqir-2/",
-    scale: 0.012,
-    yOffset: 0.0, // Adjusted for ground level positioning
+    scale: 0.016, // 1.3x bigger (0.012 * 1.3)
+    yOffset: 0.7, // Adjusted for ground level positioning
     movement: {
       walkSpeed: 3.0,
       runSpeed: 6.0
@@ -71,7 +73,9 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       attack1: "Standing Melee Punch.fbx",
       cast: "Roundhouse Kick.fbx",
       damage: "Receive Hit.fbx",
-      death: "death.fbx"
+      death: "death.fbx",
+      falling: "Falling.fbx",
+      landing: "Fall A Land To Standing Idle 01.fbx"
     },
     timeScale: {
       'walk-forward': 1.0, // Normal speed for mutant walk
@@ -79,13 +83,15 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-back': 1.0,     // Normal speed for run back
       'run-left': 1.0,     // Normal speed for run left  
       'run-right': 1.0,    // Normal speed for run right
-      idle: 0.8 // Slightly slower idle for more dramatic effect
+      idle: 0.8, // Slightly slower idle for more dramatic effect
+      falling: 1.0, // Normal falling speed
+      landing: 1.2 // Slightly faster landing for quicker recovery
     }
   },
   "Grok Ani": {
     modelPath: "/models/grok-ani/base.fbx",
     basePath: "/models/grok-ani/", // Use Grok Ani's own animations
-    scale: 0.012,
+    scale: 0.01,
     yOffset: 0.0, // Adjusted for ground level positioning
     movement: {
       walkSpeed: 2.8,
@@ -105,46 +111,60 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       attack1: "Elbow Punch.fbx",
       cast: "Mma Kick.fbx",
       damage: "Hit To Body.fbx",
-      death: "Standing React Death Backward.fbx"
+      death: "Standing React Death Backward.fbx",
+      falling: "Falling Idle.fbx", // Use available falling animation
+      landing: "Falling To Landing.fbx" // Use available landing animation
     },
     timeScale: {
       'walk-forward': 0.9, // Slightly more elegant movement
       'run-forward': 1.0,
-      idle: 0.7 // Slower, more regal idle
+      idle: 0.7, // Slower, more regal idle
+      falling: 1.0, // Normal falling speed
+      landing: 1.1 // Slightly faster landing
     }
   },
   "Grok Rudi": {
-    modelPath: "/models/grok-rudi/Red_Panda_Pal_0715205437_texture_fbx/Red_Panda_Pal_0715205437_texture.fbx",
-    basePath: "/models/zaqir-2/", // Use Zaqir's animations as fallback
-    scale: 0.012,
-    yOffset: 0.0, // Adjusted for ground level positioning
+    modelPath: "/models/grok-rudi/Red_Panda_Pal_0715205437_texture.fbx", // Test with original model
+    basePath: "/models/grok-rudi/", // Use Grok Rudi's own animations
+    scale: 0.01, // Much larger scale for visibility (was 0.0156)
+    yOffset: 1.2, // Adjusted for ground level positioning
     movement: {
       walkSpeed: 3.2,
       runSpeed: 6.5
     },
     animationTable: {
-      idle: "Idle.fbx",
-      'walk-forward': "Mutant Walk.fbx",
-      'walk-back': "Standing Walk Back.fbx", 
-      'walk-left': "Standing Walk Left.fbx",
-      'walk-right': "Standing Walk Right.fbx",
-      'run-forward': "Fast Run.fbx",
-      'run-back': "Standing Run Back.fbx",
-      'run-left': "Standing Run Left.fbx",
-      'run-right': "Standing Run Right.fbx",
-      jump: "Jumping.fbx",
-      attack1: "Standing Melee Punch.fbx",
-      cast: "Roundhouse Kick.fbx",
-      damage: "Receive Hit.fbx",
-      death: "death.fbx"
+      idle: "Fight Idle.fbx", // Grok Rudi's combat idle
+      'walk-forward': "Standing Walk Forward.fbx", // Grok Rudi's forward walk
+      'walk-back': "Walking Backward.fbx", // Grok Rudi's backward walk
+      'walk-left': "Standing Walk Left.fbx", // Grok Rudi's left walk
+      'walk-right': "Standing Walk Right.fbx", // Grok Rudi's right walk
+      'run-forward': "Fast Run (Sprint).fbx", // Grok Rudi's sprint
+      'run-back': "Walking Backward.fbx", // Use backward walk for run back
+      'run-left': "Standing Walk Left.fbx", // Use left walk for run left
+      'run-right': "Standing Walk Right.fbx", // Use right walk for run right
+      jump: "Standing Walk Forward.fbx", // Placeholder until jump animation is added
+      attack1: "Punch.fbx", // Grok Rudi's first punch
+      cast: "Punch 2.fbx", // Grok Rudi's second punch for cast
+      damage: "Falling Back Death.fbx", // Use death animation for damage
+      death: "Falling Back Death.fbx", // Grok Rudi's death animation
+      falling: "Falling.fbx", // Grok Rudi's falling animation
+      landing: "Landing.fbx" // Grok Rudi's landing animation
     },
     timeScale: {
-      'walk-forward': 1.1, // More energetic movement
-      'run-forward': 1.2,  // Faster, more agile
-      'run-back': 1.1,
-      'run-left': 1.1,
-      'run-right': 1.1,
-      idle: 0.9 // Slightly more active idle
+      'walk-forward': 1.0, // Natural walking pace
+      'walk-back': 1.0,    // Natural backward pace
+      'walk-left': 1.0,    // Natural left strafe
+      'walk-right': 1.0,   // Natural right strafe
+      'run-forward': 1.1,  // Slightly faster sprint
+      'run-back': 1.0,     // Normal pace for run back
+      'run-left': 1.0,     // Normal pace for run left
+      'run-right': 1.0,    // Normal pace for run right
+      idle: 0.8,           // Slower, more menacing combat idle
+      attack1: 1.2,        // Quick punches
+      cast: 1.1,           // Slightly faster second punch
+      falling: 1.0,        // Normal falling speed
+      landing: 1.0,        // Normal landing speed
+      death: 0.9           // Slightly slower death for dramatic effect
     }
   }
 } as const;
@@ -178,7 +198,9 @@ export function getCharacterConfig(characterClass: string): CharacterConfig {
 // Helper function to get full animation path
 export function getAnimationPath(config: CharacterConfig, animationKey: keyof CharacterAnimationTable): string {
   const filename = config.animationTable[animationKey];
-  return `${config.basePath}${filename}`;
+  // URL encode the filename to handle spaces and special characters
+  const encodedFilename = encodeURIComponent(filename);
+  return `${config.basePath}${encodedFilename}`;
 }
 
 // Helper function to get animation time scale

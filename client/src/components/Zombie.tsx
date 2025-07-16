@@ -128,6 +128,8 @@ export const Zombie: React.FC<ZombieProps> = ({
         if (group.current) {
           group.current.add(model);
           model.position.y = ZOMBIE_CONFIG.yOffset; // Use standardized Y positioning
+          // Hide model initially to prevent T-pose visibility
+          model.visible = false;
         }
         
         setModel(model);
@@ -193,6 +195,12 @@ export const Zombie: React.FC<ZombieProps> = ({
           setTimeout(() => {
             if (animationsLoadedRef.current) {
               playZombieAnimation(ZOMBIE_ANIMATIONS.IDLE, newAnimations);
+              
+              // Make model visible now that idle animation is playing
+              if (model && model.visible !== undefined) {
+                model.visible = true;
+                console.log(`[Zombie] Model now visible with idle animation playing`);
+              }
             }
           }, 100);
         }

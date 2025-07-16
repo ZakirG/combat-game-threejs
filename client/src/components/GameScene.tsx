@@ -164,10 +164,10 @@ export const GameScene: React.FC<GameSceneProps> = ({
 
       {/* Render Optimized Zombie Manager */}
       <ZombieManager 
-        zombieCount={10}
+        zombieCount={20}
         players={players}
         isDebugVisible={isDebugPanelVisible}
-        minSpawnDistance={12} // Minimum 12 units from any player
+        minSpawnDistance={20} // Minimum 20 units from any player for more spread out spawning
       />
 
       {/* Remove OrbitControls as we're using our own camera controls */}
