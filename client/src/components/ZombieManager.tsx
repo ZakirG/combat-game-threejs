@@ -40,6 +40,16 @@ const SPAWN_SETTINGS = {
   FALLBACK_EDGE_DISTANCE: 0.4 // Multiplier for edge distance in fallback scenarios
 };
 
+// Configurable knockback physics for player attacks
+const KNOCKBACK_CONFIG = {
+  ATTACK_RANGE: 9.0,      // How far the attack reaches (increased from 6.0)
+  FACING_LENIENCY: 0.2,   // Dot product, lower is more lenient (was 0.5)
+  FORCE: 30.0,            // How far back the zombie flies
+  HEIGHT: 18.0,           // How high the zombie flies
+  GRAVITY: -60.0,         // Gravity applied to the falling zombie
+  DECAY: 0.96,            // How quickly horizontal movement slows (closer to 1 is slower)
+};
+
 
 // Execute zombie behavior based on AI decision
 const executeBehavior = (
@@ -192,7 +202,6 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
   const [deathTimer, setDeathTimer] = useState<number>(0);
   const [opacity, setOpacity] = useState<number>(1.0);
   const knockbackVelocity = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
-  const knockbackDecay = 0.92; // How quickly knockback slows down
   
   // Apply initial position to group
   useEffect(() => {
@@ -351,9 +360,9 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
     setIsDeathSequenceStarted(true);
     setIsDead(true);
     
-    // Apply knockback velocity
-    const knockbackForce = 15.0; // Adjust for desired knockback strength
-    knockbackVelocity.current.copy(knockbackDirection.normalize().multiplyScalar(knockbackForce));
+    // Apply knockback velocity from config
+    knockbackVelocity.current.copy(knockbackDirection.normalize().multiplyScalar(KNOCKBACK_CONFIG.FORCE));
+    knockbackVelocity.current.y = KNOCKBACK_CONFIG.HEIGHT; // Add upward force
     
     // Play death animation
     if (animations[ZOMBIE_ANIMATIONS.DEATH]) {
@@ -459,9 +468,22 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
       setDeathTimer(prev => prev + delta);
       
       // Apply knockback physics
-      if (knockbackVelocity.current.length() > 0.1) {
+      if (knockbackVelocity.current.length() > 0.1 || zombiePosition.current.y > ZOMBIE_CONFIG.yOffset) {
+        // Apply gravity
+        knockbackVelocity.current.y += KNOCKBACK_CONFIG.GRAVITY * delta;
+        
+        // Update position
         zombiePosition.current.add(knockbackVelocity.current.clone().multiplyScalar(delta));
-        knockbackVelocity.current.multiplyScalar(knockbackDecay); // Gradually slow down
+
+        // Apply horizontal decay
+        knockbackVelocity.current.x *= KNOCKBACK_CONFIG.DECAY;
+        knockbackVelocity.current.z *= KNOCKBACK_CONFIG.DECAY;
+        
+        // Check for ground collision
+        if (zombiePosition.current.y < ZOMBIE_CONFIG.yOffset) {
+          zombiePosition.current.y = ZOMBIE_CONFIG.yOffset;
+          knockbackVelocity.current.set(0, 0, 0); // Stop all movement
+        }
       }
       
       // Start fading after 2 seconds
@@ -856,7 +878,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   }, []);
 
   // Create global attack check function for Player components to use
-  const checkPlayerAttack = useCallback((playerPosition: THREE.Vector3, playerRotation: THREE.Euler, attackRange: number = 6.0) => {
+  const checkPlayerAttack = useCallback((playerPosition: THREE.Vector3, playerRotation: THREE.Euler, attackRange: number = KNOCKBACK_CONFIG.ATTACK_RANGE) => {
     const hitZombies: Array<{ zombieId: string; position: THREE.Vector3; distance: number }> = [];
     
     // Get forward direction from player rotation  
@@ -873,8 +895,8 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
         const directionToZombie = new THREE.Vector3().subVectors(zombiePos, playerPosition).normalize();
         const dot = forwardDirection.dot(directionToZombie);
         
-        // If dot product > 0.5, player is facing zombie (within ~60 degrees)
-        if (dot > 0.5) {
+        // If dot product > a lenient value, player is facing zombie
+        if (dot > KNOCKBACK_CONFIG.FACING_LENIENCY) {
           console.log(`[ZombieManager] 💀 ZOMBIE KILLED! ${zombieId} hit at distance ${distance.toFixed(2)} (facing: ${dot.toFixed(3)})`);
           hitZombies.push({ zombieId, position: zombiePos, distance });
           

@@ -69,6 +69,51 @@ export interface CharacterConfig {
 }
 
 export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
+  "Grok Ani": {
+    modelPath: "/models/grok-ani/base.fbx",
+    basePath: "/models/grok-ani/", // Use Grok Ani's own animations
+    scale: 0.01,
+    yOffset: 0.0, // Adjusted for ground level positioning
+    preview: {
+      scale: 0.011,
+      yOffset: 0.2
+    },
+    gameplay: {
+       scale: 0.01,
+       yOffset: 0.0, // Adjusted for ground level positioning
+       highAltitudeSpawn: SPAWN_ALTITUDE
+     },
+    movement: {
+      walkSpeed: 2.8,
+      runSpeed: 5.5
+    },
+    animationTable: {
+      idle: "Idle.fbx",
+      'walk-forward': "Walk forward.fbx",
+      'walk-back': "Happy Walk Backward.fbx", 
+      'walk-left': "Left Strafe Walk.fbx",
+      'walk-right': "Right Strafe Walk.fbx",
+      'run-forward': "Run Forward.fbx",
+      'run-back': "Standing Run Back.fbx",
+      'run-left': "Standing Run Left.fbx",
+      'run-right': "Standing Run Right.fbx",
+      jump: "Crouch Torch Walk Back.fbx", // Using available animation as placeholder
+      attack1: "Elbow Punch.fbx",
+      cast: "Mma Kick.fbx",
+      damage: "Hit To Body.fbx",
+      death: "Standing React Death Backward.fbx",
+      falling: "Falling Idle.fbx", // Use available falling animation
+      landing: "Falling To Landing.fbx" // Use available landing animation
+    },
+    timeScale: {
+      'walk-forward': 0.9, // Slightly more elegant movement
+      'run-forward': 1.0,
+      idle: 0.7, // Slower, more regal idle
+      jump: 1.3, // Double speed for faster jumping animation
+      falling: 1.0, // Normal falling speed
+      landing: 1.1 // Slightly faster landing
+    }
+  },
   "Zaqir Mufasa": {
     modelPath: "/models/zaqir-2/Idle.fbx",
     basePath: "/models/zaqir-2/",
@@ -115,51 +160,6 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       jump: 1.3, // Double speed for faster jumping animation
       falling: 1.0, // Normal falling speed
       landing: 1.2 // Slightly faster landing for quicker recovery
-    }
-  },
-  "Grok Ani": {
-    modelPath: "/models/grok-ani/base.fbx",
-    basePath: "/models/grok-ani/", // Use Grok Ani's own animations
-    scale: 0.01,
-    yOffset: 0.0, // Adjusted for ground level positioning
-    preview: {
-      scale: 0.011,
-      yOffset: 0.2
-    },
-    gameplay: {
-       scale: 0.01,
-       yOffset: 0.0, // Adjusted for ground level positioning
-       highAltitudeSpawn: SPAWN_ALTITUDE
-     },
-    movement: {
-      walkSpeed: 2.8,
-      runSpeed: 5.5
-    },
-    animationTable: {
-      idle: "Idle.fbx",
-      'walk-forward': "Walk forward.fbx",
-      'walk-back': "Happy Walk Backward.fbx", 
-      'walk-left': "Left Strafe Walk.fbx",
-      'walk-right': "Right Strafe Walk.fbx",
-      'run-forward': "Run Forward.fbx",
-      'run-back': "Standing Run Back.fbx",
-      'run-left': "Standing Run Left.fbx",
-      'run-right': "Standing Run Right.fbx",
-      jump: "Crouch Torch Walk Back.fbx", // Using available animation as placeholder
-      attack1: "Elbow Punch.fbx",
-      cast: "Mma Kick.fbx",
-      damage: "Hit To Body.fbx",
-      death: "Standing React Death Backward.fbx",
-      falling: "Falling Idle.fbx", // Use available falling animation
-      landing: "Falling To Landing.fbx" // Use available landing animation
-    },
-    timeScale: {
-      'walk-forward': 0.9, // Slightly more elegant movement
-      'run-forward': 1.0,
-      idle: 0.7, // Slower, more regal idle
-      jump: 1.3, // Double speed for faster jumping animation
-      falling: 1.0, // Normal falling speed
-      landing: 1.1 // Slightly faster landing
     }
   },
   "Grok Rudi": {
