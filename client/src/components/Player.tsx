@@ -147,6 +147,9 @@ export const Player: React.FC<PlayerProps> = ({
   const wasJumpPressed = useRef<boolean>(false); // Track jump input to prevent continuous jumping
   const spawnTime = useRef<number>(Date.now()); // Track when player spawned
   
+  // --- Attack State ---
+  const wasAttackPressed = useRef<boolean>(false); // Track attack input to prevent continuous attacking
+  
   // Camera control variables
   const isPointerLocked = useRef(false);
   const zoomLevel = useRef(5);
@@ -1124,6 +1127,26 @@ export const Player: React.FC<PlayerProps> = ({
             wasJumpPressed.current = true;
           } else if (!currentInput.jump) {
             wasJumpPressed.current = false;
+          }
+          
+          // Handle attack input (only trigger once per press)
+          if (currentInput.attack && !wasAttackPressed.current) {
+            wasAttackPressed.current = true;
+            
+            // Check for zombie attacks using global function
+            if ((window as any).checkZombieAttack) {
+              const hitZombies = (window as any).checkZombieAttack(
+                localPositionRef.current, 
+                localRotationRef.current, 
+                6.0 // Attack range of 6 units
+              );
+              
+              if (hitZombies.length > 0) {
+                console.log(`[Player] ⚔️ Attack successful! Hit ${hitZombies.length} zombie(s)`);
+              }
+            }
+          } else if (!currentInput.attack) {
+            wasAttackPressed.current = false;
           }
           
           // Apply gravity only when physics is enabled to prevent falling before model is ready

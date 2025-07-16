@@ -144,6 +144,9 @@ interface ZombieInstanceProps {
   zombieId: string;
   shouldLoad?: boolean; // Whether this zombie should start loading
   onLoadComplete?: () => void; // Callback when loading finishes
+  onZombieDeath?: (zombieId: string) => void; // Callback when zombie dies
+  onRegisterInstance?: (zombieId: string, positionRef: React.MutableRefObject<THREE.Vector3>, triggerDeath: (direction: THREE.Vector3) => void) => void; // Register for attack detection
+  onUnregisterInstance?: (zombieId: string) => void; // Unregister when cleanup
 }
 
 // Individual zombie instance component (lightweight)
@@ -153,7 +156,10 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
   isDebugVisible = false,
   zombieId,
   shouldLoad = false,
-  onLoadComplete
+  onLoadComplete,
+  onZombieDeath,
+  onRegisterInstance,
+  onUnregisterInstance
 }) => {
   const { model: sharedModel, animationClips, isLoaded } = useZombieResources();
   const group = useRef<THREE.Group>(null!);
@@ -180,12 +186,22 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
   const zombieRotation = useRef<THREE.Euler>(new THREE.Euler(0, Math.random() * Math.PI * 2, 0)); // Random Y rotation
   const targetRotation = useRef<number>(0);
   
+  // Death and knockback state
+  const [isDead, setIsDead] = useState<boolean>(false);
+  const [isDeathSequenceStarted, setIsDeathSequenceStarted] = useState<boolean>(false);
+  const [deathTimer, setDeathTimer] = useState<number>(0);
+  const [opacity, setOpacity] = useState<number>(1.0);
+  const knockbackVelocity = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
+  const knockbackDecay = 0.92; // How quickly knockback slows down
+  
   // Apply initial position to group
   useEffect(() => {
     if (group.current) {
       group.current.position.copy(zombiePosition.current);
     }
   }, [zombieId]);
+  
+
   
   // Constants
   const ZOMBIE_SPEED = 3.0;
@@ -326,6 +342,41 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
     setCurrentAnimation(name);
   }, [animations, currentAnimation, mixer]);
 
+  // Death sequence function
+  const triggerDeath = useCallback((knockbackDirection: THREE.Vector3) => {
+    if (isDead || isDeathSequenceStarted) return; // Prevent multiple deaths
+    
+    console.log(`[${zombieId}] Death triggered with knockback direction:`, knockbackDirection);
+    
+    setIsDeathSequenceStarted(true);
+    setIsDead(true);
+    
+    // Apply knockback velocity
+    const knockbackForce = 15.0; // Adjust for desired knockback strength
+    knockbackVelocity.current.copy(knockbackDirection.normalize().multiplyScalar(knockbackForce));
+    
+    // Play death animation
+    if (animations[ZOMBIE_ANIMATIONS.DEATH]) {
+      playZombieAnimation(ZOMBIE_ANIMATIONS.DEATH);
+    }
+    
+    // Start death timer
+    setDeathTimer(0);
+  }, [isDead, isDeathSequenceStarted, zombieId, animations, playZombieAnimation]);
+
+  // Register for attack detection when ready, unregister on cleanup
+  useEffect(() => {
+    if (instanceModel && onRegisterInstance && !isDead) {
+      onRegisterInstance(zombieId, zombiePosition, triggerDeath);
+    }
+    
+    return () => {
+      if (onUnregisterInstance) {
+        onUnregisterInstance(zombieId);
+      }
+    };
+  }, [instanceModel, zombieId, triggerDeath, isDead, onRegisterInstance, onUnregisterInstance]);
+
   // Find nearest player - use horizontal distance only to avoid Y-axis issues
   const findNearestPlayer = useCallback((): PlayerData | null => {
     let nearestPlayer: PlayerData | null = null;
@@ -357,6 +408,9 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
 
     // Advanced AI Update System with persistent state
   const updateAdvancedAI = useCallback((delta: number) => {
+    // Skip AI when dead
+    if (isDead) return;
+    
     // Update decision timer
     setDecisionTimer(prev => prev + delta);
     
@@ -400,8 +454,53 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
     // Update animation mixer
     mixer.update(delta);
     
-    // Update AI with new advanced system
-    updateAdvancedAI(delta);
+    // Handle death sequence
+    if (isDead || isDeathSequenceStarted) {
+      setDeathTimer(prev => prev + delta);
+      
+      // Apply knockback physics
+      if (knockbackVelocity.current.length() > 0.1) {
+        zombiePosition.current.add(knockbackVelocity.current.clone().multiplyScalar(delta));
+        knockbackVelocity.current.multiplyScalar(knockbackDecay); // Gradually slow down
+      }
+      
+      // Start fading after 2 seconds
+      if (deathTimer > 2.0) {
+        const fadeStartTime = deathTimer - 2.0;
+        const fadeDuration = 1.0; // 1 second fade
+        const fadeProgress = Math.min(fadeStartTime / fadeDuration, 1.0);
+        const newOpacity = 1.0 - fadeProgress;
+        
+        setOpacity(newOpacity);
+        
+        // Apply opacity to all materials
+        if (instanceModel) {
+          instanceModel.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach(material => {
+                  material.transparent = true;
+                  material.opacity = newOpacity;
+                });
+              } else {
+                child.material.transparent = true;
+                child.material.opacity = newOpacity;
+              }
+            }
+          });
+        }
+        
+        // Complete cleanup after fade
+        if (fadeProgress >= 1.0 && onZombieDeath) {
+          console.log(`[${zombieId}] Cleanup complete, notifying death`);
+          onZombieDeath(zombieId);
+          return; // Skip further updates
+        }
+      }
+    } else {
+      // Update AI with new advanced system (only when alive)
+      updateAdvancedAI(delta);
+    }
     
     // Update group position and rotation
     if (group.current) {
@@ -485,6 +584,12 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   const [loadedZombieCount, setLoadedZombieCount] = useState(0);
   const [currentLoadingIndex, setCurrentLoadingIndex] = useState(0);
   const LOADING_DELAY = 300; // 300ms delay between each zombie load
+  
+  // Death tracking
+  const [deadZombies, setDeadZombies] = useState<Set<string>>(new Set());
+  
+  // Registry for zombie instances (for attack collision detection)
+  const zombieInstancesRef = useRef<Map<string, { positionRef: React.MutableRefObject<THREE.Vector3>; triggerDeath: (direction: THREE.Vector3) => void }>>(new Map());
 
   // Emit initial zombie progress
   useEffect(() => {
@@ -735,23 +840,88 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     });
   }, [zombieCount, LOADING_DELAY, gameReadyCallbacks]);
 
+  // Handle zombie death
+  const handleZombieDeath = useCallback((zombieId: string) => {
+    console.log(`[ZombieManager] Zombie ${zombieId} has died, removing from scene`);
+    setDeadZombies(prev => new Set(prev).add(zombieId));
+  }, []);
+
+  // Handle zombie registration for attack detection
+  const handleZombieRegister = useCallback((zombieId: string, positionRef: React.MutableRefObject<THREE.Vector3>, triggerDeath: (direction: THREE.Vector3) => void) => {
+    zombieInstancesRef.current.set(zombieId, { positionRef, triggerDeath });
+  }, []);
+
+  const handleZombieUnregister = useCallback((zombieId: string) => {
+    zombieInstancesRef.current.delete(zombieId);
+  }, []);
+
+  // Create global attack check function for Player components to use
+  const checkPlayerAttack = useCallback((playerPosition: THREE.Vector3, playerRotation: THREE.Euler, attackRange: number = 6.0) => {
+    const hitZombies: Array<{ zombieId: string; position: THREE.Vector3; distance: number }> = [];
+    
+    // Get forward direction from player rotation  
+    const forwardDirection = new THREE.Vector3(0, 0, -1).applyEuler(playerRotation);
+    
+    // Check each zombie
+    for (const [zombieId, zombieData] of zombieInstancesRef.current) {
+      const zombiePos = zombieData.positionRef.current;
+      const distance = playerPosition.distanceTo(zombiePos);
+      
+      // Check if zombie is within attack range
+      if (distance <= attackRange) {
+        // Check if player is roughly facing the zombie
+        const directionToZombie = new THREE.Vector3().subVectors(zombiePos, playerPosition).normalize();
+        const dot = forwardDirection.dot(directionToZombie);
+        
+        // If dot product > 0.5, player is facing zombie (within ~60 degrees)
+        if (dot > 0.5) {
+          console.log(`[ZombieManager] 💀 ZOMBIE KILLED! ${zombieId} hit at distance ${distance.toFixed(2)} (facing: ${dot.toFixed(3)})`);
+          hitZombies.push({ zombieId, position: zombiePos, distance });
+          
+          // Trigger zombie death with knockback direction
+          const knockbackDirection = directionToZombie.clone();
+          zombieData.triggerDeath(knockbackDirection);
+        }
+      }
+    }
+    
+    return hitZombies;
+  }, []);
+
+  // Expose the attack check function globally
+  useEffect(() => {
+    (window as any).checkZombieAttack = checkPlayerAttack;
+    return () => {
+      delete (window as any).checkZombieAttack;
+    };
+  }, [checkPlayerAttack]);
+
   return (
     <ZombieResourceContext.Provider value={resources}>
       {/* Only render zombies when resources are loaded */}
       {resources.isLoaded && zombiePositions.map((position, index) => {
+        const zombieId = `zombie-${index}`;
         const shouldLoad = index <= currentLoadingIndex;
         
-        return (
-          <ZombieInstance
-            key={`zombie-${index}`}
-            zombieId={`zombie-${index}`}
-            position={position}
-            players={players}
-            isDebugVisible={isDebugVisible}
-            shouldLoad={shouldLoad}
-            onLoadComplete={handleZombieLoadComplete}
-          />
-        );
+        // Skip rendering dead zombies
+        if (deadZombies.has(zombieId)) {
+          return null;
+        }
+        
+                  return (
+            <ZombieInstance
+              key={zombieId}
+              zombieId={zombieId}
+              position={position}
+              players={players}
+              isDebugVisible={isDebugVisible}
+              shouldLoad={shouldLoad}
+              onLoadComplete={handleZombieLoadComplete}
+              onZombieDeath={handleZombieDeath}
+              onRegisterInstance={handleZombieRegister}
+              onUnregisterInstance={handleZombieUnregister}
+            />
+          );
       })}
     </ZombieResourceContext.Provider>
   );
