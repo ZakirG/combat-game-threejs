@@ -1674,14 +1674,14 @@ export const Player: React.FC<PlayerProps> = ({
 
       const serverAnim = playerData.currentAnimation;
 
-      // Don't allow server to override falling animation during high altitude descent
-      const isHighAltitudeFalling = currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
+      // Don't allow server to override falling animation during high altitude descent (LOCAL PLAYER ONLY)
+      const isHighAltitudeFalling = isLocalPlayer && currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
 
       console.log(`🎯 [Anim Check] Received ServerAnim: ${serverAnim}, Current LocalAnim: ${currentAnimation}, High Alt Falling: ${isHighAltitudeFalling}, Is Attacking: ${isAttacking}, Is Available: ${!!animations[serverAnim]}`);
 
       // Play animation if it's different and available, but not during high altitude falling or local attacks
       if (isHighAltitudeFalling) {
-        console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during high altitude falling at Y=${localPositionRef.current.y.toFixed(1)}`);
+        console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during high altitude falling at Y=${localPositionRef.current.y.toFixed(1)} (LOCAL PLAYER ONLY)`);
       } else if (isAttacking) {
         console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during local attack animation`);
       } else if (serverAnim && serverAnim !== currentAnimation && animations[serverAnim]) {
