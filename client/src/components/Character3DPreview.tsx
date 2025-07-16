@@ -514,6 +514,36 @@ function getCharacterVideo(characterName: string): string {
   return videoMap[characterName] || '/character-select-bg-1.mp4'; // Fallback to default
 }
 
+// Helper function to get character images
+function getCharacterImage(characterName: string): string {
+  const imageMap: Record<string, string> = {
+    'Zaqir Mufasa': '/zaqir-mufasa.png',
+    'Grok Ani': '/grok-ani.png',
+    'Grok Rudi': '/grok-rudi.png'
+  };
+  return imageMap[characterName] || '/zaqir-mufasa.png'; // Fallback to default
+}
+
+// Helper function to get character descriptions
+function getCharacterDescription(characterName: string): string {
+  const descriptions: Record<string, string> = {
+    'Zaqir Mufasa': 'x.com/jaguarsoftio',
+    'Grok Ani': 'x.com/grok',
+    'Grok Rudi': 'x.com/grok'
+  };
+  return descriptions[characterName] || 'Skilled fighter';
+}
+
+// Helper function to get character-specific profile pictures
+function getCharacterProfilePicture(characterName: string): string {
+  const profilePictureMap: Record<string, string> = {
+    'Zaqir Mufasa': '/profile-zaqir.jpg', // Dummy profile picture file
+    'Grok Ani': '/grok-pfp.jpg', // Dummy profile picture file
+    'Grok Rudi': '/grok-pfp.jpg'
+  };
+  return profilePictureMap[characterName] || '/profile-default.png'; // Fallback to default profile pic
+}
+
 export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
   characterName,
   className
@@ -573,6 +603,52 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
       >
         <source src={getCharacterVideo(characterName)} type="video/mp4" />
       </video>
+      
+      {/* Character Image Placeholder */}
+      {isLoading && (
+        <img
+          src={getCharacterImage(characterName)}
+          alt={`${characterName} preview`}
+          style={styles.characterImagePlaceholder}
+        />
+      )}
+      
+      {/* Character Info Overlay - copied from JoinGameDialog.tsx */}
+      <div style={{
+        position: 'absolute',
+        bottom: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        textAlign: 'center',
+        color: 'white',
+        fontFamily: 'Newrocker, serif',
+        textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+        zIndex: 15,
+        pointerEvents: 'none'
+      }}>
+        <div style={{
+          fontSize: '18px',
+          fontWeight: 'bold',
+          marginBottom: '4px'
+        }}>
+          {characterName}
+        </div>
+        <div style={{
+          fontSize: '14px',
+          opacity: 0.9,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          justifyContent: 'center'
+        }}>
+          <img 
+            src={getCharacterProfilePicture(characterName)}
+            alt={`${characterName} Profile`}
+            style={styles.characterProfilePicture}
+          />
+          {getCharacterDescription(characterName)}
+        </div>
+      </div>
       
       {/* Loading Spinner */}
       {isLoading && (
@@ -683,4 +759,26 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
       `}</style>
     </div>
   );
+};
+
+const styles: { [key: string]: React.CSSProperties } = {
+  characterImagePlaceholder: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: '260px',
+    height: '450px',
+    objectFit: 'cover',
+    zIndex: 5, // Above video, below canvas and UI
+    filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 30px rgba(255, 255, 255, 0.4))',
+  },
+  characterProfilePicture: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    border: '1px solid grey',
+    objectFit: 'cover',
+    flexShrink: 0,
+  },
 };

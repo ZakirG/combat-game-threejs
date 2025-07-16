@@ -165,62 +165,6 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
                 ‹
               </button>
               
-              {/* Character Image Container */}
-              <div style={styles.characterImageContainer}>
-                <video 
-                  key={characters[currentCharacterIndex].name}
-                  autoPlay 
-                  loop 
-                  muted 
-                  playsInline
-                  style={styles.characterVideoBackground}
-                >
-                  <source src={getCharacterVideo(characters[currentCharacterIndex].name)} type="video/mp4" />
-                </video>
-                <img 
-                  src={characters[currentCharacterIndex].image} 
-                  alt={characters[currentCharacterIndex].name}
-                  style={styles.characterImage}
-                />
-                
-                {/* Character Info Overlay */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: '20px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  textAlign: 'center',
-                  color: 'white',
-                  fontFamily: 'Newrocker, serif',
-                  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-                  zIndex: 15,
-                  pointerEvents: 'none'
-                }}>
-                  <div style={{
-                    fontSize: '18px',
-                    fontWeight: 'bold',
-                    marginBottom: '4px'
-                  }}>
-                    {characters[currentCharacterIndex].name}
-                  </div>
-                  <div style={{
-                    fontSize: '14px',
-                    opacity: 0.9,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    justifyContent: 'center'
-                  }}>
-                    <img 
-                      src={getCharacterProfilePicture(characters[currentCharacterIndex].name)}
-                      alt={`${characters[currentCharacterIndex].name} Profile`}
-                      style={styles.characterProfilePicture}
-                    />
-                    {characters[currentCharacterIndex].description}
-                  </div>
-                </div>
-              </div>
-              
               {/* 3D Model Preview Container */}
               <div style={styles.character3DContainer}>
                 <Character3DPreview 
