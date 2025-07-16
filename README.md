@@ -1,184 +1,263 @@
-# Vibe Coding Starter Pack: 3D Multiplayer
+# X-Combat
+## 3D Multiplayer Combat Arena
 
-A lightweight 3D web-based multiplayer starter kit using Three.js, React, and SpacetimeDB. Perfect for building your own multiplayer games or interactive experiences with modern AI coding tools like Cursor.
+Experience intense 3D multiplayer combat in a fully-realized arena where strategy meets action. Choose your fighter, battle intelligent AI enemies, and compete against players worldwide in real-time combat.
 
-[Demo Video](https://x.com/majidmanzarpour/status/1909810088426021192)
+---
 
-## Project Structure
+## 🎮 Game Features
 
-- `client/` - Frontend game client built with Three.js, React, and Vite
-- `server/` - Backend SpacetimeDB module written in Rust
+### ⚔️ **Combat System**
+- **Real-time PvP Combat**: Engage in fast-paced multiplayer battles
+- **Attack & Spell System**: Left-click to attack, right-click to cast spells
+- **Physics-Based Combat**: Advanced collision detection and movement physics
+- **Dramatic High-Altitude Spawns**: Enter the arena with cinematic falling sequences
 
-## Features
+### 👥 **Character Classes**
+Choose from unique fighters, each with distinct abilities and fighting styles:
 
-- **3D Multiplayer Foundation**: Connected players can see and interact with each other in real-time
-- **Modern Tech Stack**: React, TypeScript, Three.js, SpacetimeDB, and Vite
-- **Character System**: Basic movement and animations ready to customize
-- **Multiplayer Support**: Server-authoritative design with client prediction
-- **Debug Tools**: Built-in debug panel to monitor game state
-- **Extensible**: Clean architecture designed for adding your own game mechanics
-- **AI-Friendly**: Structured for effective use with AI coding assistants
+- **Grok Ani**: Balanced fighter with elegant combat techniques and spell casting
+- **Grok Rudi**: Powerful brawler with devastating punches and combat prowess
+and more!
 
-## Getting Started
+Each character features:
+- Unique animation sets and combat moves
+- Character-specific movement speeds and abilities  
+- Custom visual effects and fighting styles
+- Personalized X handle integration
 
-### Prerequisites
+### 🧟 **Advanced AI Enemies**
+Battle intelligent zombie enemies with sophisticated behaviors:
+- **State-based AI**: Idle → Hunt → Scream → Attack → Chase sequences
+- **Dynamic Pathfinding**: Smart enemy movement and player tracking
+- **Adaptive Combat**: Enemies that respond to player actions and positioning
+- **Performance-Optimized**: Efficient enemy management for smooth gameplay
 
-- Node.js and npm
-- Rust and Cargo
+### 🎥 **Dynamic Camera System**
+- **Follow Camera**: Traditional third-person view with mouse look controls
+- **Orbital Camera**: Cinematic camera that orbits around your character
+- **Seamless Switching**: Toggle between camera modes with 'C' key
+- **Smooth Transitions**: Fluid camera movement with zoom controls
+
+### 🌐 **Multiplayer Technology**
+- **Real-time Synchronization**: Powered by SpacetimeDB for instant updates
+- **Server Authority**: Cheat-resistant gameplay with server-side validation
+- **Client Prediction**: Responsive controls with lag compensation
+- **Seamless Join/Leave**: Drop in and out of battles effortlessly
+
+---
+
+## 🛠️ **Tech Stack**
+
+### **Frontend**
+- **React 18** - Modern UI framework with hooks and context
+- **TypeScript** - Type-safe development with full IDE support
+- **Three.js + React Three Fiber** - High-performance 3D rendering
+- **Vite** - Lightning-fast development and building
+
+### **Backend**
+- **SpacetimeDB** - Real-time multiplayer database with Rust modules
+- **Rust** - High-performance server-side logic and state management
+- **WebAssembly** - Optimized cross-platform execution
+
+### **3D Assets & Animation**
+- **FBX Model Pipeline** - Complex character models with detailed animations
+- **Animation Blending** - Smooth transitions between movement states
+- **Physics Integration** - Gravity, collision, and movement systems
+- **LOD Optimization** - Performance-optimized asset loading
+
+### **Real-time Features**
+- **WebSocket Communication** - Ultra-low latency multiplayer
+- **State Synchronization** - Automatic client-server data sync
+- **Input Prediction** - Responsive controls despite network latency
+
+---
+
+## 🎯 **Controls**
+
+| Input | Action |
+|-------|--------|
+| **W, A, S, D** | Move your character |
+| **Shift** | Sprint (increased movement speed) |
+| **Space** | Jump |
+| **Mouse** | Look around / Camera control |
+| **Left Click** | Attack |
+| **Right Click** | Cast Spell |
+| **C** | Toggle Camera Mode (Follow ↔ Orbital) |
+| **Mouse Wheel** | Zoom in/out |
+
+---
+
+## 🚀 **Quick Start**
+
+### **Prerequisites**
+- Node.js 18+ and npm
+- Rust and Cargo  
 - SpacetimeDB CLI
 
-### Installation
-
-First, clone the repository:
-
+### **One-Command Setup**
 ```bash
-git clone https://github.com/majidmanzarpour/vibe-coding-starter-pack-3d-multiplayer
-cd vibe-coding-starter-pack-3d-multiplayer
+git clone <repository-url>
+cd combat-game-threejs
+chmod +x setup.sh && ./setup.sh
 ```
 
-Then run the quick start script to set up everything automatically:
-
+### **Start Playing**
 ```bash
-sh setup.sh
+# Start the game (opens two terminals)
+./start-game.sh
+
+# Game will be available at http://localhost:5173
 ```
 
-Or install dependencies manually with these steps:
-
+### **Stop Game**
 ```bash
-# 1. Install Rust (if not already installed)
+./stop-game.sh
+```
+
+---
+
+## 🏗️ **Development**
+
+### **Manual Setup**
+```bash
+# Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source "$HOME/.cargo/env"
-
-# 2. Add WASM target for Rust
 rustup target add wasm32-unknown-unknown
 
-# 3. Install Node.js via nvm (if not already installed)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-nvm install 22
-nvm use 22
-
-# 4. Install SpacetimeDB CLI
+# Install SpacetimeDB
 curl -sSf https://install.spacetimedb.com | sh
-
-# Note: SpacetimeDB installs to ~/.local/bin - add it to your PATH if needed
 export PATH="$HOME/.local/bin:$PATH"
 
-# 5. Install client dependencies
-cd client
-npm install
-
-# 6. Build server code
-cd ../server
-spacetime build
-
-# 7. Generate TypeScript bindings
+# Install dependencies
+cd client && npm install
+cd ../server && spacetime build
 spacetime generate --lang typescript --out-dir ../client/src/generated
 ```
 
-### Development
-
-Run both client and server in development mode:
-
+### **Development Mode**
 ```bash
-# Terminal 1: Run the SpacetimeDB server
+# Terminal 1: Server
 cd server
-spacetime build
-spacetime start
+spacetime build && spacetime start
 spacetime publish vibe-multiplayer
 
-# Terminal 2: Run the client
+# Terminal 2: Client  
 cd client
 npm run dev
 ```
 
-When making changes to the server schema or reducers, regenerate TypeScript bindings:
-
+### **After Schema Changes**
 ```bash
-# From the server directory
+cd server
 spacetime generate --lang typescript --out-dir ../client/src/generated
 ```
 
-This starts:
-- SpacetimeDB server running locally
-- Client on http://localhost:5173 (Vite dev server)
+---
 
-## About SpacetimeDB
+## 🎨 **Customization**
 
-This project is built on [SpacetimeDB](https://spacetimedb.com), a distributed database and serverless application framework specifically designed for multiplayer games and real-time applications. SpacetimeDB provides:
+### **Adding Characters**
+1. Add 3D models to `/public/models/your-character/`
+2. Configure in `client/src/characterConfigs.ts`
+3. Set animations, scaling, and movement properties
+4. Test with the character preview system
 
-- **Real-time Synchronization**: Automatically sync database changes to connected clients
-- **TypeScript Client Generation**: Generate type-safe client bindings from your Rust server code
-- **Seamless Deployment**: Easily deploy your game server to the cloud
-- **Game-Oriented Architecture**: Built with multiplayer game patterns in mind
+### **Combat Mechanics**
+- Modify attack patterns in `server/src/player_logic.rs`
+- Adjust damage and health in `server/src/common.rs`
+- Customize spell effects in the client components
 
-SpacetimeDB handles the complex networking, state synchronization, and persistence layers so you can focus on building your game logic.
+### **AI Behavior**
+- Edit zombie AI in `client/src/components/ZombieBrain.tsx`
+- Adjust spawn patterns in `client/src/components/ZombieManager.tsx`
+- Modify enemy stats in `client/src/characterConfigs.ts`
 
-## Controls
+### **Visual Effects**
+- Environment settings in `client/src/components/GameScene.tsx`
+- Lighting and shadows throughout the scene components
+- Post-processing effects via Three.js
 
-- **W, A, S, D**: Move the player character
-- **Shift**: Sprint
-- **Space**: Jump 
-- **Mouse**: Control camera direction
+---
 
-## Customization
+## 🏛️ **Architecture**
 
-This starter pack is designed to be easily customizable:
+### **Client Architecture**
+```
+client/src/
+├── components/           # React components
+│   ├── Player.tsx       # Character rendering & physics
+│   ├── GameScene.tsx    # 3D world environment  
+│   ├── ZombieManager.tsx # AI enemy system
+│   └── JoinGameDialog.tsx # Character selection
+├── generated/           # Auto-generated SpacetimeDB types
+├── characterConfigs.ts  # Character definitions
+└── App.tsx             # Main game orchestration
+```
 
-### Character Models
+### **Server Architecture**
+```
+server/src/
+├── lib.rs              # Database schema & reducers
+├── player_logic.rs     # Movement & combat logic
+└── common.rs           # Shared data structures
+```
 
-The included character models (Wizard & Paladin) can be:
-1. Used as-is for a fantasy game
-2. Replaced with your own models (vehicles, animals, robots, etc.)
-3. Enhanced with additional animations
+### **Key Systems**
+- **Player State Management**: Server-authoritative with client prediction
+- **Real-time Sync**: SpacetimeDB handles all networking automatically
+- **Animation Pipeline**: Complex FBX loading with retargeting support
+- **AI Management**: Optimized multi-entity AI with state machines
 
-See `client/src/README_3D_MODELS.md` for details on working with the models.
+---
 
-### Game Mechanics
+## 🎖️ **Game Modes**
 
-This starter provides the multiplayer foundation - now add your own game mechanics!
+- **Free-for-All**: Battle against other players and AI enemies
+- **Survival**: Last player standing wins
+- **Team Combat**: Coordinate with allies against enemy forces
+- **Training Mode**: Practice against AI to hone your skills
 
-Ideas for expansion:
-- Add combat systems
-- Implement physics interactions
-- Create collectible items
-- Design levels and terrain
-- Add vehicles or special movement modes
-- Implement game-specific objectives
+---
 
-### Multiplayer Features
+## 🔧 **Performance**
 
-The starter pack includes:
-- Player connection/disconnection handling
-- Position and movement synchronization
-- Player nametags
-- Server-authoritative state management
+- **Optimized Rendering**: Efficient 3D asset streaming
+- **Smart AI Loading**: Sequential zombie spawning prevents frame drops
+- **Network Efficiency**: Minimal bandwidth with delta compression
+- **Scalable Architecture**: Handles multiple concurrent players
 
-## Development with AI Tools
+---
 
-This project is organized to work well with AI coding tools like Cursor:
+## 📝 **License**
 
-1. Clear component separation makes it easy to describe changes
-2. Modular architecture allows focused modifications
-3. Type definitions help AI understand the codebase structure
-4. Comments explain important technical patterns
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Technical Features
+---
 
-- SpacetimeDB for real-time multiplayer synchronization
-- React and Three.js (via React Three Fiber) for 3D rendering
-- TypeScript for type safety
-- Character animation system
-- Pointer lock controls for seamless camera movement
-- Debug panel for monitoring state
-- Player identification with custom usernames and colors
-- Seamless player joining and leaving
+## 🤝 **Contributing**
 
-## License
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. You are free to use, modify, and distribute this code for any purpose, including commercial applications.
+---
 
-## Acknowledgments
+## 🎮 **Join the Battle**
 
-This starter pack is maintained by [Majid Manzarpour](https://x.com/majidmanzarpour) and is free to use for any project. 
+Ready to enter the arena? Clone the repository and start your combat journey today!
+
+```bash
+git clone <repository-url>
+cd combat-game-threejs
+./start-game.sh
+```
+
+**Game URL**: http://localhost:5173
+
+---
+
+*Built with cutting-edge web technologies for maximum performance and scalability.* 
