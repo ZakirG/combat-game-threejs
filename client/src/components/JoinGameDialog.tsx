@@ -152,7 +152,7 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
         </div>
         <div style={styles.inputGroup}>
           <div style={styles.characterCarousel}>
-          <label id="choose-your-fighter" style={styles.fighterLabel}>CHOOSE YOUR FIGHTER</label>
+          <div style={styles.fighterLabel}>CHOOSE YOUR FIGHTER</div>
             {/* Character info removed - now shown in 3D preview */}
             
             {/* Navigation and preview containers */}
@@ -326,8 +326,11 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   button: {
     padding: '12px 25px',
-    marginBottom: '-15px',
-    width: '50%',
+    marginBottom: '-20px',
+    // width: '50%',
+    position: "relative",
+    left: "25px",
+    width: "190px",
     maxWidth: '300px',
     border: '2px solid #654321',
     borderRadius: '4px',
@@ -392,13 +395,23 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   characterCarousel: {
     position: 'relative',
-    backgroundColor: 'rgba(245, 245, 220, 0.9)',
-    border: '2px solid #8B4513',
+    // backgroundColor: 'rgba(245, 245, 220, 0.9)',
+    // border: '2px solid #8B4513',
     borderRadius: '8px',
-    height: '600px',
+    // height: '600px',
     width: '100%',
+    marginTop: "-25px",
     maxWidth: '1000px', // Wider to accommodate both preview boxes
-    padding: '20px',
+    padding: '25px 20px', // Reduced vertical padding
+  },
+  fighterLabel: {
+    fontFamily: 'KnightsQuest, serif', // Match title font
+    fontSize: '28px', // Increased font size
+    textAlign: 'center', // Center the text
+    width: '100%', // Ensure it spans the full width for centering
+    color: '#2F1B14',
+    textShadow: '1px 1px 2px rgba(139, 69, 19, 0.3)',
+    marginBottom: '10px', // Add some space below the label
   },
   carouselArrow: {
     background: 'none',
@@ -463,7 +476,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '20px',
-    height: '100%',
+    // height: '100%',
     minHeight: '240px',
   },
   characterImageContainer: {
