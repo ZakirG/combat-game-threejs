@@ -1374,7 +1374,7 @@ export const Player: React.FC<PlayerProps> = ({
         if (cameraMode === CAMERA_MODES.FOLLOW) {
           // --- FOLLOW CAMERA MODE --- 
           // Special close camera during falling animation for cinematic effect
-          const isFalling = currentAnimation === ANIMATIONS.FALLING && playerPosition.y > 20;
+          const isFalling = currentAnimation === ANIMATIONS.FALLING && playerPosition.y > 12;
           const cameraHeight = isFalling ? 2.0 : 3.0; // Lower when falling to get closer
           const currentDistance = isFalling ? 3.0 : zoomLevel.current; // Much closer when falling
 
@@ -1402,7 +1402,7 @@ export const Player: React.FC<PlayerProps> = ({
           const orbital = orbitalCameraRef.current;
           
           // Special close orbital during falling animation
-          const isFalling = currentAnimation === ANIMATIONS.FALLING && playerPosition.y > 20;
+          const isFalling = currentAnimation === ANIMATIONS.FALLING && playerPosition.y > 12;
           const orbitalDistance = isFalling ? 4.0 : orbital.distance; // Much closer when falling
           
           // Calculate orbital camera position using spherical coordinates

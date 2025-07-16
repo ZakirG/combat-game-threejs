@@ -49,4 +49,4 @@ pub struct InputState {
 
 pub const PLAYER_SPEED: f32 = 7.5;
 pub const SPRINT_MULTIPLIER: f32 = 1.8;
-pub const SPAWN_ALTITUDE: f32 = 200.0;
+pub const SPAWN_ALTITUDE: f32 = 120.0;

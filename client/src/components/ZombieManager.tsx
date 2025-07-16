@@ -35,15 +35,10 @@ import { GameReadyCallbacks } from '../types/gameReady';
 // Configurable spawn settings
 const SPAWN_SETTINGS = {
   MIN_DISTANCE_FROM_PLAYERS: 20, // Farther spawn distance for more challenging gameplay
-  WORLD_SIZE: 40, // Size of the game world for spawning
+  WORLD_SIZE: 120, // Size of the game world for spawning (increased from 40 to accommodate 30+ unit distance)
   MAX_SPAWN_ATTEMPTS: 50, // Maximum attempts to find a safe spawn position
   FALLBACK_EDGE_DISTANCE: 0.4 // Multiplier for edge distance in fallback scenarios
 };
-
-
-
-
-
 
 
 // Execute zombie behavior based on AI decision
@@ -673,27 +668,39 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     ];
   }, []);
 
-  // Generate zombie positions with safety checks (regenerate when players change)
+  // Generate zombie positions with safety checks (regenerate only when player count changes)
   const zombiePositions = useMemo(() => {
     const minDistance = minSpawnDistance || SPAWN_SETTINGS.MIN_DISTANCE_FROM_PLAYERS;
     
+    // Take a snapshot of current player positions for spawn calculation
+    const playerSnapshot = Array.from(players.values()).map(player => ({
+      x: player.position.x,
+      y: 0, // Use ground level for spawn calculations
+      z: player.position.z
+    }));
+    
     return Array.from({ length: zombieCount }, (_, index) => {
-      const position = generateSafeZombiePosition(players, minDistance);
+      // Create a temporary players map using the snapshot for spawn calculation
+      const snapshotPlayers = new Map(Array.from(players.entries()).map(([id, player], i) => [
+        id, 
+        { ...player, position: playerSnapshot[i] || { x: 0, y: 0, z: 0 } }
+      ]));
+      
+      const position = generateSafeZombiePosition(snapshotPlayers, minDistance);
       
       // Debug log for first few zombies
       if (index < 3) {
-        const nearestPlayerDistance = Array.from(players.values()).reduce((minDist, player) => {
-          // Use horizontal distance only for debug logging
-          const playerPos = new THREE.Vector3(player.position.x, 0, player.position.z);
+        const nearestPlayerDistance = playerSnapshot.reduce((minDist, playerPos) => {
           const zombiePos = new THREE.Vector3(position[0], position[1], position[2]);
-          const dist = zombiePos.distanceTo(playerPos);
+          const playerVec = new THREE.Vector3(playerPos.x, 0, playerPos.z);
+          const dist = zombiePos.distanceTo(playerVec);
           return Math.min(minDist, dist);
         }, Infinity);
       }
       
       return position;
     });
-  }, [zombieCount, players, minSpawnDistance, generateSafeZombiePosition]);
+  }, [zombieCount, players.size, minSpawnDistance, generateSafeZombiePosition]);
 
   // Handle zombie loading completion
   const handleZombieLoadComplete = useCallback(() => {
