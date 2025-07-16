@@ -298,6 +298,6 @@ export function getAnimationTimeScale(characterClass: string, animationName: str
 // Export available character classes for UI components in desired order
 export const AVAILABLE_CHARACTERS: Array<keyof typeof CHARACTER_CONFIGS> = [
   "Grok Ani",
-  "Grok Rudi", 
-  "Zaqir Mufasa"
+  "Zaqir Mufasa",
+  "Grok Rudi"
 ]; 
