@@ -341,9 +341,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     position: 'relative',
     top: '15px',
     filter: 'drop-shadow(4px 4px 4px black)',
-    width: '60px',
-    height: '60px',
+    width: '100px',
     objectFit: 'contain' as const,
+    marginBottom: '10px',
   },
   inputGroup: {
     marginBottom: '0px',

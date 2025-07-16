@@ -39,7 +39,7 @@ use spacetimedb::{ReducerContext, Identity, Table, Timestamp, ScheduleAt};
 use std::time::Duration; // Import standard Duration
 
 // Use items from common module (structs are needed for table definitions)
-use crate::common::{Vector3, InputState};
+use crate::common::{Vector3, InputState, SPAWN_ALTITUDE};
 
 // --- Schema Definitions ---
 
@@ -176,7 +176,8 @@ pub fn register_player(ctx: &ReducerContext, username: String, character_class: 
     let colors = ["cyan", "magenta", "yellow", "lightgreen", "white", "orange"];
     let assigned_color = colors[player_count % colors.len()].to_string();
     // Simple horizontal offset for spawning, spawn at high altitude for dramatic entrance
-    let spawn_position = Vector3 { x: (player_count as f32 * 5.0) - 2.5, y: 100.0, z: 0.0 }; // High altitude spawn
+    let spawn_position = Vector3 { x: (player_count as f32 * 5.0) - 2.5, y: SPAWN_ALTITUDE, z: 0.0 }; // High altitude spawn
+    spacetimedb::log::info!("Spawning player {} at position: x={}, y={}, z={}", username, spawn_position.x, spawn_position.y, spawn_position.z);
 
     if let Some(logged_out_player) = ctx.db.logged_out_player().identity().find(player_identity) {
         spacetimedb::log::info!("Player {} is rejoining.", player_identity);

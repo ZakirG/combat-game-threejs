@@ -62,7 +62,7 @@ const TexturedFloor: React.FC = () => {
       // Basic wrapping settings
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.RepeatWrapping;
-      texture.repeat.set(10, 10); // Reduced tiling for larger tiles to hide seams better
+      texture.repeat.set(20, 20); // Doubled repeat for quadruple floor size to maintain texture scale
       
       // Improved texture filtering for seamless blending
       texture.minFilter = THREE.LinearMipMapLinearFilter;
@@ -80,7 +80,7 @@ const TexturedFloor: React.FC = () => {
 
   return (
     <Plane 
-      args={[200, 200]} 
+      args={[400, 400]} 
       rotation={[-Math.PI / 2, 0, 0]} 
       position={[0, -0.001, 0]} 
       receiveShadow={true} 
@@ -104,7 +104,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas 
-        camera={{ position: [0, 10, 20], fov: 60 }} 
+        camera={{ position: [0, 5010, 20], fov: 60 }} 
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }} 
         shadows // Enable shadows
       >

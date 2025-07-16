@@ -22,6 +22,8 @@ export interface CharacterMovementConfig {
   runSpeed: number;
 }
 
+export const SPAWN_ALTITUDE = 50000.0;
+
 export interface CharacterAnimationTable {
   idle: string;
   'walk-forward': string;
@@ -79,7 +81,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     gameplay: {
        scale: 0.016, // 1.3x bigger (0.012 * 1.3)
        yOffset: 0.7, // Adjusted for ground level positioning
-       highAltitudeSpawn: 100.0 // Very high spawn altitude for dramatic entrance
+       highAltitudeSpawn: SPAWN_ALTITUDE
      },
     movement: {
       walkSpeed: 3.0,
@@ -126,7 +128,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     gameplay: {
        scale: 0.01,
        yOffset: 0.0, // Adjusted for ground level positioning
-       highAltitudeSpawn: 100.0 // Very high spawn altitude for dramatic entrance
+       highAltitudeSpawn: SPAWN_ALTITUDE
      },
     movement: {
       walkSpeed: 2.8,
@@ -170,7 +172,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     gameplay: {
        scale: 0.01, // Much larger scale for visibility (was 0.0156)
        yOffset: 1.2, // Adjusted for ground level positioning
-       highAltitudeSpawn: 100.0 // Very high spawn altitude for dramatic entrance
+       highAltitudeSpawn: SPAWN_ALTITUDE
      },
     movement: {
       walkSpeed: 3.2,

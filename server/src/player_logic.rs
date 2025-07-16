@@ -138,12 +138,17 @@ pub fn calculate_new_position(position: &Vector3, rotation: &Vector3, input: &In
 pub fn update_input_state(player: &mut PlayerData, input: InputState, client_rot: Vector3, client_animation: String) {
     // Calculate movement & animation based on RECEIVED input
     let delta_time_estimate: f32 = 1.0 / 60.0; // Estimate client frame delta
+    
+    spacetimedb::log::info!("Before position calculation: player Y={}", player.position.y);
+    
     let new_position = calculate_new_position(
         &player.position,
         &client_rot, // Use client rotation for direction calc
         &input,
         delta_time_estimate
     );
+
+    spacetimedb::log::info!("After position calculation: new Y={}", new_position.y);
 
     // Update player state
     player.position = new_position;
