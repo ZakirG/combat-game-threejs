@@ -51,6 +51,7 @@ import {
 import { GameReadyCallbacks } from '../types/gameReady';
 import { triggerHitScreenshake, triggerLandingScreenshake, updateScreenshake, SCREENSHAKE_PRESETS } from '../utils/screenshake';
 import { BloodEffectManager } from '../utils/bloodEffect';
+import { CoinEffectManager } from '../utils/coinEffect';
 import { playBloodSpurtSound } from '../utils/audioUtils';
 
 // Define animation names for reuse
@@ -150,6 +151,9 @@ export const Player: React.FC<PlayerProps> = ({
   
   // Blood effect system
   const bloodEffectManagerRef = useRef<BloodEffectManager | null>(null);
+  
+  // Coin effect system
+  const coinEffectManagerRef = useRef<CoinEffectManager | null>(null);
   
   // --- Client Prediction State ---
   // For gameplay, force high altitude spawn on first entrance
@@ -1116,9 +1120,31 @@ export const Player: React.FC<PlayerProps> = ({
         console.log(`[Player] 🩸 Blood effect manager initialized`);
       }
 
+      // Initialize coin effect manager if not already done
+      if (!coinEffectManagerRef.current && group.current?.parent) {
+        coinEffectManagerRef.current = new CoinEffectManager(group.current.parent as THREE.Scene);
+        coinEffectManagerRef.current.loadCoinModel().catch(console.error);
+        console.log(`[Player] 🪙 Coin effect manager initialized`);
+      }
+
       // Update blood effects
       if (bloodEffectManagerRef.current) {
         bloodEffectManagerRef.current.update(delta);
+      }
+
+      // Update coin effects and check for collection
+      if (coinEffectManagerRef.current && playerData && group.current) {
+        coinEffectManagerRef.current.update(delta);
+        
+        // Check for coin collection by local player
+        if (isLocalPlayer) {
+          const playerPosition = group.current.position;
+          const collectedCoins = coinEffectManagerRef.current.checkCollisions(playerPosition);
+          
+          if (collectedCoins > 0 && gameReadyCallbacks?.onCoinCollected) {
+            gameReadyCallbacks.onCoinCollected(collectedCoins);
+          }
+        }
       }
 
       // Update screenshake effect (only for local player)
@@ -1277,6 +1303,22 @@ export const Player: React.FC<PlayerProps> = ({
                         );
                         bloodEffectManagerRef.current!.createBloodSpurt(bloodPosition);
                         console.log(`[Player] 🩸 Blood spurt created at zombie position`);
+                      }
+                    });
+                  }
+
+                  // Trigger coin effects for each hit zombie
+                  if (coinEffectManagerRef.current && group.current) {
+                    const playerPosition = group.current.position;
+                    hitZombies.forEach((zombie: any) => {
+                      if (zombie.position) {
+                        const coinPosition = new THREE.Vector3(
+                          zombie.position.x,
+                          zombie.position.y + 0.5, // Slightly above zombie center, lower than blood
+                          zombie.position.z
+                        );
+                        coinEffectManagerRef.current!.createCoin(coinPosition, playerPosition);
+                        console.log(`[Player] 🪙 Coin created at zombie position with flyaway physics`);
                       }
                     });
                   }
@@ -1659,12 +1701,16 @@ export const Player: React.FC<PlayerProps> = ({
     }
   }, [playerData.currentAnimation, animations, mixer, playAnimation, currentAnimation, isAttacking]); // Dependencies include things that trigger animation changes
 
-  // Cleanup blood effects on unmount
+  // Cleanup effects on unmount
   useEffect(() => {
     return () => {
       if (bloodEffectManagerRef.current) {
         bloodEffectManagerRef.current.cleanup();
         console.log(`[Player] 🧹 Blood effect manager cleaned up on unmount`);
+      }
+      if (coinEffectManagerRef.current) {
+        coinEffectManagerRef.current.cleanup();
+        console.log(`[Player] 🧹 Coin effect manager cleaned up on unmount`);
       }
     };
   }, []);

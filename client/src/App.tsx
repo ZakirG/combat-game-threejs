@@ -51,6 +51,7 @@ import { LoadingScreen } from './components/LoadingScreen';
 import * as THREE from 'three';
 import { PlayerUI } from './components/PlayerUI';
 import { KillCounter } from './components/KillCounter';
+import CoinCounter from './components/CoinCounter';
 import { GameReadyState, GameReadyCallbacks, isGameReady } from './types/gameReady';
 
 // Type Aliases
@@ -88,6 +89,9 @@ function App() {
   
   // --- Kill Counter State ---
   const [totalKillCount, setTotalKillCount] = useState<number>(0);
+  
+  // --- Coin Counter State ---
+  const [totalCoinCount, setTotalCoinCount] = useState<number>(0);
 
   // --- Ref for current input state ---
   const currentInputRef = useRef<InputState>({
@@ -105,6 +109,11 @@ function App() {
   // --- Kill Count Callback ---
   const handleKillCountChange = useCallback((killCount: number) => {
     setTotalKillCount(killCount);
+  }, []);
+  
+  // --- Coin Collection Callback ---
+  const handleCoinCollected = useCallback((coinCount: number) => {
+    setTotalCoinCount(prev => prev + coinCount);
   }, []);
   
   // --- GameReady Callbacks ---
@@ -134,7 +143,8 @@ function App() {
     },
     onZombieProgress: (progress: number, status: string) => {
       setGameReadyState(prev => ({ ...prev, zombieProgress: progress, zombieStatus: status }));
-    }
+    },
+    onCoinCollected: handleCoinCollected
   };
 
   // --- Moved Table Callbacks/Subscription Functions Up ---
@@ -564,6 +574,8 @@ function App() {
           {localPlayer && <PlayerUI playerData={localPlayer} />}
           {/* Kill Counter - always show when game is active */}
           <KillCounter killCount={totalKillCount} />
+          {/* Coin Counter - always show when game is active */}
+          <CoinCounter coinCount={totalCoinCount} />
         </>
       )}
 

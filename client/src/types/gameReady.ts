@@ -24,6 +24,7 @@ export interface GameReadyCallbacks {
   onZombiesReady: () => void;
   onCharacterProgress: (progress: number, status: string) => void;
   onZombieProgress: (progress: number, status: string) => void;
+  onCoinCollected?: (count: number) => void;
 }
 
 export interface PlayerReadyState {
