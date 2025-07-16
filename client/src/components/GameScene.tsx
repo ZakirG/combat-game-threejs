@@ -41,6 +41,7 @@ import { Identity } from '@clockworklabs/spacetimedb-sdk';
 import { Player } from './Player';
 import { ZombieManager } from './ZombieManager';
 import { ControlsPanel } from './ControlsPanel';
+import { EnvironmentAssets } from './EnvironmentAssets';
 import { GameReadyCallbacks } from '../types/gameReady';
 
 interface GameSceneProps {
@@ -154,6 +155,9 @@ export const GameScene: React.FC<GameSceneProps> = ({
       
       {/* Textured Floor with Sand Dune Pattern */}
       <TexturedFloor />
+
+      {/* Environment Assets (rocks, arch, statue) */}
+      <EnvironmentAssets />
 
       {/* Render Players */}
       {Array.from(players.values()).map((player) => {
