@@ -112,8 +112,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       jump: 1.3, // Double speed for faster jumping animation
       falling: 1.0, // Normal falling speed
       landing: 1.1, // Slightly faster landing
-      attack1: 2.0, // Double speed for faster punch animations
-      cast: 2.0 // Double speed for faster punch animations (cast is attack2)
+      attack1: 3.0, // 1.5x speed increase (2.0 * 1.5 = 3.0)
+      cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
     }
   },
   "Zaqir Mufasa": {
@@ -162,8 +162,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       jump: 1.3, // Double speed for faster jumping animation
       falling: 1.0, // Normal falling speed
       landing: 1.2, // Slightly faster landing for quicker recovery
-      attack1: 2.0, // Double speed for faster punch animations
-      cast: 2.0 // Double speed for faster punch animations (cast is attack2)
+      attack1: 3.0, // 1.5x speed increase (2.0 * 1.5 = 3.0)
+      cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
     }
   },
   "Grok Rudi": {
@@ -212,8 +212,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-left': 1.0,     // Normal pace for run left
       'run-right': 1.0,    // Normal pace for run right
       idle: 0.8,           // Slower, more menacing combat idle
-      attack1: 2.4,        // Double speed for faster punch animations (was 1.2, now 2.4)
-      cast: 2.2,           // Double speed for faster punch animations (was 1.1, now 2.2)
+      attack1: 3.6,        // 1.5x speed increase (2.4 * 1.5 = 3.6)
+      cast: 3.3,           // 1.5x speed increase (2.2 * 1.5 = 3.3)
       jump: 1.3,           // Double speed for faster jumping animation
       falling: 1.0,        // Normal falling speed
       landing: 1.0,        // Normal landing speed

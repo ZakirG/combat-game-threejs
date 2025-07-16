@@ -126,7 +126,7 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
         <div style={styles.inputGroup}>
           <div style={styles.doubleInputContainer}>
             <div style={styles.inputWithLabel}>
-              <div style={styles.labelBox}>Name:</div>
+              <div style={styles.labelBox}>Your Name:</div>
               <input
                 type="text"
                 id="username"
