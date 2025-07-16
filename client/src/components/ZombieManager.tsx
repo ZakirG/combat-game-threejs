@@ -473,8 +473,6 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   minSpawnDistance = SPAWN_SETTINGS.MIN_DISTANCE_FROM_PLAYERS,
   gameReadyCallbacks
 }) => {
-  console.log(`🧟 [ZombieManager] Component mounting - zombieCount: ${zombieCount}, players: ${players.size}, callbacks: ${!!gameReadyCallbacks}`);
-  
   const [resources, setResources] = useState<ZombieResources>({
     model: null,
     animationClips: {},
@@ -488,32 +486,23 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
 
   // Emit initial zombie progress
   useEffect(() => {
-    console.log(`🚀 [ZombieManager] Initial progress effect - callbacks available: ${!!gameReadyCallbacks}`);
     if (gameReadyCallbacks) {
-      console.log(`📈 [ZombieManager] Emitting initial zombie progress (0%)`);
       gameReadyCallbacks.onZombieProgress(0, 'Loading zombie resources...');
-    } else {
-      console.log(`ℹ️ [ZombieManager] No gameReadyCallbacks available for progress tracking`);
     }
   }, [gameReadyCallbacks]);
 
   // Load shared resources once
   useEffect(() => {
-    console.log(`🔧 [ZombieManager] Resources loading effect triggered`);
-    console.log(`🔧 [ZombieManager] ZOMBIE_CONFIG.modelPath:`, ZOMBIE_CONFIG.modelPath);
-    
     const loader = new GLTFLoader();
     let loadedModel: THREE.Group | null = null;
     const loadedClips: Record<string, THREE.AnimationClip> = {};
     
-
+    
     
     // Load main model
-    console.log(`🚀 [ZombieManager] Starting to load zombie model from: ${ZOMBIE_CONFIG.modelPath}`);
     loader.load(
       ZOMBIE_CONFIG.modelPath,
       (gltf) => {
-        console.log(`✅ [ZombieManager] Zombie model loaded successfully`);
         
         const model = gltf.scene;
         

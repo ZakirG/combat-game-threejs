@@ -1,24 +1,19 @@
 /**
  * LoadingScreen.tsx
  * 
- * Retro-style loading screen displayed after clicking "Join the Map":
+ * Simple loading screen displayed after clicking "Join the Map":
  * 
  * Key functionality:
  * - Shows while character model and zombie models are loading
- * - Maintains same papyrus background as JoinGameDialog
- * - Provides retro flash-game style loading indicators
- * - Displays progress for character and zombie loading
+ * - Clean minimal design with animated loading bar
+ * - Flash-game style loading bar with animated stripes
+ * - Displays overall progress
  * - Hides once GameReady event is triggered
  * 
  * Props:
  * - isVisible: Controls loading screen visibility
  * - characterProgress: Progress of character model loading (0-100)
  * - zombieProgress: Progress of zombie spawning (0-100)
- * 
- * Technical implementation:
- * - Uses same background styling as JoinGameDialog
- * - Implements retro loading animations and typography
- * - Provides visual feedback for loading states
  */
 
 import React, { useState, useEffect } from 'react';
@@ -35,18 +30,16 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
   isVisible,
   characterProgress,
   zombieProgress,
-  characterStatus,
-  zombieStatus
 }) => {
   const [dots, setDots] = useState('');
 
-  // Animated loading dots
+  // Animate the dots
   useEffect(() => {
     if (!isVisible) return;
     
     const interval = setInterval(() => {
       setDots(prev => {
-        if (prev.length >= 3) return '';
+        if (prev === '...') return '';
         return prev + '.';
       });
     }, 500);
@@ -56,6 +49,8 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
 
   if (!isVisible) return null;
 
+  const overallProgress = Math.round((characterProgress + zombieProgress) / 2);
+
   const styles = {
     overlay: {
       position: 'fixed' as const,
@@ -64,152 +59,116 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
       width: '100vw',
       height: '100vh',
       display: 'flex',
+      flexDirection: 'column' as const,
       justifyContent: 'center',
       alignItems: 'center',
-      zIndex: 2000,
-      // Same background as JoinGameDialog
       backgroundImage: 'url(/papyrus-texture-3.webp)',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
+      zIndex: 2000,
     },
-    container: {
-      backgroundColor: 'rgba(101, 67, 33, 0.95)',
-      padding: '60px 80px',
-      borderRadius: '20px',
-      border: '4px solid #8B4513',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.7), inset 0 0 0 2px rgba(255, 215, 0, 0.3)',
-      textAlign: 'center' as const,
-      minWidth: '500px',
-      backdrop: 'blur(10px)',
-    },
-    title: {
-      fontFamily: 'Newrocker, serif',
-      fontSize: '48px',
-      color: '#FFD700',
-      textShadow: '3px 3px 6px rgba(0, 0, 0, 0.8), 0 0 10px rgba(255, 215, 0, 0.3)',
-      marginBottom: '40px',
-      letterSpacing: '2px',
-    },
-    subtitle: {
-      fontFamily: 'MountainKing, serif',
-      fontSize: '24px',
-      color: '#DEB887',
-      textShadow: '2px 2px 4px rgba(0, 0, 0, 0.7)',
-      marginBottom: '30px',
-      letterSpacing: '1px',
-    },
-    progressContainer: {
-      marginBottom: '25px',
-    },
-    progressLabel: {
-      fontFamily: 'MountainKing, serif',
-      fontSize: '18px',
-      color: '#F4E4BC',
-      marginBottom: '10px',
-      textShadow: '1px 1px 2px rgba(0, 0, 0, 0.7)',
-    },
-    progressBar: {
-      width: '100%',
-      height: '20px',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    panel: {
+      backgroundColor: 'rgba(245, 245, 220, 0.9)',
       border: '2px solid #8B4513',
-      borderRadius: '10px',
-      overflow: 'hidden' as const,
-      boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.5)',
-    },
-    progressFill: (progress: number) => ({
-      height: '100%',
-      backgroundColor: progress === 100 
-        ? 'linear-gradient(90deg, #32CD32, #228B22)' 
-        : 'linear-gradient(90deg, #FFD700, #FFA500)',
-      width: `${progress}%`,
-      transition: 'width 0.3s ease-out',
-      boxShadow: '0 0 10px rgba(255, 215, 0, 0.5)',
-      backgroundImage: progress < 100 
-        ? 'linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.1) 75%, transparent 75%)'
-        : 'none',
-      backgroundSize: '20px 20px',
-      animation: progress < 100 ? 'progressStripes 1s linear infinite' : 'none',
-    }),
-    statusText: {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '14px',
-      color: '#DEB887',
-      marginTop: '8px',
-      minHeight: '20px',
-      textShadow: '1px 1px 2px rgba(0, 0, 0, 0.7)',
+      borderRadius: '8px',
+      padding: '40px',
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      gap: '30px',
+      boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4)',
+      minWidth: '400px',
     },
     loadingText: {
-      fontFamily: 'MountainKing, serif',
-      fontSize: '20px',
-      color: '#FFD700',
-      marginTop: '30px',
-      textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+      fontFamily: 'KnightsQuest, serif',
+      fontSize: '32px',
+      color: '#2F1B14',
+      fontWeight: 'bold' as const,
+      textShadow: '1px 1px 2px rgba(139, 69, 19, 0.3)',
+      marginBottom: '0px',
+      letterSpacing: '2px',
     },
-    retryHint: {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '12px',
-      color: 'rgba(255, 255, 255, 0.7)',
-      marginTop: '20px',
-      fontStyle: 'italic' as const,
+    progressContainer: {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      gap: '15px',
+      width: '100%',
+    },
+    progressBarContainer: {
+      width: '100%',
+      height: '32px',
+      backgroundColor: '#654321',
+      borderRadius: '16px',
+      overflow: 'hidden' as const,
+      border: '2px solid #8B4513',
+      boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.3)',
+    },
+    progressBar: {
+      height: '100%',
+      width: `${overallProgress}%`,
+      background: 'linear-gradient(90deg, #00d4ff, #0099cc, #00d4ff)',
+      backgroundSize: '40px 100%',
+      borderRadius: '14px',
+      position: 'relative' as const,
+      overflow: 'hidden' as const,
+      animation: 'progressFlow 2s linear infinite',
+      transition: 'width 0.3s ease-out',
+    },
+    progressStripes: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0px, rgba(255,255,255,0.1) 8px, transparent 8px, transparent 16px)',
+      animation: 'stripeMove 1s linear infinite',
+    },
+    progressText: {
+      fontFamily: 'Newrocker, serif',
+      fontSize: '16px',
+      color: '#5D4037',
+      fontWeight: 'bold' as const,
+      textAlign: 'center' as const,
     }
   };
-
-  const overallProgress = Math.round((characterProgress + zombieProgress) / 2);
 
   return (
     <>
       <div style={styles.overlay}>
-        <div style={styles.container}>
-          <h1 style={styles.title}>LOADING REALM</h1>
-          <div style={styles.subtitle}>Preparing your adventure{dots}</div>
-          
-          {/* Character Loading Progress */}
+        <div style={styles.panel}>
+          <div style={styles.loadingText}>Loading{dots}</div>
           <div style={styles.progressContainer}>
-            <div style={styles.progressLabel}>
-              📱 Character Model: {characterProgress}%
+            <div style={styles.progressBarContainer}>
+              <div style={styles.progressBar}>
+                <div style={styles.progressStripes} />
+              </div>
             </div>
-            <div style={styles.progressBar}>
-              <div style={styles.progressFill(characterProgress)} />
+            <div style={styles.progressText}>
+              {overallProgress}% Complete
             </div>
-            <div style={styles.statusText}>{characterStatus}</div>
           </div>
-
-          {/* Zombie Loading Progress */}
-          <div style={styles.progressContainer}>
-            <div style={styles.progressLabel}>
-              🧟 Spawning Enemies: {zombieProgress}%
-            </div>
-            <div style={styles.progressBar}>
-              <div style={styles.progressFill(zombieProgress)} />
-            </div>
-            <div style={styles.statusText}>{zombieStatus}</div>
-          </div>
-
-          <div style={styles.loadingText}>
-            {overallProgress < 100 
-              ? `Loading ${overallProgress}%${dots}` 
-              : 'Ready to begin your quest!'
-            }
-          </div>
-          
-          {overallProgress < 30 && (
-            <div style={styles.retryHint}>
-              If loading takes too long, try refreshing the page
-            </div>
-          )}
         </div>
       </div>
 
       {/* CSS animations */}
       <style>{`
-        @keyframes progressStripes {
+        @keyframes progressFlow {
+          0% {
+            background-position: 0% 0%;
+          }
+          100% {
+            background-position: 100% 0%;
+          }
+        }
+        
+        @keyframes stripeMove {
           0% {
             background-position: 0 0;
           }
           100% {
-            background-position: 20px 0;
+            background-position: 32px 0;
           }
         }
       `}</style>

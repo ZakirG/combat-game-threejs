@@ -103,8 +103,6 @@ export const GameScene: React.FC<GameSceneProps> = ({
   gameReadyCallbacks, // Destructure GameReady callbacks
   gameReady = false // Destructure gameReady state
 }) => {
-  console.log(`🎬 [GameScene] Rendering - players: ${players.size}, localPlayer: ${localPlayerIdentity?.toHexString().substring(0, 8)}, callbacks: ${!!gameReadyCallbacks}`);
-  
   // Ref for the main directional light
   const directionalLightRef = useRef<THREE.DirectionalLight>(null!); 
 

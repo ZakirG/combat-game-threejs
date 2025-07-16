@@ -120,11 +120,9 @@ function App() {
       });
     },
     onCharacterProgress: (progress: number, status: string) => {
-      console.log(`📈 [GameReady] Character progress: ${progress}% - ${status}`);
       setGameReadyState(prev => ({ ...prev, characterProgress: progress, characterStatus: status }));
     },
     onZombieProgress: (progress: number, status: string) => {
-      console.log(`📈 [GameReady] Zombie progress: ${progress}% - ${status}`);
       setGameReadyState(prev => ({ ...prev, zombieProgress: progress, zombieStatus: status }));
     }
   };

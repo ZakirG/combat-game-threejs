@@ -22,7 +22,7 @@ export interface CharacterMovementConfig {
   runSpeed: number;
 }
 
-export const SPAWN_ALTITUDE = 50000.0;
+export const SPAWN_ALTITUDE = 90.0;
 
 export interface CharacterAnimationTable {
   idle: string;
