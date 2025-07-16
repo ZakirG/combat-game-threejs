@@ -650,6 +650,27 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
         </div>
       </div>
       
+      {/* Coming Soon Overlay for Grok Rudi */}
+      {characterName === 'Grok Rudi' && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+          color: 'white',
+          fontFamily: 'KnightsQuest, serif',
+          fontSize: '32px',
+          fontWeight: 'bold',
+          textShadow: '3px 3px 6px rgba(0, 0, 0, 0.9)',
+          zIndex: 25,
+          pointerEvents: 'none',
+          userSelect: 'none'
+        }}>
+          COMING SOON
+        </div>
+      )}
+      
       {/* Loading Spinner */}
       {isLoading && (
         <div style={{

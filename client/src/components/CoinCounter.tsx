@@ -6,22 +6,22 @@ interface CoinCounterProps {
 
 const CoinCounter: React.FC<CoinCounterProps> = ({ coinCount }) => {
   const [isAnimating, setIsAnimating] = useState(false);
-  const [displayCount, setDisplayCount] = useState(coinCount);
+  const [prevCoinCount, setPrevCoinCount] = useState(coinCount);
 
-  // Trigger animation when coinCount changes
+  // Trigger animation when coin count increases
   useEffect(() => {
-    if (coinCount !== displayCount) {
-      setDisplayCount(coinCount);
+    if (coinCount > prevCoinCount) {
       setIsAnimating(true);
       
-      // Reset animation after duration
-      const timeout = setTimeout(() => {
+      // Reset animation after a short duration
+      const timer = setTimeout(() => {
         setIsAnimating(false);
-      }, 300);
+      }, 300); // Animation duration in milliseconds
       
-      return () => clearTimeout(timeout);
+      return () => clearTimeout(timer);
     }
-  }, [coinCount, displayCount]);
+    setPrevCoinCount(coinCount);
+  }, [coinCount, prevCoinCount]);
 
   return (
     <div className="coin-counter">
@@ -35,7 +35,7 @@ const CoinCounter: React.FC<CoinCounterProps> = ({ coinCount }) => {
           className={`coin-count ${isAnimating ? 'coin-count-animate' : ''}`}
           style={{ fontFamily: 'Arial, sans-serif' }}
         >
-          x{displayCount}
+          x{coinCount}
         </span>
       </div>
       
