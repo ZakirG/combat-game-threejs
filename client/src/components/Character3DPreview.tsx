@@ -634,7 +634,8 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
           height: '100%',
           opacity: isLoading ? 0.3 : 1,
           transition: 'opacity 0.5s ease',
-          zIndex: 10
+          zIndex: 10,
+          filter: 'drop-shadow(0 0 5px white) drop-shadow(0 0 15px white)' // Glowing aura effect
         }}
         gl={{ 
           antialias: true,

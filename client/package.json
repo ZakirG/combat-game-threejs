@@ -13,6 +13,7 @@
     "@clockworklabs/spacetimedb-sdk": "^1.0.1",
     "@react-three/drei": "^10.0.6",
     "@react-three/fiber": "^9.1.2",
+    "@react-three/postprocessing": "^3.0.4",
     "fbx2gltf": "^0.9.7-p1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
