@@ -17,7 +17,7 @@
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { TextureLoader } from 'three';
@@ -27,11 +27,11 @@ import { getCharacterConfig, getCharacterPreviewConfig, getAnimationPath, getAni
 const CHARACTER_TEXTURES: Record<string, { folder: string; hasTextures: boolean }> = {
   'Zaqir Mufasa': {
     folder: '/models/zaqir-1/',
-    hasTextures: true
+    hasTextures: false // Use embedded textures like in main game - external textures cause issues
   },
   'Grok Ani': {
     folder: '/models/grok-ani/',
-    hasTextures: true // Has Gothic_Elegance texture
+    hasTextures: false // Use embedded textures like in main game - external textures cause issues
   },
   'Grok Rudi': {
     folder: '/models/grok-rudi/',
@@ -178,38 +178,64 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
               child.castShadow = true;
               child.receiveShadow = true;
               
-              // Convert to standard material if needed
+              // Process materials like in main game - preserve embedded textures, only convert when necessary
               if (child.material) {
                 const materials = Array.isArray(child.material) ? child.material : [child.material];
-                const newMaterials = materials.map((material) => {
-                  // Force convert all materials to MeshStandardMaterial for consistency
-                  const newMaterial = new THREE.MeshStandardMaterial({
-                    map: externalTextures?.diffuse || material.map,
-                    normalMap: externalTextures?.normal,
-                    roughnessMap: externalTextures?.roughness,
-                    metalnessMap: externalTextures?.metallic,
-                    color: material.color || new THREE.Color(0.9, 0.8, 0.7), // Brighter fallback color
-                    emissive: new THREE.Color(0.05, 0.05, 0.05), // Slight self-illumination
-                    transparent: material.transparent || false,
-                    opacity: material.opacity !== undefined ? material.opacity : 1.0,
-                    // Align PBR values with in-game player model to avoid overly-dark ("shadow") appearance
-                    // Using a very high metalness (1.0) without an environment map causes black shading.
-                    // Keep metalness low (≈0.1) and roughness moderate, even when a metallic map exists.
-                    roughness: externalTextures?.roughness ? 1.0 : 0.7,
-                    metalness: externalTextures?.metallic ? 0.1 : 0.0,
-                    side: THREE.FrontSide, // Ensure proper face culling
+                const newMaterials = materials.map((material: any, index: number) => {
+                  console.log(`[Character3DPreview] Processing material ${index}:`, {
+                    type: material.type,
+                    map: !!material.map,
+                    color: material.color?.getHexString(),
+                    emissive: material.emissive?.getHexString(),
+                    visible: material.visible,
+                    transparent: material.transparent,
+                    opacity: material.opacity
                   });
-                  (newMaterial as any).skinning = true;
-                  console.log(`[Character3DPreview] Created material with textures:`, {
-                    hasMap: !!newMaterial.map,
-                    hasNormal: !!newMaterial.normalMap,
-                    color: newMaterial.color.getHexString(),
-                    materialType: material.type
-                  });
-                  return newMaterial;
-                                    });
+                  
+                  // Convert MeshPhongMaterial to MeshStandardMaterial for better PBR lighting (like main game)
+                  if (material.type === 'MeshPhongMaterial' || material.type === 'MeshBasicMaterial' || material.type === 'MeshLambertMaterial') {
+                    console.log(`[Character3DPreview] Converting ${material.type} to MeshStandardMaterial for material ${index}`);
+                    
+                    const newMaterial = new THREE.MeshStandardMaterial({
+                      map: externalTextures?.diffuse || material.map, // Use embedded map if no external textures
+                      normalMap: externalTextures?.normal,
+                      roughnessMap: externalTextures?.roughness,
+                      metalnessMap: externalTextures?.metallic,
+                      color: material.color || new THREE.Color(1, 1, 1),
+                      emissive: material.emissive || new THREE.Color(0, 0, 0),
+                      transparent: material.transparent || false,
+                      opacity: material.opacity !== undefined ? material.opacity : 1.0,
+                      roughness: 0.7,
+                      metalness: 0.1,
+                    });
+                    
+                    // Enable skinning for animations
+                    (newMaterial as any).skinning = true;
+                    return newMaterial;
+                  } else {
+                    // Material is already StandardMaterial, just ensure skinning and fix any issues
+                    if ('skinning' in material) {
+                      (material as any).skinning = true;
+                    }
+                    
+                    // Fix any color issues (like main game)
+                    if (material.color && material.color.r === 0 && material.color.g === 0 && material.color.b === 0) {
+                      console.log(`[Character3DPreview] Material ${index} color is black, setting to white`);
+                      material.color.setRGB(1, 1, 1);
+                    }
+                    
+                    return material;
+                  }
+                });
                 
                 child.material = Array.isArray(child.material) ? newMaterials : newMaterials[0];
+                
+                // Force material update
+                if (Array.isArray(child.material)) {
+                  child.material.forEach(mat => mat.needsUpdate = true);
+                } else {
+                  child.material.needsUpdate = true;
+                }
               }
             }
           });
@@ -615,6 +641,9 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
       >
         {/* Transparent background */}
         <color attach="background" args={['transparent']} />
+        
+        {/* HDR Environment for proper PBR material rendering - matches GameScene.tsx */}
+        <Environment files="/environments/cape_hill_4k.exr" />
         
         <Character3DModel
           characterName={characterName}
