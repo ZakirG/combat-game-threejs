@@ -1682,8 +1682,8 @@ export const Player: React.FC<PlayerProps> = ({
       // Play animation if it's different and available, but not during high altitude falling or local attacks
       if (isHighAltitudeFalling) {
         console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during high altitude falling at Y=${localPositionRef.current.y.toFixed(1)} (LOCAL PLAYER ONLY)`);
-      } else if (isAttacking) {
-        console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during local attack animation`);
+      } else if (isLocalPlayer && isAttacking) {
+        console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during local attack animation (LOCAL PLAYER ONLY)`);
       } else if (serverAnim && serverAnim !== currentAnimation && animations[serverAnim]) {
          console.log(`🎬 [Anim Play] Server requested animation change to: ${serverAnim}`);
         try {
