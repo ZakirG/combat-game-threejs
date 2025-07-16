@@ -113,7 +113,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       idle: 0.7, // Slower, more regal idle
       jump: 1.3, // Double speed for faster jumping animation
       falling: 1.0, // Normal falling speed
-      landing: 1.1, // Slightly faster landing
+      landing: 0.275, // 4x slower landing (1.1 / 4 = 0.275)
       attack1: 3.0, // 1.5x speed increase (2.0 * 1.5 = 3.0)
       attack2: 3.0, // Same speed as attack1 for combo consistency
       cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
@@ -165,7 +165,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       idle: 0.8, // Slightly slower idle for more dramatic effect
       jump: 1.3, // Double speed for faster jumping animation
       falling: 1.0, // Normal falling speed
-      landing: 1.2, // Slightly faster landing for quicker recovery
+      landing: 0.3, // 4x slower landing (1.2 / 4 = 0.3)
       attack1: 3.0, // 1.5x speed increase (2.0 * 1.5 = 3.0)
       attack2: 3.0, // Same speed as attack1 for combo consistency
       cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
@@ -223,7 +223,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       cast: 3.0,           // New cast animation speed
       jump: 1.3,           // Double speed for faster jumping animation
       falling: 1.0,        // Normal falling speed
-      landing: 1.0,        // Normal landing speed
+      landing: 0.25,       // 4x slower landing (1.0 / 4 = 0.25)
       death: 0.9           // Slightly slower death for dramatic effect
     }
   }

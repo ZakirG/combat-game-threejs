@@ -8,6 +8,7 @@
  * - Styled to match the game's medieval fantasy theme
  * - Includes zombie skull icon for visual context
  * - Position: fixed top-left to not interfere with gameplay
+ * - Animated scaling effect when kill count increments
  * 
  * Props:
  * - killCount: Number of zombies killed by the player
@@ -17,15 +18,34 @@
  * - Semi-transparent background for visibility
  * - Game-themed fonts and styling
  * - Simple numeric counter with icon
+ * - CSS transition-based scaling animation on increment
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface KillCounterProps {
   killCount: number;
 }
 
 export const KillCounter: React.FC<KillCounterProps> = ({ killCount }) => {
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [prevKillCount, setPrevKillCount] = useState(killCount);
+
+  // Trigger animation when kill count increases
+  useEffect(() => {
+    if (killCount > prevKillCount) {
+      setIsAnimating(true);
+      
+      // Reset animation after a short duration
+      const timer = setTimeout(() => {
+        setIsAnimating(false);
+      }, 300); // Animation duration in milliseconds
+      
+      return () => clearTimeout(timer);
+    }
+    setPrevKillCount(killCount);
+  }, [killCount, prevKillCount]);
+
   return (
     <div
       style={{
@@ -42,7 +62,17 @@ export const KillCounter: React.FC<KillCounterProps> = ({ killCount }) => {
       }}
     >
       <span style={{ fontFamily: 'HorrorTheater, serif' }}>Kill Counter </span>
-      <span style={{ fontFamily: 'Arial, sans-serif' }}> &nbsp; {killCount}</span>
+      <span 
+        style={{ 
+          fontFamily: 'Arial, sans-serif',
+          display: 'inline-block',
+          transform: isAnimating ? 'scale(1.5)' : 'scale(1)',
+          transition: 'transform 0.15s cubic-bezier(0.68, -0.55, 0.265, 1.55)', // Bounce-like easing
+          transformOrigin: 'center'
+        }}
+      > 
+        &nbsp; {killCount}
+      </span>
     </div>
   );
 }; 

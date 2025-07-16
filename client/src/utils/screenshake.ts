@@ -16,10 +16,10 @@ export interface ScreenshakeConfig {
 
 // Default screenshake settings
 const DEFAULT_CONFIG: ScreenshakeConfig = {
-  intensity: 0.07,       // Moderate shake
-  duration: 60,         // 300ms shake
-  frequency: 0.3,        // 4.3Hz oscillation (30/7 = slower movement)
-  decay: 0.95            // Quick fade
+  intensity: 0.03,      
+  duration: 30,         
+  frequency: 0.005,       
+  decay: 0.95           
 };
 
 // Screenshake state

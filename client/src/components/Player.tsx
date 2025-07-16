@@ -1201,7 +1201,7 @@ export const Player: React.FC<PlayerProps> = ({
                   console.log(`[Player] ⚔️ Attack successful! Hit ${hitZombies.length} zombie(s)`);
                   
                   // Trigger screenshake effect for impact feedback
-                  const shakeIntensity = isComboAttack ? SCREENSHAKE_PRESETS.COMBO : SCREENSHAKE_PRESETS.MEDIUM;
+                  const shakeIntensity = isComboAttack ? SCREENSHAKE_PRESETS.COMBO : SCREENSHAKE_PRESETS.LIGHT;
                   triggerScreenshake(camera, shakeIntensity);
                   console.log(`[Player] 📳 Screenshake triggered - ${isComboAttack ? 'COMBO' : 'NORMAL'} intensity`);
                 }
@@ -1256,10 +1256,14 @@ export const Player: React.FC<PlayerProps> = ({
             const wasInAir = !isOnGround.current;
             isOnGround.current = true;
             
-            // If just landed from falling, play landing animation
+            // If just landed from falling, play landing animation and trigger screenshake
             if (wasInAir && currentAnimation === ANIMATIONS.FALLING) {
               console.log(`🎯 [LANDING] ${playerData.username} hit the ground after falling from Y=${fallHeight.toFixed(1)} - playing landing animation`);
               playAnimation(ANIMATIONS.LANDING, 0.3);
+              
+              // Trigger landing screenshake for dramatic impact
+              triggerScreenshake(camera, SCREENSHAKE_PRESETS.HEAVY);
+              console.log(`[Player] 📳 Landing screenshake triggered after falling from Y=${fallHeight.toFixed(1)}`);
               
               // After landing animation, transition to idle
               setTimeout(() => {
