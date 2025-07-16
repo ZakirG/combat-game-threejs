@@ -654,30 +654,23 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
       {isLoading && (
         <div style={{
           position: 'absolute',
-          top: '50%',
+          top: '30%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
           zIndex: 20,
           color: '#FFFFFF',
-          textAlign: 'center',
+          textAlign: 'right',
           textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)'
         }}>
           <div style={{
             width: '40px',
             height: '40px',
-            border: '4px solid rgba(93, 64, 55, 0.3)',
-            borderTop: '4px solid #5D4037',
+            border: '4px solid rgba(255, 255, 255, 0.4)', // Brighter, semi-transparent white
+            borderTop: '4px solid #FFFFFF', // Bright white for the moving part
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
-            margin: '0 auto 10px'
+            margin: '0'
           }}></div>
-          <div style={{
-            fontFamily: 'Newrocker, serif',
-            fontSize: '14px',
-            fontWeight: 'bold'
-          }}>
-            
-          </div>
         </div>
       )}
       
