@@ -47,8 +47,9 @@ private readonly PILLAR_RADIUS = 0.3;      // Thin beam radius
 Each coin has randomized properties for visual variety:
 - **Rotation Speed**: 2-5 radians per second (random)
 - **Float Speed**: 1-1.5 Hz frequency (random)
-- **Flyaway Speed**: 2-4 units/sec horizontal, 3-5 units/sec upward
-- **Gravity**: -15 units/sec² (for realistic arc trajectory)
+- **Flyaway Speed**: 4-7 units/sec horizontal, 6-9 units/sec upward (enhanced range)
+- **Gravity**: -12 units/sec² with air resistance decay (extended flight time)
+- **Collection Effect**: Coin disappears instantly, pillar fades out over 0.3 seconds
 
 ## Adding Your Custom Coin Model
 

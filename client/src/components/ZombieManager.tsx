@@ -501,9 +501,9 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
         }
       }
       
-      // Start fading after 2 seconds
-      if (deathTimer > 2.0) {
-        const fadeStartTime = deathTimer - 2.0;
+      // Start fading after 0.5 seconds
+      if (deathTimer > 0.5) {
+        const fadeStartTime = deathTimer - 0.5;
         const fadeDuration = 1.0; // 1 second fade
         const fadeProgress = Math.min(fadeStartTime / fadeDuration, 1.0);
         const newOpacity = 1.0 - fadeProgress;

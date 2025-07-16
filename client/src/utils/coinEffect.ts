@@ -17,6 +17,9 @@ interface CoinInstance {
   velocity: THREE.Vector3;
   gravity: number;
   landed: boolean;
+  // Pillar fade-out
+  pillarFading: boolean;
+  pillarFadeStartTime: number;
 }
 
 export class CoinEffectManager {
@@ -168,13 +171,13 @@ export class CoinEffectManager {
       direction.y = 0; // Remove vertical component for horizontal direction
       direction.normalize();
       
-      // Add horizontal flyaway (slower than zombie knockback)
-      const horizontalSpeed = 2 + Math.random() * 2; // 2-4 units/sec
+      // Add horizontal flyaway (stronger for farther distance)
+      const horizontalSpeed = 4 + Math.random() * 3; // 4-7 units/sec (increased)
       flyawayVelocity.x = direction.x * horizontalSpeed;
       flyawayVelocity.z = direction.z * horizontalSpeed;
       
-      // Add upward velocity (less than zombie)
-      flyawayVelocity.y = 3 + Math.random() * 2; // 3-5 units/sec upward
+      // Add upward velocity (higher for better arc)
+      flyawayVelocity.y = 6 + Math.random() * 3; // 6-9 units/sec upward (increased)
     }
 
     // Create coin instance with random properties for variety
@@ -189,8 +192,11 @@ export class CoinEffectManager {
       collected: false,
       // Flyaway physics
       velocity: flyawayVelocity.clone(),
-      gravity: -15, // Gravity strength (less than zombie)
-      landed: false
+      gravity: -12, // Reduced gravity for longer flight time
+      landed: false,
+      // Pillar fade-out
+      pillarFading: false,
+      pillarFadeStartTime: 0
     };
 
     this.coins.push(coinInstance);
@@ -207,12 +213,37 @@ export class CoinEffectManager {
       const coin = this.coins[i];
       const elapsed = currentTime - coin.startTime;
       
-      // Remove collected coins
+      // Handle collected coins with pillar fade-out
       if (coin.collected) {
-        this.scene.remove(coin.mesh);
-        this.scene.remove(coin.glowPillar);
-        this.coins.splice(i, 1);
-        console.log('[CoinEffect] Coin and glow pillar removed after collection');
+        if (coin.pillarFading) {
+          const fadeElapsed = currentTime - coin.pillarFadeStartTime;
+          const fadeDuration = 300; // 0.3 seconds
+          
+          if (fadeElapsed >= fadeDuration) {
+            // Fade complete, remove pillar and coin from array
+            this.scene.remove(coin.glowPillar);
+            this.coins.splice(i, 1);
+            console.log('[CoinEffect] Pillar fade complete, fully removed');
+            continue;
+          } else {
+            // Update pillar opacity during fade
+            const fadeProgress = fadeElapsed / fadeDuration;
+            const alpha = 1 - fadeProgress; // Fade from 1 to 0
+            
+            // Apply fade to all pillar layers
+            coin.glowPillar.children.forEach((child, index) => {
+              if (child instanceof THREE.Mesh && child.material) {
+                const material = child.material as THREE.MeshBasicMaterial;
+                // Get original opacity based on layer index
+                let originalOpacity = 0.12; // Inner layer (index 0)
+                if (index === 1) originalOpacity = 0.08; // Middle layer
+                if (index === 2) originalOpacity = 0.05; // Outer layer
+                
+                material.opacity = originalOpacity * alpha;
+              }
+            });
+          }
+        }
         continue;
       }
       
@@ -223,6 +254,10 @@ export class CoinEffectManager {
       if (!coin.landed) {
         // Apply gravity to velocity
         coin.velocity.y += coin.gravity * deltaTime;
+        
+        // Apply air resistance for gradual slowdown (decay over time)
+        const airResistance = 0.98; // 2% velocity reduction per frame
+        coin.velocity.multiplyScalar(airResistance);
         
         // Update position based on velocity
         coin.position.x += coin.velocity.x * deltaTime;
@@ -267,8 +302,14 @@ export class CoinEffectManager {
         const distance = playerPosition.distanceTo(coin.position);
         if (distance <= collectionRadius) {
           coin.collected = true;
+          coin.pillarFading = true;
+          coin.pillarFadeStartTime = Date.now();
+          
+          // Remove coin mesh immediately
+          this.scene.remove(coin.mesh);
+          
           collectedCount++;
-          console.log(`[CoinEffect] Coin collected at distance ${distance.toFixed(2)}`);
+          console.log(`[CoinEffect] Coin collected at distance ${distance.toFixed(2)}, pillar fading out`);
         }
       }
     }
