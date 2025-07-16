@@ -7,7 +7,7 @@
 
 // Configurable volume settings - easy to adjust
 export const AUDIO_VOLUMES = {
-  BLOOD_SPURT: 0.1, // Adjust this value to change blood spurt sound volume (0.0 to 1.0)
+  BLOOD_SPURT: 0, // Adjust this value to change blood spurt sound volume (0.0 to 1.0)
   MASTER: 1.0,      // Master volume multiplier
 };
 

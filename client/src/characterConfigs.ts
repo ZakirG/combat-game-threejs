@@ -112,7 +112,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       landing: "Falling To Landing.fbx" // Use available landing animation
     },
     timeScale: {
-      'walk-forward': 1.8, // Double speed for faster walking (was 0.9)
+      'walk-forward': 2.7, // 1.5x faster walking (1.8 * 1.5 = 2.7)
       'run-forward': 1.0,
       idle: 0.7, // Slower, more regal idle
       jump: 1.3, // Double speed for faster jumping animation

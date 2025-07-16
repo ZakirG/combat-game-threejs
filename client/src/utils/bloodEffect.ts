@@ -14,7 +14,7 @@
  */
 
 // GLOBAL TOGGLE - Set to false to disable all blood effects
-export const BLOOD_EFFECTS_ENABLED = false;
+export const BLOOD_EFFECTS_ENABLED = true;
 
 import * as THREE from 'three';
 

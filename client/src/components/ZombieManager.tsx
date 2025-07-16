@@ -763,7 +763,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
 
   }, []);
 
-  // Smart zombie position generation with distance checks and arch-focused spawning
+  // Smart zombie position generation with circular spawning around players
   const generateSafeZombiePosition = useCallback((
     players: ReadonlyMap<string, PlayerData>, 
     minDistance: number,
@@ -772,44 +772,29 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     const worldSize = SPAWN_SETTINGS.WORLD_SIZE;
     const maxDistance = SPAWN_SETTINGS.MAX_DISTANCE_FROM_PLAYERS;
     
-    // Arch position (from EnvironmentAssets.tsx)
-    const archPosition = new THREE.Vector3(40.0, 10, 150.0);
-    
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       let x: number, z: number;
       
-      // Focus spawning near the arch and in front of players (90% of the time)
-      if (players.size > 0 && Math.random() < 0.9) { // 90% chance to spawn relative to arch/player direction
+      // Use circular spawning around players (80% of the time)
+      if (players.size > 0 && Math.random() < 0.8) { // 80% chance to spawn relative to nearest player
         const nearestPlayer = Array.from(players.values())[0];
         const playerPos = new THREE.Vector3(nearestPlayer.position.x, 0, nearestPlayer.position.z);
         
-        // Only spawn in front of player (positive Z direction towards arch)
-        // Restrict angle to front hemisphere only (±90 degrees from forward direction)
-        const frontAngle = Math.PI; // Forward direction (positive Z)
-        const angleVariation = Math.PI * 0.8; // ±72 degrees from forward
-        const angle = frontAngle + (Math.random() - 0.5) * angleVariation;
+        // Full circular spawning - any angle around the player
+        const angle = Math.random() * Math.PI * 2; // Full 360 degrees
+        const distance = minDistance + Math.random() * (maxDistance - minDistance);
         
-        // Spawn closer to arch - bias distance towards arch area
-        const archDistance = playerPos.distanceTo(new THREE.Vector3(archPosition.x, 0, archPosition.z));
-        const spawnDistance = minDistance + Math.random() * (Math.min(maxDistance, archDistance * 0.8));
+        // Add some noise to break perfect circles
+        const noiseX = (Math.random() - 0.5) * 6; // ±3 units of noise
+        const noiseZ = (Math.random() - 0.5) * 6;
         
-        // Add noise to break perfect circles, but less noise for more focused spawning
-        const noiseX = (Math.random() - 0.5) * 4; // ±2 units of noise (reduced)
-        const noiseZ = (Math.random() - 0.5) * 4;
-        
-        x = playerPos.x + Math.cos(angle) * spawnDistance + noiseX;
-        z = playerPos.z + Math.sin(angle) * spawnDistance + noiseZ;
-        
-        // Ensure Z is always greater than player Z (in front of player)
-        z = Math.max(z, playerPos.z + minDistance);
+        x = playerPos.x + Math.cos(angle) * distance + noiseX;
+        z = playerPos.z + Math.sin(angle) * distance + noiseZ;
         
       } else {
-        // 10% chance for positions biased towards arch area
-        const archVariationX = (Math.random() - 0.5) * 30; // ±15 units around arch X
-        const archVariationZ = (Math.random() - 0.5) * 20; // ±10 units around arch Z
-        
-        x = archPosition.x + archVariationX;
-        z = archPosition.z + archVariationZ;
+        // 20% chance for completely random position within world bounds
+        x = (Math.random() - 0.5) * worldSize;
+        z = (Math.random() - 0.5) * worldSize;
       }
       
       const candidatePos = new THREE.Vector3(x, 0, z);
