@@ -28,7 +28,7 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { PlayerData } from '../generated';
-import { makeZombieDecision, ZOMBIE_ANIMATIONS, ZombieDecision } from './ZombieBrain';
+import { makeZombieDecision, ZOMBIE_ANIMATIONS, ZombieDecision, STRIKING_DISTANCE } from './ZombieBrain';
 import { ZOMBIE_CONFIG } from '../characterConfigs';
 import { GameReadyCallbacks } from '../types/gameReady';
 
@@ -52,16 +52,20 @@ const executeBehavior = (
     case 'chase':
     case 'wander':
       if (decision.targetPosition) {
-        // Move toward target position
+        // Calculate direction and distance to target
         const direction = new THREE.Vector3()
-          .subVectors(decision.targetPosition, zombiePosition.current)
-          .normalize();
+          .subVectors(decision.targetPosition, zombiePosition.current);
+        const distanceToTarget = direction.length();
         
-        const moveAmount = direction.multiplyScalar(decision.speed * delta);
-        const oldPos = zombiePosition.current.clone();
-        zombiePosition.current.add(moveAmount);
+        // For chase behavior, stop moving when we get close enough (striking distance)
+        // For wander behavior, always move toward target
+        if (decision.action === 'wander' || distanceToTarget > STRIKING_DISTANCE) {
+          direction.normalize();
+          const moveAmount = direction.multiplyScalar(decision.speed * delta);
+          zombiePosition.current.add(moveAmount);
+        }
         
-        // Rotate to face movement direction
+        // Rotate to face movement direction (regardless of whether we move)
         if (direction.length() > 0) {
           const targetRotation = Math.atan2(direction.x, direction.z);
           zombieRotation.current.y = targetRotation;

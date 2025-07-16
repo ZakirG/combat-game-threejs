@@ -3,7 +3,7 @@ import { PlayerData } from '../generated';
 
 // Configurable distances
 const DISTANCE_TO_PLAYER_BEFORE_CHASING = 15.0;
-const STRIKING_DISTANCE = 3.0;
+export const STRIKING_DISTANCE = 4.5; // Increased to maintain proper spacing from player
 
 // Animation constants
 export const ZOMBIE_ANIMATIONS = {
