@@ -53,6 +53,7 @@ interface GameSceneProps {
   showControlsPanel?: boolean; // Whether to display the ControlsPanel
   gameReadyCallbacks?: GameReadyCallbacks; // Callbacks for GameReady events
   gameReady?: boolean; // Whether the game is fully ready
+  onKillCountChange?: (killCount: number) => void; // Callback for kill count changes
 }
 
 // Textured Floor Component
@@ -103,7 +104,8 @@ export const GameScene: React.FC<GameSceneProps> = ({
   isDebugPanelVisible = false, // Destructure the new prop
   showControlsPanel = false,
   gameReadyCallbacks, // Destructure GameReady callbacks
-  gameReady = false // Destructure gameReady state
+  gameReady = false, // Destructure gameReady state
+  onKillCountChange // Destructure kill count callback
 }) => {
   // Ref for the main directional light
   const directionalLightRef = useRef<THREE.DirectionalLight>(null!); 
@@ -174,11 +176,12 @@ export const GameScene: React.FC<GameSceneProps> = ({
 
       {/* Render Optimized Zombie Manager */}
       <ZombieManager 
-        zombieCount={30}
+        zombieCount={25}
         players={players}
         isDebugVisible={isDebugPanelVisible}
         minSpawnDistance={12} // Minimum 12 units from any player (matches SPAWN_SETTINGS)
         gameReadyCallbacks={gameReadyCallbacks} // Pass GameReady callbacks
+        onKillCountChange={onKillCountChange} // Pass kill count callback
       />
 
       {/* Remove OrbitControls as we're using our own camera controls */}

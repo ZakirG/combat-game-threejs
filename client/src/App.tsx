@@ -50,6 +50,7 @@ import { JoinGameDialog } from './components/JoinGameDialog';
 import { LoadingScreen } from './components/LoadingScreen';
 import * as THREE from 'three';
 import { PlayerUI } from './components/PlayerUI';
+import { KillCounter } from './components/KillCounter';
 import { GameReadyState, GameReadyCallbacks, isGameReady } from './types/gameReady';
 
 // Type Aliases
@@ -84,6 +85,9 @@ function App() {
   });
   const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const [gameFullyReady, setGameFullyReady] = useState(false);
+  
+  // --- Kill Counter State ---
+  const [totalKillCount, setTotalKillCount] = useState<number>(0);
 
   // --- Ref for current input state ---
   const currentInputRef = useRef<InputState>({
@@ -98,6 +102,11 @@ function App() {
   const playerRotationRef = useRef<THREE.Euler>(new THREE.Euler(0, 0, 0, 'YXZ'));
   const playerPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 90, 0)); // Initialize with spawn altitude
 
+  // --- Kill Count Callback ---
+  const handleKillCountChange = useCallback((killCount: number) => {
+    setTotalKillCount(killCount);
+  }, []);
+  
   // --- GameReady Callbacks ---
   const gameReadyCallbacks: GameReadyCallbacks = {
     onCharacterReady: () => {
@@ -550,8 +559,11 @@ function App() {
             showControlsPanel={gameFullyReady} // Pass gameFullyReady instead of hasJoinedGame
             gameReadyCallbacks={gameReadyCallbacks} // Pass callbacks to GameScene
             gameReady={gameFullyReady} // Pass gameReady state to control ControlsPanel timing
+            onKillCountChange={handleKillCountChange} // Pass kill count callback
           />
           {localPlayer && <PlayerUI playerData={localPlayer} />}
+          {/* Kill Counter - always show when game is active */}
+          <KillCounter killCount={totalKillCount} />
         </>
       )}
 

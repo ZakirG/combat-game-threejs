@@ -155,7 +155,8 @@ interface ZombieInstanceProps {
   zombieId: string;
   shouldLoad?: boolean; // Whether this zombie should start loading
   onLoadComplete?: () => void; // Callback when loading finishes
-  onZombieDeath?: (zombieId: string) => void; // Callback when zombie dies
+  onZombieDeath?: (zombieId: string) => void; // Callback when zombie dies (for scene cleanup)
+  onZombieKilled?: (zombieId: string) => void; // Callback when zombie is killed (for kill counter)
   onRegisterInstance?: (zombieId: string, positionRef: React.MutableRefObject<THREE.Vector3>, triggerDeath: (direction: THREE.Vector3) => void) => void; // Register for attack detection
   onUnregisterInstance?: (zombieId: string) => void; // Unregister when cleanup
 }
@@ -169,6 +170,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
   shouldLoad = false,
   onLoadComplete,
   onZombieDeath,
+  onZombieKilled,
   onRegisterInstance,
   onUnregisterInstance
 }) => {
@@ -361,6 +363,11 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
     setIsDeathSequenceStarted(true);
     setIsDead(true);
     
+    // Immediately notify kill for kill counter (responsive UI)
+    if (onZombieKilled) {
+      onZombieKilled(zombieId);
+    }
+    
     // Apply knockback velocity - ensure zombies fly away from player, not towards
     const normalizedDirection = knockbackDirection.clone().normalize();
     knockbackVelocity.current.set(
@@ -378,7 +385,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
     
     // Start death timer
     setDeathTimer(0);
-  }, [isDead, isDeathSequenceStarted, zombieId, animations, playZombieAnimation]);
+  }, [isDead, isDeathSequenceStarted, zombieId, animations, playZombieAnimation, onZombieKilled]);
 
   // Register for attack detection when ready, unregister on cleanup
   useEffect(() => {
@@ -519,9 +526,9 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
           });
         }
         
-        // Complete cleanup after fade
+        // Complete cleanup after fade - notify scene cleanup
         if (fadeProgress >= 1.0 && onZombieDeath) {
-          console.log(`[${zombieId}] Cleanup complete, notifying death`);
+          console.log(`[${zombieId}] Cleanup complete, removing from scene`);
           onZombieDeath(zombieId);
           return; // Skip further updates
         }
@@ -593,6 +600,7 @@ interface ZombieManagerProps {
   isDebugVisible?: boolean;
   minSpawnDistance?: number; // Minimum distance from players for zombie spawning
   gameReadyCallbacks?: GameReadyCallbacks; // Callbacks for GameReady events
+  onKillCountChange?: (killCount: number) => void; // Callback for kill count changes
 }
 
 // Main ZombieManager component
@@ -601,7 +609,8 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   players,
   isDebugVisible = false,
   minSpawnDistance = SPAWN_SETTINGS.MIN_DISTANCE_FROM_PLAYERS,
-  gameReadyCallbacks
+  gameReadyCallbacks,
+  onKillCountChange
 }) => {
   const [resources, setResources] = useState<ZombieResources>({
     model: null,
@@ -616,7 +625,8 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   
   // Death tracking
   const [deadZombies, setDeadZombies] = useState<Set<string>>(new Set());
-  const [killCount, setKillCount] = useState<number>(0);
+  const [killCount, setKillCount] = useState<number>(0); // Internal counter for respawn triggers (resets)
+  const [totalKillCount, setTotalKillCount] = useState<number>(0); // Total kills for UI (never resets)
   const [nextZombieId, setNextZombieId] = useState<number>(zombieCount); // Track next available ID
   
   // Registry for zombie instances (for attack collision detection)
@@ -922,15 +932,32 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     });
   }, [zombieCount, LOADING_DELAY, gameReadyCallbacks]);
 
-  // Handle zombie death
+  // Handle zombie death (scene cleanup)
   const handleZombieDeath = useCallback((zombieId: string) => {
-    console.log(`[ZombieManager] Zombie ${zombieId} has died, removing from scene`);
+    console.log(`[ZombieManager] Zombie ${zombieId} cleanup complete, removing from scene`);
     setDeadZombies(prev => new Set(prev).add(zombieId));
+  }, []);
+  
+  // Handle zombie killed (immediate kill counter update)
+  const handleZombieKilled = useCallback((zombieId: string) => {
+    console.log(`[ZombieManager] Zombie ${zombieId} killed! Updating kill counter`);
     
-    // Track kills and trigger respawn every 3 kills
+    // Update total kill count (never resets)
+    setTotalKillCount(prev => {
+      const newTotalKills = prev + 1;
+      
+      // Notify parent component of total kill count change
+      if (onKillCountChange) {
+        onKillCountChange(newTotalKills);
+      }
+      
+      return newTotalKills;
+    });
+    
+    // Track kills for respawn trigger (resets every 3 kills)
     setKillCount(prev => {
       const newKillCount = prev + 1;
-      console.log(`[ZombieManager] 💀 Kill count: ${newKillCount}`);
+      console.log(`[ZombieManager] 💀 Respawn kill count: ${newKillCount}`);
       
       if (newKillCount % 3 === 0) {
                  console.log(`[ZombieManager] 🎯 RESPAWN TRIGGER! Killed ${newKillCount} zombies, spawning 3 more...`);
@@ -948,12 +975,12 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
            }
          }, 1000); // 1 second delay for dramatic effect
         
-        return 0; // Reset kill counter
+        return 0; // Reset respawn counter
       }
       
       return newKillCount;
     });
-  }, [spawnNewZombies]);
+  }, [spawnNewZombies, onKillCountChange]);
 
   // Handle zombie registration for attack detection
   const handleZombieRegister = useCallback((zombieId: string, positionRef: React.MutableRefObject<THREE.Vector3>, triggerDeath: (direction: THREE.Vector3) => void) => {
@@ -1053,6 +1080,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
             shouldLoad={shouldLoad}
             onLoadComplete={handleZombieLoadComplete}
             onZombieDeath={handleZombieDeath}
+            onZombieKilled={handleZombieKilled}
             onRegisterInstance={handleZombieRegister}
             onUnregisterInstance={handleZombieUnregister}
           />

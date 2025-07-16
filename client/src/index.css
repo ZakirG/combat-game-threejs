@@ -31,6 +31,12 @@
   src: url('/MountainKing.ttf') format('truetype');
 }
 
+/* Add the HorrorTheater font face */
+@font-face {
+  font-family: 'HorrorTheater';
+  src: url('/HorrorTheater.ttf') format('truetype');
+}
+
 a {
   font-weight: 500;
   color: #646cff;
