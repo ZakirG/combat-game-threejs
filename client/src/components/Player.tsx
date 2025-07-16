@@ -49,7 +49,7 @@ import {
   SPAWN_ALTITUDE 
 } from '../characterConfigs';
 import { GameReadyCallbacks } from '../types/gameReady';
-import { triggerScreenshake, updateScreenshake, SCREENSHAKE_PRESETS } from '../utils/screenshake';
+import { triggerHitScreenshake, triggerLandingScreenshake, updateScreenshake, SCREENSHAKE_PRESETS } from '../utils/screenshake';
 import { BloodEffectManager } from '../utils/bloodEffect';
 import { playBloodSpurtSound } from '../utils/audioUtils';
 
@@ -1263,7 +1263,7 @@ export const Player: React.FC<PlayerProps> = ({
                   } else if (comboDescription === 'FOURTH') {
                     shakeIntensity = SCREENSHAKE_PRESETS.LIGHT; // Ultimate finisher
                   }
-                  triggerScreenshake(camera, shakeIntensity);
+                  triggerHitScreenshake(camera, shakeIntensity);
                   console.log(`[Player] 📳 Screenshake triggered - ${comboDescription} attack intensity`);
                   
                   // Trigger blood spurt effects for each hit zombie
@@ -1339,7 +1339,7 @@ export const Player: React.FC<PlayerProps> = ({
               playAnimation(ANIMATIONS.LANDING, 0.3);
               
               // Trigger landing screenshake for dramatic impact
-              triggerScreenshake(camera, SCREENSHAKE_PRESETS.HEAVY);
+              triggerLandingScreenshake(camera, SCREENSHAKE_PRESETS.HEAVY);
               console.log(`[Player] 📳 Landing screenshake triggered after falling from Y=${fallHeight.toFixed(1)}`);
               
               // After landing animation, transition to idle

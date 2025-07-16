@@ -7,6 +7,13 @@
 
 import * as THREE from 'three';
 
+// Global screenshake settings - easy configuration
+export const SCREENSHAKE_SETTINGS = {
+  ENABLED: true,           // Master toggle for all screenshake effects
+  HIT_SCREENSHAKE: true,   // Toggle for combat hit screenshakes
+  LANDING_SCREENSHAKE: true // Toggle for landing impact screenshakes
+};
+
 export interface ScreenshakeConfig {
   intensity: number;     // How strong the shake is (units)
   duration: number;      // How long the shake lasts (ms)
@@ -34,6 +41,9 @@ let originalCameraPosition: THREE.Vector3 | null = null;
  * @param config - Optional configuration for the shake
  */
 export function triggerScreenshake(camera: THREE.Camera, config?: Partial<ScreenshakeConfig>) {
+  // Check global screenshake settings first
+  if (!SCREENSHAKE_SETTINGS.ENABLED || !camera) return;
+  
   // Merge with default config
   shakeConfig = { ...DEFAULT_CONFIG, ...config };
   
@@ -132,4 +142,24 @@ export const SCREENSHAKE_PRESETS = {
     frequency: 5.7,        // 40/7 = slower movement
     decay: 0.94
   }
-}; 
+};
+
+/**
+ * Triggers screenshake for combat hits (respects HIT_SCREENSHAKE setting)
+ * @param camera - The Three.js camera to shake
+ * @param config - Optional configuration for the shake
+ */
+export function triggerHitScreenshake(camera: THREE.Camera, config?: Partial<ScreenshakeConfig>) {
+  if (!SCREENSHAKE_SETTINGS.HIT_SCREENSHAKE) return;
+  triggerScreenshake(camera, config);
+}
+
+/**
+ * Triggers screenshake for landing impacts (respects LANDING_SCREENSHAKE setting)
+ * @param camera - The Three.js camera to shake
+ * @param config - Optional configuration for the shake
+ */
+export function triggerLandingScreenshake(camera: THREE.Camera, config?: Partial<ScreenshakeConfig>) {
+  if (!SCREENSHAKE_SETTINGS.LANDING_SCREENSHAKE) return;
+  triggerScreenshake(camera, config);
+} 
