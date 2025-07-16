@@ -37,6 +37,8 @@ export interface CharacterAnimationTable {
   jump: string;
   attack1: string;
   attack2: string; // Combo attack animation
+  attack3: string; // Third combo attack animation
+  attack4: string; // Fourth combo attack animation
   cast: string;
   damage: string;
   death: string;
@@ -101,6 +103,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       jump: "Crouch Torch Walk Back.fbx", // Using available animation as placeholder
       attack1: "Mma Kick.fbx",
       attack2: "Flip Kick.fbx", // Combo attack animation
+      attack3: "Inverted Double Kick To Kip Up.fbx", // Third combo attack animation
+      attack4: "Martelo Do Chau.fbx", // Fourth combo attack animation
       cast: "Elbow Punch.fbx",
       damage: "Hit To Body.fbx",
       death: "Standing React Death Backward.fbx",
@@ -116,6 +120,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       landing: 0.275, // 4x slower landing (1.1 / 4 = 0.275)
       attack1: 3.0, // 1.5x speed increase (2.0 * 1.5 = 3.0)
       attack2: 3.0, // Same speed as attack1 for combo consistency
+      attack3: 2.5, // Slightly slower for dramatic third combo finisher
+      attack4: 3.5, // Faster fourth attack for quick finisher
       cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
     }
   },
@@ -150,6 +156,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       jump: "Jumping.fbx",
       attack1: "Roundhouse Kick.fbx", // Changed from Standing Melee Punch
       attack2: "Flip Kick.fbx", // Combo attack (was cast)
+      attack3: "Inverted Double Kick To Kip Up.fbx", // Third combo attack animation
+      attack4: "Martelo Do Chau.fbx", // Fourth combo attack animation
       cast: "Punching.fbx", // Use different punching animation for cast
       damage: "Receive Hit.fbx",
       death: "death.fbx",
@@ -168,6 +176,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       landing: 0.3, // 4x slower landing (1.2 / 4 = 0.3)
       attack1: 3.0, // 1.5x speed increase (2.0 * 1.5 = 3.0)
       attack2: 3.0, // Same speed as attack1 for combo consistency
+      attack3: 2.5, // Slightly slower for dramatic third combo finisher
+      attack4: 3.5, // Faster fourth attack for quick finisher
       cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
     }
   },
@@ -202,6 +212,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       jump: "Standing Walk Forward.fbx", // Placeholder until jump animation is added
       attack1: "Punch.fbx", // Grok Rudi's first punch
       attack2: "Punch 2.fbx", // Combo attack (was cast)
+      attack3: "Mma Kick.fbx", // Third combo attack animation (use kick for Grok Rudi)
+      attack4: "Mma Kick.fbx", // Fourth combo attack animation (reuse kick for Grok Rudi)
       cast: "Mma Kick.fbx", // Use kick animation for cast
       damage: "Falling Back Death.fbx", // Use death animation for damage
       death: "Falling Back Death.fbx", // Grok Rudi's death animation
@@ -220,6 +232,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       idle: 0.8,           // Slower, more menacing combat idle
       attack1: 3.6,        // 1.5x speed increase (2.4 * 1.5 = 3.6)
       attack2: 3.3,        // Same speed as previous cast for combo consistency
+      attack3: 2.8,        // Slightly slower for dramatic third combo finisher
+      attack4: 3.8,        // Faster fourth attack for quick finisher
       cast: 3.0,           // New cast animation speed
       jump: 1.3,           // Double speed for faster jumping animation
       falling: 1.0,        // Normal falling speed

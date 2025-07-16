@@ -65,6 +65,8 @@ const ANIMATIONS = {
   JUMP: 'jump',
   ATTACK: 'attack1',
   ATTACK2: 'attack2', // Combo attack animation
+  ATTACK3: 'attack3', // Third combo attack animation
+  ATTACK4: 'attack4', // Fourth combo attack animation
   CAST: 'cast',
   DAMAGE: 'damage',
   DEATH: 'death',
@@ -141,7 +143,8 @@ export const Player: React.FC<PlayerProps> = ({
   // Combo system state
   const [lastAttackTime, setLastAttackTime] = useState<number>(0);
   const [comboActive, setComboActive] = useState<boolean>(false);
-  const COMBO_WINDOW = 3000; // 3 seconds to perform combo
+  const [comboStage, setComboStage] = useState<number>(0); // 0=none, 1=waiting for attack2, 2=waiting for attack3, 3=waiting for attack4
+  const COMBO_WINDOW = 2000; // 2 seconds to perform combo (changed from 3 to match requirement)
   
   // --- Client Prediction State ---
   // For gameplay, force high altitude spawn on first entrance
@@ -1148,18 +1151,38 @@ export const Player: React.FC<PlayerProps> = ({
             wasJumpPressed.current = false;
           }
           
-          // Handle attack input (allow restarting attacks for faster combat + combo system)
+          // Handle attack input (allow restarting attacks for faster combat + three-attack combo system)
           if (currentInput.attack && !wasAttackPressed.current) {
             wasAttackPressed.current = true;
             
             const currentTime = Date.now();
             const timeSinceLastAttack = currentTime - lastAttackTime;
             
-            // Determine if this is a combo attack
-            const isComboAttack = comboActive && timeSinceLastAttack <= COMBO_WINDOW;
-            const attackAnimation = isComboAttack ? ANIMATIONS.ATTACK2 : ANIMATIONS.ATTACK;
+            // Determine which attack to play based on combo stage and timing
+            let attackAnimation = ANIMATIONS.ATTACK;
+            let isComboAttack = false;
+            let comboDescription = 'FIRST';
             
-            console.log(`[Player] ⚔️ Attack triggered - Combo: ${isComboAttack ? 'YES' : 'NO'}, Time since last: ${timeSinceLastAttack}ms`);
+            if (comboActive && timeSinceLastAttack <= COMBO_WINDOW) {
+              if (comboStage === 1) {
+                // Second attack in combo
+                attackAnimation = ANIMATIONS.ATTACK2;
+                isComboAttack = true;
+                comboDescription = 'SECOND';
+              } else if (comboStage === 2) {
+                // Third attack in combo
+                attackAnimation = ANIMATIONS.ATTACK3;
+                isComboAttack = true;
+                comboDescription = 'THIRD';
+              } else if (comboStage === 3) {
+                // Fourth attack in combo
+                attackAnimation = ANIMATIONS.ATTACK4;
+                isComboAttack = true;
+                comboDescription = 'FOURTH';
+              }
+            }
+            
+            console.log(`[Player] ⚔️ ${comboDescription} Attack triggered - Combo Stage: ${comboStage}, Time since last: ${timeSinceLastAttack}ms`);
             
             // If already attacking, restart the attack sequence
             if (isAttacking) {
@@ -1169,13 +1192,25 @@ export const Player: React.FC<PlayerProps> = ({
             setIsAttacking(true);
             setLastAttackTime(currentTime);
             
-            // Set combo state for next attack
-            if (isComboAttack) {
-              setComboActive(false); // Reset combo after second attack
-              console.log(`[Player] 🥊 COMBO ATTACK! Playing ${attackAnimation}`);
-            } else {
-              setComboActive(true); // Enable combo for next attack
-              console.log(`[Player] 👊 First attack, combo window opened`);
+            // Update combo state for next attack
+            if (comboStage === 0 || timeSinceLastAttack > COMBO_WINDOW) {
+              // First attack or combo window expired - start new combo chain
+              setComboActive(true);
+              setComboStage(1); // Next attack will be attack2
+              console.log(`[Player] 👊 First attack, combo window opened for attack2`);
+            } else if (comboStage === 1) {
+              // Second attack - enable third attack
+              setComboStage(2); // Next attack will be attack3
+              console.log(`[Player] 🥊 Second combo attack! Window opened for attack3`);
+            } else if (comboStage === 2) {
+              // Third attack - enable fourth attack
+              setComboStage(3); // Next attack will be attack4
+              console.log(`[Player] 💥 Third combo attack! Window opened for attack4`);
+            } else if (comboStage === 3) {
+              // Fourth attack - reset combo chain
+              setComboActive(false);
+              setComboStage(0);
+              console.log(`[Player] 🔥 FOURTH COMBO ATTACK! Ultimate combo chain complete`);
             }
             
             // Clear any existing attack timeout to restart sequence
@@ -1200,10 +1235,17 @@ export const Player: React.FC<PlayerProps> = ({
                 if (hitZombies.length > 0) {
                   console.log(`[Player] ⚔️ Attack successful! Hit ${hitZombies.length} zombie(s)`);
                   
-                  // Trigger screenshake effect for impact feedback
-                  const shakeIntensity = isComboAttack ? SCREENSHAKE_PRESETS.COMBO : SCREENSHAKE_PRESETS.LIGHT;
+                  // Trigger screenshake effect for impact feedback based on attack type
+                  let shakeIntensity = SCREENSHAKE_PRESETS.LIGHT;
+                  if (comboDescription === 'SECOND') {
+                    shakeIntensity = SCREENSHAKE_PRESETS.LIGHT;
+                  } else if (comboDescription === 'THIRD') {
+                    shakeIntensity = SCREENSHAKE_PRESETS.LIGHT;
+                  } else if (comboDescription === 'FOURTH') {
+                    shakeIntensity = SCREENSHAKE_PRESETS.LIGHT; // Ultimate finisher
+                  }
                   triggerScreenshake(camera, shakeIntensity);
-                  console.log(`[Player] 📳 Screenshake triggered - ${isComboAttack ? 'COMBO' : 'NORMAL'} intensity`);
+                  console.log(`[Player] 📳 Screenshake triggered - ${comboDescription} attack intensity`);
                 }
               }
             }, 300); // 300ms delay to let attack animation play
@@ -1214,12 +1256,13 @@ export const Player: React.FC<PlayerProps> = ({
               attackTimeoutRef.current = null;
               console.log(`[Player] 🏁 Attack animation completed`);
               
-              // Clear combo after timeout if no second attack was made
-              if (!isComboAttack) {
+              // Clear combo after timeout if no next attack is made
+              if (comboStage > 0) {
                 setTimeout(() => {
                   const timeNow = Date.now();
                   if (timeNow - lastAttackTime >= COMBO_WINDOW) {
                     setComboActive(false);
+                    setComboStage(0);
                     console.log(`[Player] ⏱️ Combo window expired, reset to normal attacks`);
                   }
                 }, COMBO_WINDOW);
