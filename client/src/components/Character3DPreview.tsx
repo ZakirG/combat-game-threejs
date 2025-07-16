@@ -652,14 +652,15 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
         <Environment files="/environments/furstenstein_4k.hdr" background={false} />
         
         {/* Add a balanced lighting setup to supplement the environment map */}
-        <ambientLight intensity={0.5} />
+        <ambientLight intensity={1} />
         <directionalLight 
           position={[5, 5, 5]} 
-          intensity={1.0} 
+          intensity={1.8} 
+          color="#fff5e1" // Add a warm, sunny color
         />
         <directionalLight 
           position={[-3, -3, 2]} 
-          intensity={0.5} 
+          intensity={0.8} 
         />
 
         <Character3DModel
