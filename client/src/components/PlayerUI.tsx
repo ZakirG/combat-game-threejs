@@ -66,32 +66,14 @@ export const PlayerUI: React.FC<PlayerUIProps> = ({ playerData }) => {
   
   return (
     <>
-      {/* Health and mana bars */}
-      <div className="health-bar-container">
-        <div 
-          className="health-bar"
-          style={{ width: `${healthPercent}%` }}
-        />
-      </div>
       
-      <div className="mana-bar-container">
-        <div 
-          className="mana-bar"
-          style={{ width: `${manaPercent}%` }}
-        />
-      </div>
       
       {/* Damage flash overlay */}
       {showDamageFlash && (
         <div className="damage-overlay damage-flash" />
       )}
       
-      {/* Player status text */}
-      <div className="player-status">
-        <div className="player-name">{playerData.username}</div>
-        <div className="player-health">HP: {playerData.health}/{playerData.maxHealth}</div>
-        <div className="player-mana">MP: {playerData.mana}/{playerData.maxMana}</div>
-      </div>
+      
     </>
   );
 }; 

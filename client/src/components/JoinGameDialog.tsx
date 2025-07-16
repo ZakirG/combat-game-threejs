@@ -29,6 +29,7 @@
 
 import React, { useState, Suspense } from 'react';
 import { AVAILABLE_CHARACTERS } from '../characterConfigs';
+import { Character3DPreview } from './Character3DPreview';
 
 interface JoinGameDialogProps {
   onJoin: (username: string, characterClass: string, xHandle?: string) => void;
@@ -134,17 +135,9 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
         <div style={styles.inputGroup}>
           <label id="choose-your-fighter" style={styles.fighterLabel}>CHOOSE YOUR FIGHTER</label>
           <div style={styles.characterCarousel}>
-            {/* Character info in top left */}
-            <div style={styles.characterInfo}>
-              <div style={styles.characterName}>
-                {characters[currentCharacterIndex].name}
-              </div>
-              <div style={styles.characterDescription}>
-                {characters[currentCharacterIndex].description}
-              </div>
-            </div>
+            {/* Character info removed - now shown in 3D preview */}
             
-            {/* Navigation and image container */}
+            {/* Navigation and preview containers */}
             <div style={styles.characterNavigationContainer}>
               <button 
                 type="button" 
@@ -153,6 +146,8 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
               >
                 ‹
               </button>
+              
+              {/* Character Image Container */}
               <div style={styles.characterImageContainer}>
                 <video 
                   key={characters[currentCharacterIndex].name}
@@ -167,14 +162,45 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
                 <img 
                   src={characters[currentCharacterIndex].image} 
                   alt={characters[currentCharacterIndex].name}
-                  style={{
-                    ...styles.characterImage,
-                    filter: characters[currentCharacterIndex].name === 'Zaqir Mufasa' 
-                      ? 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 20px rgba(255, 255, 255, 0.4)) drop-shadow(0 0 30px rgba(255, 255, 255, 0.2))' 
-                      : 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 20px rgba(255, 255, 255, 0.4)) drop-shadow(0 0 30px rgba(255, 255, 255, 0.2))'
-                  }}
+                  style={styles.characterImage}
+                />
+                
+                {/* Character Info Overlay */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: '20px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  textAlign: 'center',
+                  color: 'white',
+                  fontFamily: 'Newrocker, serif',
+                  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+                  zIndex: 15,
+                  pointerEvents: 'none'
+                }}>
+                  <div style={{
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    marginBottom: '4px'
+                  }}>
+                    {characters[currentCharacterIndex].name}
+                  </div>
+                  <div style={{
+                    fontSize: '14px',
+                    opacity: 0.9
+                  }}>
+                    {characters[currentCharacterIndex].description}
+                  </div>
+                </div>
+              </div>
+              
+              {/* 3D Model Preview Container */}
+              <div style={styles.character3DContainer}>
+                <Character3DPreview 
+                  characterName={characters[currentCharacterIndex].name}
                 />
               </div>
+              
               <button 
                 type="button" 
                 onClick={handleNextCharacter}
@@ -381,6 +407,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: '2px solid #8B4513',
     borderRadius: '8px',
     height: '600px',
+    width: '100%',
+    maxWidth: '1000px', // Wider to accommodate both preview boxes
     padding: '20px',
   },
   carouselArrow: {
@@ -449,7 +477,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     minHeight: '240px',
   },
   characterImageContainer: {
-    flex: 1,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -461,6 +488,20 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '12px',
     border: '4px solid #8B4513',
     boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4)',
+  },
+  character3DContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '280px',
+    width: '280px',
+    height: '450px',
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: '12px',
+    border: '4px solid #8B4513',
+    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)', // Dark background for better contrast
   },
   inputWithLabel: {
     display: 'flex',

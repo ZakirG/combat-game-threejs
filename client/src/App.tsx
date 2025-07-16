@@ -69,6 +69,7 @@ function App() {
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [isDebugPanelExpanded, setIsDebugPanelExpanded] = useState(false);
   const [isPointerLocked, setIsPointerLocked] = useState(false); // State for pointer lock status
+  const [hasJoinedGame, setHasJoinedGame] = useState(false); // Track when user clicks "Join the Map"
 
   // --- Ref for current input state ---
   const currentInputRef = useRef<InputState>({
@@ -428,6 +429,7 @@ function App() {
     // @ts-ignore - Temporary fix until TypeScript bindings are regenerated
     conn.reducers.registerPlayer(username, characterClass, xHandle || null);
     setShowJoinDialog(false);
+    setHasJoinedGame(true); // Set state to true after successful join
   };
 
   // --- Render Logic ---
@@ -449,7 +451,7 @@ function App() {
           />
       )}
 
-      {/* Always render GameScene and PlayerUI when connected */} 
+      {/* Render GameScene and PlayerUI only after successful join (localPlayer exists) */}
       {connected && (
         <>
           <GameScene 
@@ -458,9 +460,9 @@ function App() {
             onPlayerRotation={handlePlayerRotation}
             currentInputRef={currentInputRef}
             isDebugPanelVisible={isDebugPanelExpanded}
+            showControlsPanel={hasJoinedGame}
           />
-          {/* Render PlayerUI only if localPlayer exists */} 
-          {localPlayer && <PlayerUI playerData={localPlayer} />} 
+          {localPlayer && <PlayerUI playerData={localPlayer} />}
         </>
       )}
 

@@ -83,8 +83,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     }
   },
   "Grok Ani": {
-    modelPath: "/models/grok-ani/Gothic_Elegance_0715203917_texture_fbx/Gothic_Elegance_0715203917_texture.fbx",
-    basePath: "/models/zaqir-2/", // Use Zaqir's animations as fallback
+    modelPath: "/models/grok-ani/base.fbx",
+    basePath: "/models/grok-ani/", // Use Grok Ani's own animations
     scale: 0.012,
     yOffset: 0.0, // Adjusted for ground level positioning
     movement: {
@@ -93,19 +93,19 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     },
     animationTable: {
       idle: "Idle.fbx",
-      'walk-forward': "Mutant Walk.fbx",
-      'walk-back': "Standing Walk Back.fbx", 
-      'walk-left': "Standing Walk Left.fbx",
-      'walk-right': "Standing Walk Right.fbx",
-      'run-forward': "Fast Run.fbx",
+      'walk-forward': "Walk forward.fbx",
+      'walk-back': "Happy Walk Backward.fbx", 
+      'walk-left': "Left Strafe Walk.fbx",
+      'walk-right': "Right Strafe Walk.fbx",
+      'run-forward': "Run Forward.fbx",
       'run-back': "Standing Run Back.fbx",
       'run-left': "Standing Run Left.fbx",
       'run-right': "Standing Run Right.fbx",
-      jump: "Jumping.fbx",
-      attack1: "Standing Melee Punch.fbx",
-      cast: "Roundhouse Kick.fbx",
-      damage: "Receive Hit.fbx",
-      death: "death.fbx"
+      jump: "Crouch Torch Walk Back.fbx", // Using available animation as placeholder
+      attack1: "Elbow Punch.fbx",
+      cast: "Mma Kick.fbx",
+      damage: "Hit To Body.fbx",
+      death: "Standing React Death Backward.fbx"
     },
     timeScale: {
       'walk-forward': 0.9, // Slightly more elegant movement

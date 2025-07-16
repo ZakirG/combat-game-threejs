@@ -110,6 +110,7 @@ export const Player: React.FC<PlayerProps> = ({
   const [mixer, setMixer] = useState<THREE.AnimationMixer | null>(null);
   const [animations, setAnimations] = useState<Record<string, THREE.AnimationAction>>({});
   const [currentAnimation, setCurrentAnimation] = useState<string>(ANIMATIONS.IDLE);
+  const [isModelVisible, setIsModelVisible] = useState<boolean>(false);
   
   // --- Client Prediction State ---
   const localPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(playerData.position.x, playerData.position.y, playerData.position.z));
@@ -214,6 +215,7 @@ export const Player: React.FC<PlayerProps> = ({
         
         // Apply character-specific scaling
         fbx.scale.setScalar(characterConfig.scale);
+        // Ensure proper initial positioning - no underground spawning
         fbx.position.set(0, 0, 0);
 
         // DEBUG: Dump skeleton information to verify that the model really has a skinned armature and to see bone names.
@@ -348,8 +350,10 @@ export const Player: React.FC<PlayerProps> = ({
         
         if (group.current) {
           group.current.add(fbx);
-          // Apply character-specific position adjustment
+          // Apply character-specific position adjustment - ensure no underground spawning
           fbx.position.y = characterConfig.yOffset;
+          // Hide model initially to prevent T-pose visibility
+          fbx.visible = false;
           
           // --- Remove embedded lights safely --- 
           try { 
@@ -385,6 +389,15 @@ export const Player: React.FC<PlayerProps> = ({
           localPositionRef.current.set(playerData.position.x, playerData.position.y, playerData.position.z);
           localRotationRef.current.set(0, playerData.rotation.y, 0, 'YXZ');
         }
+        
+        // Make model visible after a short delay to ensure animations are loaded
+        setTimeout(() => {
+          if (fbx && fbx.visible !== undefined) {
+            fbx.visible = true;
+            setIsModelVisible(true);
+            console.log(`[Player] Model now visible for ${playerData.username}`);
+          }
+        }, 200); // Small delay to let animations initialize
       },
       (progress) => { /* Optional progress log */ },
       (error: any) => {

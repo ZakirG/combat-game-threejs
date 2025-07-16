@@ -40,6 +40,7 @@ import { PlayerData, InputState } from '../generated';
 import { Identity } from '@clockworklabs/spacetimedb-sdk';
 import { Player } from './Player';
 import { ZombieManager } from './ZombieManager';
+import { ControlsPanel } from './ControlsPanel';
 
 interface GameSceneProps {
   players: ReadonlyMap<string, PlayerData>; // Receive the map
@@ -47,6 +48,7 @@ interface GameSceneProps {
   onPlayerRotation?: (rotation: THREE.Euler) => void; // Optional callback for player rotation
   currentInputRef?: React.MutableRefObject<InputState>; // Add input state ref prop
   isDebugPanelVisible?: boolean; // Prop to indicate if the debug panel is visible
+  showControlsPanel?: boolean; // Whether to display the ControlsPanel
 }
 
 // Textured Floor Component
@@ -93,17 +95,19 @@ export const GameScene: React.FC<GameSceneProps> = ({
   localPlayerIdentity,
   onPlayerRotation,
   currentInputRef, // Receive input state ref
-  isDebugPanelVisible = false // Destructure the new prop
+  isDebugPanelVisible = false, // Destructure the new prop
+  showControlsPanel = false
 }) => {
   // Ref for the main directional light
   const directionalLightRef = useRef<THREE.DirectionalLight>(null!); 
 
   return (
-    <Canvas 
-      camera={{ position: [0, 10, 20], fov: 60 }} 
-      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }} 
-      shadows // Enable shadows
-    >
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <Canvas 
+        camera={{ position: [0, 10, 20], fov: 60 }} 
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }} 
+        shadows // Enable shadows
+      >
       {/* Remove solid color background */}
       {/* <color attach="background" args={['#add8e6']} /> */}
       
@@ -168,5 +172,9 @@ export const GameScene: React.FC<GameSceneProps> = ({
 
       {/* Remove OrbitControls as we're using our own camera controls */}
     </Canvas>
+    
+    {/* Controls Panel is rendered only after the player has joined the game */}
+    {showControlsPanel && <ControlsPanel autoShowOnLoad={true} />}
+    </div>
   );
 };
