@@ -12,18 +12,20 @@ import React, { useState, useEffect } from 'react';
 
 interface ControlsPanelProps {
   autoShowOnLoad?: boolean; // Whether to auto-show when component mounts
+  gameReady?: boolean; // Whether the game is fully ready (used to start auto-show timer)
 }
 
 export const ControlsPanel: React.FC<ControlsPanelProps> = ({
-  autoShowOnLoad = true
+  autoShowOnLoad = true,
+  gameReady = false
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [autoShowComplete, setAutoShowComplete] = useState(false);
 
-  // Auto-show logic for 7 seconds when game loads
+  // Auto-show logic for 15 seconds when game is ready
   useEffect(() => {
-    if (autoShowOnLoad && !autoShowComplete) {
+    if (autoShowOnLoad && !autoShowComplete && gameReady) {
       setIsVisible(true);
       const timer = setTimeout(() => {
         setIsVisible(false);
@@ -32,7 +34,7 @@ export const ControlsPanel: React.FC<ControlsPanelProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [autoShowOnLoad, autoShowComplete]);
+  }, [autoShowOnLoad, autoShowComplete, gameReady]);
 
   // Handle hover states
   const handleMouseEnter = () => {

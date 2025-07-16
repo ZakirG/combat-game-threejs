@@ -47,8 +47,10 @@ import * as moduleBindings from './generated';
 import { DebugPanel } from './components/DebugPanel';
 import { GameScene } from './components/GameScene';
 import { JoinGameDialog } from './components/JoinGameDialog';
+import { LoadingScreen } from './components/LoadingScreen';
 import * as THREE from 'three';
 import { PlayerUI } from './components/PlayerUI';
+import { GameReadyState, GameReadyCallbacks, isGameReady } from './types/gameReady';
 
 // Type Aliases
 type DbConnection = moduleBindings.DbConnection;
@@ -70,6 +72,18 @@ function App() {
   const [isDebugPanelExpanded, setIsDebugPanelExpanded] = useState(false);
   const [isPointerLocked, setIsPointerLocked] = useState(false); // State for pointer lock status
   const [hasJoinedGame, setHasJoinedGame] = useState(false); // Track when user clicks "Join the Map"
+  
+  // --- GameReady State ---
+  const [gameReadyState, setGameReadyState] = useState<GameReadyState>({
+    isCharacterReady: false,
+    isZombiesReady: false,
+    characterProgress: 0,
+    zombieProgress: 0,
+    characterStatus: 'Waiting to start...',
+    zombieStatus: 'Waiting to spawn...'
+  });
+  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
+  const [gameFullyReady, setGameFullyReady] = useState(false);
 
   // --- Ref for current input state ---
   const currentInputRef = useRef<InputState>({
@@ -82,6 +96,38 @@ function App() {
 
   // New import for handling player rotation data
   const playerRotationRef = useRef<THREE.Euler>(new THREE.Euler(0, 0, 0, 'YXZ'));
+
+  // --- GameReady Callbacks ---
+  const gameReadyCallbacks: GameReadyCallbacks = {
+    onCharacterReady: () => {
+      setGameReadyState(prev => {
+        const newState = { ...prev, isCharacterReady: true, characterProgress: 100, characterStatus: 'Character ready!' };
+        if (isGameReady(newState)) {
+          setGameFullyReady(true);
+          setShowLoadingScreen(false);
+        }
+        return newState;
+      });
+    },
+    onZombiesReady: () => {
+      setGameReadyState(prev => {
+        const newState = { ...prev, isZombiesReady: true, zombieProgress: 100, zombieStatus: 'All enemies spawned!' };
+        if (isGameReady(newState)) {
+          setGameFullyReady(true);
+          setShowLoadingScreen(false);
+        }
+        return newState;
+      });
+    },
+    onCharacterProgress: (progress: number, status: string) => {
+      console.log(`📈 [GameReady] Character progress: ${progress}% - ${status}`);
+      setGameReadyState(prev => ({ ...prev, characterProgress: progress, characterStatus: status }));
+    },
+    onZombieProgress: (progress: number, status: string) => {
+      console.log(`📈 [GameReady] Zombie progress: ${progress}% - ${status}`);
+      setGameReadyState(prev => ({ ...prev, zombieProgress: progress, zombieStatus: status }));
+    }
+  };
 
   // --- Moved Table Callbacks/Subscription Functions Up ---
   const registerTableCallbacks = useCallback(() => {
@@ -426,16 +472,45 @@ function App() {
         return;
     }
     console.log(`Registering as ${username} (${characterClass}) with X handle: ${xHandle || 'none'}...`);
-    // @ts-ignore - Temporary fix until TypeScript bindings are regenerated
-    conn.reducers.registerPlayer(username, characterClass, xHandle || null);
+    
+    // Hide join dialog first to start cleanup
     setShowJoinDialog(false);
-    setHasJoinedGame(true); // Set state to true after successful join
+    
+    // Add delay to allow WebGL context cleanup before starting game
+    setTimeout(() => {
+      console.log('[WebGL Cleanup] Delay complete, starting game initialization...');
+      
+      // Reset GameReady state and show loading screen
+      setGameReadyState({
+        isCharacterReady: false,
+        isZombiesReady: false,
+        characterProgress: 0,
+        zombieProgress: 0,
+        characterStatus: 'Starting character load...',
+        zombieStatus: 'Preparing to spawn enemies...'
+      });
+      setGameFullyReady(false);
+      setShowLoadingScreen(true);
+      
+      // @ts-ignore - Temporary fix until TypeScript bindings are regenerated
+      conn.reducers.registerPlayer(username, characterClass, xHandle || null);
+      setHasJoinedGame(true); // Set state to true after successful join
+    }, 100); // 100ms delay to allow WebGL context cleanup
   };
 
   // --- Render Logic ---
   return (
     <div className="App" style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       {showJoinDialog && <JoinGameDialog onJoin={handleJoinGame} />}
+      
+      {/* Loading Screen - shown after joining until game is ready */}
+      <LoadingScreen 
+        isVisible={showLoadingScreen}
+        characterProgress={gameReadyState.characterProgress}
+        zombieProgress={gameReadyState.zombieProgress}
+        characterStatus={gameReadyState.characterStatus}
+        zombieStatus={gameReadyState.zombieStatus}
+      />
       
       {/* Conditionally render DebugPanel based on connection status */} 
       {/* Visibility controlled internally, expansion controlled by state */}
@@ -451,8 +526,8 @@ function App() {
           />
       )}
 
-      {/* Render GameScene and PlayerUI only after successful join (localPlayer exists) */}
-      {connected && (
+      {/* Render GameScene and PlayerUI - show once player has joined, not waiting for gameFullyReady */}
+      {connected && hasJoinedGame && (
         <>
           <GameScene 
             players={players} 
@@ -460,7 +535,9 @@ function App() {
             onPlayerRotation={handlePlayerRotation}
             currentInputRef={currentInputRef}
             isDebugPanelVisible={isDebugPanelExpanded}
-            showControlsPanel={hasJoinedGame}
+            showControlsPanel={gameFullyReady} // Pass gameFullyReady instead of hasJoinedGame
+            gameReadyCallbacks={gameReadyCallbacks} // Pass callbacks to GameScene
+            gameReady={gameFullyReady} // Pass gameReady state to control ControlsPanel timing
           />
           {localPlayer && <PlayerUI playerData={localPlayer} />}
         </>

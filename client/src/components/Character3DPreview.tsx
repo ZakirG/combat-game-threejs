@@ -248,8 +248,50 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
     );
     
     return () => {
-      if (mixer) mixer.stopAllAction();
-      if (group.current) group.current.clear();
+      console.log(`[Character3DPreview] Cleaning up resources for ${characterName}`);
+      
+      // Stop all animations
+      if (mixer) {
+        mixer.stopAllAction();
+        mixer.uncacheRoot(mixer.getRoot());
+      }
+      
+      // Clear group and dispose of geometries/materials
+      if (group.current) {
+        group.current.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach(material => material.dispose());
+              } else {
+                child.material.dispose();
+              }
+            }
+          }
+        });
+        group.current.clear();
+      }
+      
+      // Clear model reference
+      if (model) {
+        model.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach(material => material.dispose());
+              } else {
+                child.material.dispose();
+              }
+            }
+          }
+        });
+      }
+      
+      setModel(null);
+      setMixer(null);
+      setAnimations({});
     };
   }, [characterName, characterConfig]);
   
@@ -485,6 +527,14 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
     setIsLoading(true);
     setError(null);
   }, [characterName]);
+
+  // Cleanup effect for component unmounting
+  useEffect(() => {
+    return () => {
+      console.log(`[Character3DPreview] Component unmounting for ${characterName}`);
+      // React Three Fiber will handle WebGL context cleanup automatically
+    };
+  }, [characterName]);
   
   return (
     <div className={`character-3d-preview ${className || ''}`} style={{ 
@@ -545,6 +595,7 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
       
       {/* 3D Canvas */}
       <Canvas
+        key={`preview-${characterName}`} // Force remount on character change
         camera={{ position: [0, 0.2, 2.2], fov: 65 }}
         style={{ 
           width: '100%', 
@@ -557,7 +608,9 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
           alpha: true,
           premultipliedAlpha: true,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.2
+          toneMappingExposure: 1.2,
+          preserveDrawingBuffer: false, // Don't preserve drawing buffer to save memory
+          powerPreference: "default" // Don't force high-performance GPU
         }}
       >
         {/* Transparent background */}

@@ -30,6 +30,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { PlayerData } from '../generated';
 import { makeZombieDecision, ZOMBIE_ANIMATIONS, ZombieDecision } from './ZombieBrain';
 import { ZOMBIE_CONFIG } from '../characterConfigs';
+import { GameReadyCallbacks } from '../types/gameReady';
 
 // Configurable spawn settings
 const SPAWN_SETTINGS = {
@@ -461,6 +462,7 @@ interface ZombieManagerProps {
   players: ReadonlyMap<string, PlayerData>;
   isDebugVisible?: boolean;
   minSpawnDistance?: number; // Minimum distance from players for zombie spawning
+  gameReadyCallbacks?: GameReadyCallbacks; // Callbacks for GameReady events
 }
 
 // Main ZombieManager component
@@ -468,8 +470,11 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   zombieCount = 25,
   players,
   isDebugVisible = false,
-  minSpawnDistance = SPAWN_SETTINGS.MIN_DISTANCE_FROM_PLAYERS
+  minSpawnDistance = SPAWN_SETTINGS.MIN_DISTANCE_FROM_PLAYERS,
+  gameReadyCallbacks
 }) => {
+  console.log(`🧟 [ZombieManager] Component mounting - zombieCount: ${zombieCount}, players: ${players.size}, callbacks: ${!!gameReadyCallbacks}`);
+  
   const [resources, setResources] = useState<ZombieResources>({
     model: null,
     animationClips: {},
@@ -481,18 +486,34 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   const [currentLoadingIndex, setCurrentLoadingIndex] = useState(0);
   const LOADING_DELAY = 300; // 300ms delay between each zombie load
 
+  // Emit initial zombie progress
+  useEffect(() => {
+    console.log(`🚀 [ZombieManager] Initial progress effect - callbacks available: ${!!gameReadyCallbacks}`);
+    if (gameReadyCallbacks) {
+      console.log(`📈 [ZombieManager] Emitting initial zombie progress (0%)`);
+      gameReadyCallbacks.onZombieProgress(0, 'Loading zombie resources...');
+    } else {
+      console.log(`ℹ️ [ZombieManager] No gameReadyCallbacks available for progress tracking`);
+    }
+  }, [gameReadyCallbacks]);
+
   // Load shared resources once
   useEffect(() => {
+    console.log(`🔧 [ZombieManager] Resources loading effect triggered`);
+    console.log(`🔧 [ZombieManager] ZOMBIE_CONFIG.modelPath:`, ZOMBIE_CONFIG.modelPath);
+    
     const loader = new GLTFLoader();
     let loadedModel: THREE.Group | null = null;
     const loadedClips: Record<string, THREE.AnimationClip> = {};
     
-    
+
     
     // Load main model
+    console.log(`🚀 [ZombieManager] Starting to load zombie model from: ${ZOMBIE_CONFIG.modelPath}`);
     loader.load(
       ZOMBIE_CONFIG.modelPath,
       (gltf) => {
+        console.log(`✅ [ZombieManager] Zombie model loaded successfully`);
         
         const model = gltf.scene;
         
@@ -592,6 +613,11 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
           animationClips: loadedClips,
           isLoaded: true
         });
+        
+        // Emit progress for resources loaded
+        if (gameReadyCallbacks) {
+          gameReadyCallbacks.onZombieProgress(20, 'Zombie resources loaded, starting spawn...');
+        }
       }
     };
 
@@ -678,6 +704,17 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   const handleZombieLoadComplete = useCallback(() => {
     setLoadedZombieCount(prev => {
       const newCount = prev + 1;
+      const progress = Math.round(20 + (newCount / zombieCount) * 80); // 20% base + up to 80% for zombies
+      
+      // Emit progress
+      if (gameReadyCallbacks) {
+        if (newCount < zombieCount) {
+          gameReadyCallbacks.onZombieProgress(progress, `Spawned ${newCount}/${zombieCount} zombies...`);
+        } else {
+          gameReadyCallbacks.onZombieProgress(100, 'All zombies spawned and ready!');
+          gameReadyCallbacks.onZombiesReady();
+        }
+      }
       
       // Move to next zombie after delay
       if (newCount < zombieCount) {
@@ -685,12 +722,12 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
           setCurrentLoadingIndex(newCount);
         }, LOADING_DELAY);
       } else {
-        // console.log(`[ZombieManager] All ${zombieCount} zombies loaded!`);
+        console.log(`[ZombieManager] All ${zombieCount} zombies loaded and ready!`);
       }
       
       return newCount;
     });
-  }, [zombieCount, LOADING_DELAY]);
+  }, [zombieCount, LOADING_DELAY, gameReadyCallbacks]);
 
   return (
     <ZombieResourceContext.Provider value={resources}>

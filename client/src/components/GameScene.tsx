@@ -41,6 +41,7 @@ import { Identity } from '@clockworklabs/spacetimedb-sdk';
 import { Player } from './Player';
 import { ZombieManager } from './ZombieManager';
 import { ControlsPanel } from './ControlsPanel';
+import { GameReadyCallbacks } from '../types/gameReady';
 
 interface GameSceneProps {
   players: ReadonlyMap<string, PlayerData>; // Receive the map
@@ -49,6 +50,8 @@ interface GameSceneProps {
   currentInputRef?: React.MutableRefObject<InputState>; // Add input state ref prop
   isDebugPanelVisible?: boolean; // Prop to indicate if the debug panel is visible
   showControlsPanel?: boolean; // Whether to display the ControlsPanel
+  gameReadyCallbacks?: GameReadyCallbacks; // Callbacks for GameReady events
+  gameReady?: boolean; // Whether the game is fully ready
 }
 
 // Textured Floor Component
@@ -96,8 +99,12 @@ export const GameScene: React.FC<GameSceneProps> = ({
   onPlayerRotation,
   currentInputRef, // Receive input state ref
   isDebugPanelVisible = false, // Destructure the new prop
-  showControlsPanel = false
+  showControlsPanel = false,
+  gameReadyCallbacks, // Destructure GameReady callbacks
+  gameReady = false // Destructure gameReady state
 }) => {
+  console.log(`🎬 [GameScene] Rendering - players: ${players.size}, localPlayer: ${localPlayerIdentity?.toHexString().substring(0, 8)}, callbacks: ${!!gameReadyCallbacks}`);
+  
   // Ref for the main directional light
   const directionalLightRef = useRef<THREE.DirectionalLight>(null!); 
 
@@ -158,23 +165,25 @@ export const GameScene: React.FC<GameSceneProps> = ({
             currentInput={isLocal ? currentInputRef?.current : undefined}
             isDebugArrowVisible={isLocal ? isDebugPanelVisible : false} // Pass down arrow visibility
             isDebugPanelVisible={isDebugPanelVisible} // Pass down general debug visibility
+            gameReadyCallbacks={isLocal ? gameReadyCallbacks : undefined} // Only pass to local player
           />
         );
       })}
 
       {/* Render Optimized Zombie Manager */}
       <ZombieManager 
-        zombieCount={20}
+        zombieCount={5} // Reduced count to prevent WebGL context issues
         players={players}
         isDebugVisible={isDebugPanelVisible}
         minSpawnDistance={20} // Minimum 20 units from any player for more spread out spawning
+        gameReadyCallbacks={gameReadyCallbacks} // Pass GameReady callbacks
       />
 
       {/* Remove OrbitControls as we're using our own camera controls */}
     </Canvas>
     
     {/* Controls Panel is rendered only after the player has joined the game */}
-    {showControlsPanel && <ControlsPanel autoShowOnLoad={true} />}
+    {showControlsPanel && <ControlsPanel autoShowOnLoad={true} gameReady={gameReady} />}
     </div>
   );
 };

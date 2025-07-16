@@ -48,6 +48,7 @@ import {
   CharacterAnimationTable,
   SPAWN_ALTITUDE 
 } from '../characterConfigs';
+import { GameReadyCallbacks } from '../types/gameReady';
 
 // Define animation names for reuse
 const ANIMATIONS = {
@@ -97,6 +98,7 @@ interface PlayerProps {
   currentInput?: InputState; // Prop to receive current input for local player
   isDebugArrowVisible?: boolean; // Prop to control debug arrow visibility
   isDebugPanelVisible?: boolean; // Prop to control general debug helpers visibility
+  gameReadyCallbacks?: GameReadyCallbacks; // Callbacks for GameReady events
 }
 
 export const Player: React.FC<PlayerProps> = ({
@@ -105,8 +107,11 @@ export const Player: React.FC<PlayerProps> = ({
   onRotationChange,
   currentInput, // Receive input state
   isDebugArrowVisible = false, 
-  isDebugPanelVisible = false // Destructure with default false
+  isDebugPanelVisible = false, // Destructure with default false
+  gameReadyCallbacks // Destructure GameReady callbacks
 }) => {
+  console.log(`🎭 [Player] Component mounting/updating - username: ${playerData.username}, isLocal: ${isLocalPlayer}, class: ${playerData.characterClass}`);
+  
   const group = useRef<THREE.Group>(null!);
   const { camera } = useThree();
   const dataRef = useRef<PlayerData>(playerData);
@@ -230,13 +235,31 @@ export const Player: React.FC<PlayerProps> = ({
 
   // --- Effect for model loading ---
   useEffect(() => {
-    if (!playerData) return; // Guard clause
+    console.log(`🔧 [Player] Model loading effect triggered for ${playerData.username} (${characterClass})`);
+    console.log(`🔧 [Player] isLocalPlayer: ${isLocalPlayer}, gameReadyCallbacks available: ${!!gameReadyCallbacks}`);
+    
+    if (!playerData) {
+      console.log(`❌ [Player] No playerData, returning early`);
+      return; // Guard clause
+    }
+    
+    console.log(`🚀 [Player] Starting model load for ${playerData.username} - Model path: ${characterConfig.modelPath}`);
+    
+    // Emit initial progress for local player
+    if (isLocalPlayer && gameReadyCallbacks) {
+      console.log(`📈 [Player] Emitting initial character progress (0%)`);
+      gameReadyCallbacks.onCharacterProgress(0, 'Starting to load character...');
+    } else {
+      console.log(`ℹ️ [Player] Not emitting progress - isLocal: ${isLocalPlayer}, callbacks: ${!!gameReadyCallbacks}`);
+    }
+    
     const loader = new FBXLoader();
     const textureLoader = new TextureLoader();
 
     loader.load(
       characterConfig.modelPath,
       (fbx) => {
+        console.log(`✅ [Player] FBX model loaded successfully for ${playerData.username}`);
         
         // Apply character-specific scaling for gameplay
         fbx.scale.setScalar(gameplayConfig.scale);
@@ -373,6 +396,11 @@ export const Player: React.FC<PlayerProps> = ({
 
         setModel(fbx); 
         
+        // Emit progress for model loading completion
+        if (isLocalPlayer && gameReadyCallbacks) {
+          gameReadyCallbacks.onCharacterProgress(50, 'Character model loaded, loading animations...');
+        }
+        
         if (group.current) {
           group.current.add(fbx);
           // Apply character-specific position adjustment for gameplay
@@ -425,9 +453,12 @@ export const Player: React.FC<PlayerProps> = ({
         }
         
       },
-      (progress) => { /* Optional progress log */ },
+      (progress) => { 
+        console.log(`📊 [Player] Model loading progress for ${playerData.username}:`, Math.round(progress.loaded / progress.total * 100) + '%');
+      },
       (error: any) => {
-        console.error(`[Player Model Effect ${playerData.username}] Error loading model ${characterConfig.modelPath}:`, error);
+        console.error(`❌ [Player] Error loading model for ${playerData.username} from ${characterConfig.modelPath}:`, error);
+        console.error(`❌ [Player] Error details:`, error);
       }
     );
 
@@ -518,6 +549,11 @@ export const Player: React.FC<PlayerProps> = ({
         // Debug: log all available animations
         console.log("Available animations: ", Object.keys(newAnimations).join(", "));
         
+        // Emit progress for animations loading completion
+        if (isLocalPlayer && gameReadyCallbacks) {
+          gameReadyCallbacks.onCharacterProgress(75, 'Animations loaded, preparing character...');
+        }
+        
         // Play falling animation if available for high altitude spawn
         if (newAnimations['falling']) {
           // Use setTimeout to ensure state update has propagated and mixer is ready
@@ -545,6 +581,12 @@ export const Player: React.FC<PlayerProps> = ({
                      console.log(`🔄 [FALLING] Ensuring falling animation is active for high altitude spawn`);
                      setCurrentAnimation(ANIMATIONS.FALLING);
                    }
+                   
+                   // Emit character ready event for local player
+                   if (isLocalPlayer && gameReadyCallbacks) {
+                     gameReadyCallbacks.onCharacterProgress(100, 'Character is falling and ready!');
+                     gameReadyCallbacks.onCharacterReady();
+                   }
                  }
              }
           }, 10); // Minimal delay to ensure animation is ready before showing model
@@ -566,6 +608,12 @@ export const Player: React.FC<PlayerProps> = ({
                    setIsModelVisible(true);
                    setPhysicsEnabled(true); // Enable physics even for fallback idle
                    console.log(`[Player] Model now visible for ${playerData.username} with idle animation playing (fallback) - physics enabled`);
+                   
+                   // Emit character ready event for local player (fallback case)
+                   if (isLocalPlayer && gameReadyCallbacks) {
+                     gameReadyCallbacks.onCharacterProgress(100, 'Character is ready (idle fallback)!');
+                     gameReadyCallbacks.onCharacterReady();
+                   }
                  }
              }
           }, 1500);
