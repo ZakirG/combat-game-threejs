@@ -108,6 +108,7 @@ export function makeZombieDecision(
         zombieState.targetPlayerId = closestPlayerInfo.playerId;
         zombieState.rotationStartTime = currentTime;
         zombieState.targetRotation = targetRotation;
+        zombieState.lastDecisionTime = currentTime; // Track when attack sequence started
 
         // Start rotation phase (half second rotation)
         return {
@@ -119,14 +120,32 @@ export function makeZombieDecision(
           isRotating: true
         };
       } else {
-        // Already rotated, now attack
-        return {
-          action: 'attack',
-          duration: 1000, // Attack animation duration
-          animation: ZOMBIE_ANIMATIONS.ATTACK,
-          speed: 0,
-          targetPosition: playerPos
-        };
+        // Check if enough time has passed since starting the attack sequence
+        const timeSinceAttackStart = currentTime - (zombieState.lastDecisionTime || 0);
+        
+        if (timeSinceAttackStart > 1500) { // 500ms rotation + 1000ms attack = 1500ms total
+          // Attack sequence completed, reset to pursuing mode for another attack
+          zombieState.mode = 'pursuing';
+          zombieState.lastDecisionTime = currentTime;
+          
+          // Return to chase mode briefly before potentially attacking again
+          return {
+            action: 'chase',
+            duration: 300, // Brief chase before next attack
+            animation: ZOMBIE_ANIMATIONS.RUNNING,
+            speed: 4.0,
+            targetPosition: playerPos
+          };
+        } else {
+          // Already rotated, now attack
+          return {
+            action: 'attack',
+            duration: 1000, // Attack animation duration
+            animation: ZOMBIE_ANIMATIONS.ATTACK,
+            speed: 0,
+            targetPosition: playerPos
+          };
+        }
       }
     }
 

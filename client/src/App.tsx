@@ -96,7 +96,7 @@ function App() {
 
   // New import for handling player rotation data
   const playerRotationRef = useRef<THREE.Euler>(new THREE.Euler(0, 0, 0, 'YXZ'));
-  const playerPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 120, 0)); // Initialize with spawn altitude
+  const playerPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 90, 0)); // Initialize with spawn altitude
 
   // --- GameReady Callbacks ---
   const gameReadyCallbacks: GameReadyCallbacks = {
