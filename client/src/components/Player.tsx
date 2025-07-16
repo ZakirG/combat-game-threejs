@@ -1136,17 +1136,24 @@ export const Player: React.FC<PlayerProps> = ({
             wasJumpPressed.current = false;
           }
           
-          // Handle attack input (only trigger once per press, complete one-shot attack)
-          if (currentInput.attack && !wasAttackPressed.current && !isAttacking) {
+          // Handle attack input (allow restarting attacks for faster combat)
+          if (currentInput.attack && !wasAttackPressed.current) {
             wasAttackPressed.current = true;
-            setIsAttacking(true);
             
-            // Clear any existing attack timeout
-            if (attackTimeoutRef.current) {
-              clearTimeout(attackTimeoutRef.current);
+            // If already attacking, restart the attack sequence
+            if (isAttacking) {
+              console.log(`[Player] 🔄 Restarting attack sequence while already attacking`);
             }
             
-            // Play attack animation immediately
+            setIsAttacking(true);
+            
+            // Clear any existing attack timeout to restart sequence
+            if (attackTimeoutRef.current) {
+              clearTimeout(attackTimeoutRef.current);
+              console.log(`[Player] ⏰ Cleared previous attack timeout`);
+            }
+            
+            // Play attack animation immediately (restart animation)
             playAnimation(ANIMATIONS.ATTACK, 0.1); // Quick crossfade for responsiveness
             
             // Schedule zombie hit detection after animation starts

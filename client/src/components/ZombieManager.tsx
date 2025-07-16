@@ -49,6 +49,7 @@ const KNOCKBACK_CONFIG = {
   HEIGHT: 24.0,           // How high the zombie flies (tripled from 8.0)
   GRAVITY: -60.0,         // Gravity applied to the falling zombie
   DECAY: 0.96,            // How quickly horizontal movement slows (closer to 1 is slower)
+  MAX_KILLS_AT_A_TIME: 1, // Maximum number of zombies that can be killed in one attack
 };
 
 
@@ -993,7 +994,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
 
   // Create global attack check function for Player components to use
   const checkPlayerAttack = useCallback((playerPosition: THREE.Vector3, playerRotation: THREE.Euler, attackRange: number = KNOCKBACK_CONFIG.ATTACK_RANGE) => {
-    const hitZombies: Array<{ zombieId: string; position: THREE.Vector3; distance: number }> = [];
+    const candidateZombies: Array<{ zombieId: string; position: THREE.Vector3; distance: number; zombieData: any }> = [];
     
     // Get forward direction from player rotation - FLIPPED Z-axis from -1 to 1 to fix direction
     const forwardDirection = new THREE.Vector3(0, 0, 1).applyEuler(playerRotation);
@@ -1005,8 +1006,9 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     console.log(`[ZombieManager] 📏 Attack range: ${attackRange} units`);
     console.log(`[ZombieManager] 🎯 Facing leniency: ${KNOCKBACK_CONFIG.FACING_LENIENCY} (lower = more lenient)`);
     console.log(`[ZombieManager] 🧟 Checking ${zombieInstancesRef.current.size} zombies...`);
+    console.log(`[ZombieManager] ⚔️ Max kills per attack: ${KNOCKBACK_CONFIG.MAX_KILLS_AT_A_TIME}`);
     
-    // Check each zombie
+    // First pass: Find all eligible zombies within range and facing requirements
     for (const [zombieId, zombieData] of zombieInstancesRef.current) {
       const zombiePos = zombieData.positionRef.current;
       const distance = playerPosition.distanceTo(zombiePos);
@@ -1029,20 +1031,42 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
         // If dot product > a lenient value, player is facing zombie
         if (dot > KNOCKBACK_CONFIG.FACING_LENIENCY) {
           console.log(`[ZombieManager]   ✅ FACING OK: ${dot.toFixed(3)} > ${KNOCKBACK_CONFIG.FACING_LENIENCY}`);
-          console.log(`[ZombieManager] 💀 ZOMBIE KILLED! ${zombieId} hit at distance ${distance.toFixed(2)} (facing: ${dot.toFixed(3)})`);
           
-          hitZombies.push({ zombieId, position: zombiePos, distance });
-          
-          // Trigger zombie death with knockback direction (AWAY from player)
-          // directionToZombie is FROM player TO zombie, which is the correct direction for knockback
-          const knockbackDirection = directionToZombie.clone();
-          zombieData.triggerDeath(knockbackDirection);
+          candidateZombies.push({ 
+            zombieId, 
+            position: zombiePos.clone(), 
+            distance, 
+            zombieData 
+          });
         } else {
           console.log(`[ZombieManager]   ❌ FACING FAILED: ${dot.toFixed(3)} <= ${KNOCKBACK_CONFIG.FACING_LENIENCY} (player not facing zombie)`);
         }
       } else {
         console.log(`[ZombieManager]   ❌ DISTANCE FAILED: ${distance.toFixed(2)} > ${attackRange} (too far away)`);
       }
+    }
+    
+    // Second pass: Sort by distance and select the closest ones up to MAX_KILLS_AT_A_TIME
+    candidateZombies.sort((a, b) => a.distance - b.distance);
+    const zombiesToKill = candidateZombies.slice(0, KNOCKBACK_CONFIG.MAX_KILLS_AT_A_TIME);
+    
+    console.log(`[ZombieManager] 🎯 Found ${candidateZombies.length} eligible zombies, killing ${zombiesToKill.length} closest ones`);
+    
+    const hitZombies: Array<{ zombieId: string; position: THREE.Vector3; distance: number }> = [];
+    
+    // Kill the selected zombies
+    for (const zombie of zombiesToKill) {
+      console.log(`[ZombieManager] 💀 ZOMBIE KILLED! ${zombie.zombieId} hit at distance ${zombie.distance.toFixed(2)}`);
+      
+      hitZombies.push({ 
+        zombieId: zombie.zombieId, 
+        position: zombie.position, 
+        distance: zombie.distance 
+      });
+      
+      // Trigger zombie death with knockback direction (AWAY from player)
+      const directionToZombie = new THREE.Vector3().subVectors(zombie.position, playerPosition).normalize();
+      zombie.zombieData.triggerDeath(directionToZombie);
     }
     
     console.log(`[ZombieManager] 🗡️ ATTACK CHECK COMPLETE: Hit ${hitZombies.length} zombies`);
