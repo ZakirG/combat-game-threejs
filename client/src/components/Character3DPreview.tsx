@@ -202,7 +202,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
                       roughnessMap: externalTextures?.roughness,
                       metalnessMap: externalTextures?.metallic,
                       color: material.color || new THREE.Color(1, 1, 1),
-                      emissive: material.emissive || new THREE.Color(0, 0, 0),
+                      emissive: new THREE.Color(0.1, 0.1, 0.1), // Add slight emissive for visibility
                       transparent: material.transparent || false,
                       opacity: material.opacity !== undefined ? material.opacity : 1.0,
                       roughness: 0.7,
@@ -342,16 +342,18 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
         }
         
         // Make model visible after a delay to ensure animation is actually playing
+        // Use longer timeout for Grok Ani to prevent T-pose visibility
+        const visibilityDelay = characterName === 'Grok Ani' ? 2500 : 1000;
         setTimeout(() => {
           if (model && group.current) {
             model.visible = true;
             setIsModelVisible(true);
-            console.log(`[Character3DPreview] Model now visible for ${characterName} with animation playing`);
+            console.log(`[Character3DPreview] Model now visible for ${characterName} with animation playing (delay: ${visibilityDelay}ms)`);
             
             // Notify parent that model is ready and visible
             if (onLoadComplete) onLoadComplete();
           }
-        }, 1000); // Wait for fadeIn to complete + small buffer
+        }, visibilityDelay); // Wait for fadeIn to complete + buffer (longer for Grok Ani)
       }
     };
     
@@ -492,35 +494,21 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
   
   return (
     <group ref={group} position={[0, -0.8, 0]}>
-      {/* Enhanced lighting for the preview */}
-      <ambientLight intensity={1.5} />
+      {/* Brighter, balanced lighting for clear character visibility */}
+      <ambientLight intensity={0.8} />
       <directionalLight 
-        position={[3, 4, 5]} 
-        intensity={3.0} 
-        castShadow={false}
-        color={0xffffff}
-      />
-      <directionalLight 
-        position={[-3, 2, 3]} 
+        position={[2, 3, 2]} 
         intensity={1.5} 
         castShadow={false}
-        color={0xffffff}
+      />
+      <directionalLight 
+        position={[-1, 2, 1]} 
+        intensity={1.0} 
+        castShadow={false}
       />
       <pointLight 
-        position={[0, 3, 2]} 
-        intensity={2.0} 
-        color={0xffffff}
-      />
-      <pointLight 
-        position={[2, 1, -2]} 
-        intensity={1.2} 
-        color={0xffeecc}
-      />
-      {/* Additional front lighting to eliminate shadows */}
-      <pointLight 
-        position={[0, 1, 3]} 
-        intensity={1.8} 
-        color={0xffffff}
+        position={[0, 1, 2]} 
+        intensity={0.8} 
       />
     </group>
   );
@@ -529,6 +517,16 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
 interface Character3DPreviewProps {
   characterName: string;
   className?: string;
+}
+
+// Helper function to get character-specific background videos (same as JoinGameDialog)
+function getCharacterVideo(characterName: string): string {
+  const videoMap: Record<string, string> = {
+    'Zaqir Mufasa': '/character-select-bg-1.mp4',
+    'Grok Ani': '/grok-ani-background.mp4',
+    'Grok Rudi': '/grok-rudi-background.mp4'
+  };
+  return videoMap[characterName] || '/character-select-bg-1.mp4'; // Fallback to default
 }
 
 export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
@@ -571,6 +569,26 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
       borderRadius: '12px',
       overflow: 'hidden'
     }}>
+      {/* Character-specific background video */}
+      <video 
+        key={`bg-${characterName}`}
+        autoPlay 
+        loop 
+        muted 
+        playsInline
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 1
+        }}
+      >
+        <source src={getCharacterVideo(characterName)} type="video/mp4" />
+      </video>
+      
       {/* Loading Spinner */}
       {isLoading && (
         <div style={{
@@ -578,9 +596,10 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          zIndex: 10,
-          color: '#5D4037',
-          textAlign: 'center'
+          zIndex: 20,
+          color: '#FFFFFF',
+          textAlign: 'center',
+          textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)'
         }}>
           <div style={{
             width: '40px',
@@ -608,11 +627,12 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          zIndex: 10,
-          color: '#8B4513',
+          zIndex: 20,
+          color: '#FFFFFF',
           textAlign: 'center',
           fontFamily: 'Newrocker, serif',
-          fontSize: '14px'
+          fontSize: '14px',
+          textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)'
         }}>
           <div>⚠️</div>
           <div>Could not load 3D model</div>
@@ -624,26 +644,27 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
         key={`preview-${characterName}`} // Force remount on character change
         camera={{ position: [0, 0.2, 2.2], fov: 65 }}
         style={{ 
+          position: 'relative',
           width: '100%', 
           height: '100%',
           opacity: isLoading ? 0.3 : 1,
-          transition: 'opacity 0.5s ease'
+          transition: 'opacity 0.5s ease',
+          zIndex: 10
         }}
         gl={{ 
           antialias: true,
           alpha: true,
-          premultipliedAlpha: true,
+          premultipliedAlpha: false,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.2,
-          preserveDrawingBuffer: false, // Don't preserve drawing buffer to save memory
-          powerPreference: "default" // Don't force high-performance GPU
+          toneMappingExposure: 1.0,
+          preserveDrawingBuffer: false,
+          powerPreference: "default"
         }}
       >
-        {/* Transparent background */}
-        <color attach="background" args={['transparent']} />
+        {/* No background color - fully transparent */}
         
-        {/* HDR Environment for proper PBR material rendering - matches GameScene.tsx */}
-        <Environment files="/environments/cape_hill_4k.exr" />
+        {/* Add Environment back for PBR materials but without background */}
+        <Environment files="/environments/cape_hill_4k.exr" background={false} />
         
         <Character3DModel
           characterName={characterName}

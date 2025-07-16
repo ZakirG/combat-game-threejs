@@ -111,7 +111,9 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       idle: 0.7, // Slower, more regal idle
       jump: 1.3, // Double speed for faster jumping animation
       falling: 1.0, // Normal falling speed
-      landing: 1.1 // Slightly faster landing
+      landing: 1.1, // Slightly faster landing
+      attack1: 2.0, // Double speed for faster punch animations
+      cast: 2.0 // Double speed for faster punch animations (cast is attack2)
     }
   },
   "Zaqir Mufasa": {
@@ -159,7 +161,9 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       idle: 0.8, // Slightly slower idle for more dramatic effect
       jump: 1.3, // Double speed for faster jumping animation
       falling: 1.0, // Normal falling speed
-      landing: 1.2 // Slightly faster landing for quicker recovery
+      landing: 1.2, // Slightly faster landing for quicker recovery
+      attack1: 2.0, // Double speed for faster punch animations
+      cast: 2.0 // Double speed for faster punch animations (cast is attack2)
     }
   },
   "Grok Rudi": {
@@ -208,8 +212,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-left': 1.0,     // Normal pace for run left
       'run-right': 1.0,    // Normal pace for run right
       idle: 0.8,           // Slower, more menacing combat idle
-      attack1: 1.2,        // Quick punches
-      cast: 1.1,           // Slightly faster second punch
+      attack1: 2.4,        // Double speed for faster punch animations (was 1.2, now 2.4)
+      cast: 2.2,           // Double speed for faster punch animations (was 1.1, now 2.2)
       jump: 1.3,           // Double speed for faster jumping animation
       falling: 1.0,        // Normal falling speed
       landing: 1.0,        // Normal landing speed
@@ -228,7 +232,7 @@ export interface ZombieConfig {
 // Zombie configuration
 export const ZOMBIE_CONFIG: ZombieConfig = {
   modelPath: "/models/zombie-2-converted/zombie.glb",
-  scale: 1.1,
+  scale: 1.2, // Increased from 1.1 to 1.6 for larger, more imposing zombies
   yOffset: 0.0 // Adjusted for ground level positioning
 };
 
