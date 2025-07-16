@@ -327,14 +327,17 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
     setCurrentAnimation(name);
   }, [animations, currentAnimation, mixer]);
 
-  // Find nearest player
+  // Find nearest player - use horizontal distance only to avoid Y-axis issues
   const findNearestPlayer = useCallback((): PlayerData | null => {
     let nearestPlayer: PlayerData | null = null;
     let nearestDistance = Infinity;
     
     for (const player of players.values()) {
-      const playerPos = new THREE.Vector3(player.position.x, player.position.y, player.position.z);
-      const distance = zombiePosition.current.distanceTo(playerPos);
+      // Use server position but ignore Y-axis differences for distance calculation
+      // This prevents zombies from thinking players are far away due to Y-position reconciliation issues
+      const playerPos = new THREE.Vector3(player.position.x, 0, player.position.z); // Force Y=0 for distance calc
+      const zombiePos = new THREE.Vector3(zombiePosition.current.x, 0, zombiePosition.current.z); // Force Y=0 for distance calc
+      const distance = zombiePos.distanceTo(playerPos);
       
       if (distance < nearestDistance) {
         nearestDistance = distance;
@@ -626,10 +629,11 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       const z = (Math.random() - 0.5) * worldSize;
       const candidatePos = new THREE.Vector3(x, 0, z);
       
-      // Check distance to all players
+      // Check distance to all players - use horizontal distance only to avoid Y-axis issues
       let tooClose = false;
       for (const player of players.values()) {
-        const playerPos = new THREE.Vector3(player.position.x, player.position.y, player.position.z);
+        // Use horizontal distance only to prevent spawn issues when players are at high altitude
+        const playerPos = new THREE.Vector3(player.position.x, 0, player.position.z);
         const distance = candidatePos.distanceTo(playerPos);
         
         if (distance < minDistance) {
@@ -650,7 +654,8 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     
     if (players.size > 0) {
       const firstPlayer = Array.from(players.values())[0];
-      const playerPos = new THREE.Vector3(firstPlayer.position.x, firstPlayer.position.y, firstPlayer.position.z);
+      // Use horizontal position only for fallback calculation
+      const playerPos = new THREE.Vector3(firstPlayer.position.x, 0, firstPlayer.position.z);
       
       // Place zombie at world edge in opposite direction from player
       const directionFromOrigin = playerPos.clone().normalize();
@@ -678,7 +683,8 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       // Debug log for first few zombies
       if (index < 3) {
         const nearestPlayerDistance = Array.from(players.values()).reduce((minDist, player) => {
-          const playerPos = new THREE.Vector3(player.position.x, player.position.y, player.position.z);
+          // Use horizontal distance only for debug logging
+          const playerPos = new THREE.Vector3(player.position.x, 0, player.position.z);
           const zombiePos = new THREE.Vector3(position[0], position[1], position[2]);
           const dist = zombiePos.distanceTo(playerPos);
           return Math.min(minDist, dist);

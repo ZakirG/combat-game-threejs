@@ -242,12 +242,12 @@ pub fn register_player(ctx: &ReducerContext, username: String, character_class: 
 pub fn update_player_input(
     ctx: &ReducerContext,
     input: InputState,
-    _client_pos: Vector3,
+    client_pos: Vector3, // Remove underscore - we need this for Y position
     client_rot: Vector3,
     client_animation: String,
 ) {
     if let Some(mut player) = ctx.db.player().identity().find(ctx.sender) {
-        player_logic::update_input_state(&mut player, input, client_rot, client_animation);
+        player_logic::update_input_state(&mut player, input, client_pos, client_rot, client_animation);
         ctx.db.player().identity().update(player);
     } else {
         spacetimedb::log::warn!("Player {} tried to update input but is not active.", ctx.sender);

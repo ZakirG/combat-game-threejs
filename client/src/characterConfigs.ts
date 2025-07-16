@@ -22,7 +22,7 @@ export interface CharacterMovementConfig {
   runSpeed: number;
 }
 
-export const SPAWN_ALTITUDE = 90.0;
+export const SPAWN_ALTITUDE = 200.0;
 
 export interface CharacterAnimationTable {
   idle: string;
@@ -73,14 +73,14 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     modelPath: "/models/zaqir-2/Idle.fbx",
     basePath: "/models/zaqir-2/",
     scale: 0.016, // 1.3x bigger (0.012 * 1.3)
-    yOffset: 0.7, // Adjusted for ground level positioning
+    yOffset: 1.2, // Increased to prevent feet from going into ground
     preview: {
       scale: 0.010, // 1.3x bigger (0.012 * 1.3)
       yOffset: 0.4 // Adjusted for ground level positioning
     },
     gameplay: {
        scale: 0.016, // 1.3x bigger (0.012 * 1.3)
-       yOffset: 0.7, // Adjusted for ground level positioning
+       yOffset: 1.2, // Increased to prevent feet from going into ground
        highAltitudeSpawn: SPAWN_ALTITUDE
      },
     movement: {
@@ -103,7 +103,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       damage: "Receive Hit.fbx",
       death: "death.fbx",
       falling: "Falling.fbx",
-      landing: "Fall A Land To Standing Idle 01.fbx"
+      landing: "Landing.fbx"
     },
     timeScale: {
       'walk-forward': 1.0, // Normal speed for mutant walk
@@ -122,7 +122,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     scale: 0.01,
     yOffset: 0.0, // Adjusted for ground level positioning
     preview: {
-      scale: 0.012,
+      scale: 0.011,
       yOffset: 0.2
     },
     gameplay: {

@@ -36,7 +36,7 @@ export interface ZombieState {
   targetRotation?: number;
 }
 
-// Find the closest player to the zombie
+// Find the closest player to the zombie - use horizontal distance only to avoid Y-axis issues
 function findClosestPlayer(
   zombiePosition: THREE.Vector3,
   players: ReadonlyMap<string, PlayerData>
@@ -46,8 +46,10 @@ function findClosestPlayer(
   let closestPlayerId = '';
 
   for (const [playerId, player] of players) {
-    const playerPos = new THREE.Vector3(player.position.x, player.position.y, player.position.z);
-    const distance = zombiePosition.distanceTo(playerPos);
+    // Use horizontal distance only to avoid Y-position reconciliation issues
+    const playerPos = new THREE.Vector3(player.position.x, 0, player.position.z);
+    const zombiePos = new THREE.Vector3(zombiePosition.x, 0, zombiePosition.z);
+    const distance = zombiePos.distanceTo(playerPos);
     
     if (distance < closestDistance) {
       closestDistance = distance;
@@ -89,9 +91,10 @@ export function makeZombieDecision(
 
   // Check if player is nearby for chasing
   if (closestPlayerInfo && closestPlayerInfo.distance <= DISTANCE_TO_PLAYER_BEFORE_CHASING) {
+    // Use player's X/Z position but force ground level Y to prevent zombies flying upward
     const playerPos = new THREE.Vector3(
       closestPlayerInfo.player.position.x,
-      closestPlayerInfo.player.position.y,
+      0.7, // Ground level Y position (matches character positioning)
       closestPlayerInfo.player.position.z
     );
 

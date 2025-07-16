@@ -135,20 +135,27 @@ pub fn calculate_new_position(position: &Vector3, rotation: &Vector3, input: &In
 // }
 
 // Update player state based on input
-pub fn update_input_state(player: &mut PlayerData, input: InputState, client_rot: Vector3, client_animation: String) {
-    // Calculate movement & animation based on RECEIVED input
+pub fn update_input_state(player: &mut PlayerData, input: InputState, client_pos: Vector3, client_rot: Vector3, client_animation: String) {
+    // Calculate movement & animation based on RECEIVED input for X/Z coordinates
     let delta_time_estimate: f32 = 1.0 / 60.0; // Estimate client frame delta
     
-    spacetimedb::log::info!("Before position calculation: player Y={}", player.position.y);
+    spacetimedb::log::info!("Before position update: server Y={}, client Y={}", player.position.y, client_pos.y);
     
-    let new_position = calculate_new_position(
+    let server_calculated_position = calculate_new_position(
         &player.position,
         &client_rot, // Use client rotation for direction calc
         &input,
         delta_time_estimate
     );
 
-    spacetimedb::log::info!("After position calculation: new Y={}", new_position.y);
+    // Use server-calculated X/Z (anti-cheat) but client Y (physics)
+    let new_position = Vector3 {
+        x: server_calculated_position.x,
+        y: client_pos.y, // Trust client for Y position (falling, jumping)
+        z: server_calculated_position.z
+    };
+
+    spacetimedb::log::info!("After position update: final Y={} (from client)", new_position.y);
 
     // Update player state
     player.position = new_position;

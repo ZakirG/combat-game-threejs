@@ -95,20 +95,24 @@ interface PlayerProps {
   playerData: PlayerData;
   isLocalPlayer: boolean;
   onRotationChange?: (rotation: THREE.Euler) => void;
+  onPositionChange?: (position: THREE.Vector3) => void; // Callback for position updates
   currentInput?: InputState; // Prop to receive current input for local player
   isDebugArrowVisible?: boolean; // Prop to control debug arrow visibility
   isDebugPanelVisible?: boolean; // Prop to control general debug helpers visibility
   gameReadyCallbacks?: GameReadyCallbacks; // Callbacks for GameReady events
+  gameReady?: boolean; // Controls when physics should be enabled
 }
 
 export const Player: React.FC<PlayerProps> = ({
   playerData,
   isLocalPlayer,
   onRotationChange,
+  onPositionChange, // Destructure position callback
   currentInput, // Receive input state
   isDebugArrowVisible = false, 
   isDebugPanelVisible = false, // Destructure with default false
-  gameReadyCallbacks // Destructure GameReady callbacks
+  gameReadyCallbacks, // Destructure GameReady callbacks
+  gameReady = false // Destructure gameReady state
 }) => {
   const group = useRef<THREE.Group>(null!);
   const { camera } = useThree();
@@ -459,6 +463,14 @@ export const Player: React.FC<PlayerProps> = ({
     }
   }, [mixer, model, characterClass]);
 
+  // Enable physics when game is ready and model is visible
+  useEffect(() => {
+    if (gameReady && isModelVisible && !physicsEnabled) {
+      setPhysicsEnabled(true);
+      console.log(`⚡ [PHYSICS] Physics ENABLED for ${playerData.username} - GameReady complete! Starting dramatic fall from Y=${localPositionRef.current.y.toFixed(1)}`);
+    }
+  }, [gameReady, isModelVisible, physicsEnabled, playerData.username]);
+
   // Function to load animations using character configuration
   const loadAnimations = (mixerInstance: THREE.AnimationMixer) => {
     if (!mixerInstance) {
@@ -545,15 +557,15 @@ export const Player: React.FC<PlayerProps> = ({
                            .play();
                  setCurrentAnimation('falling');
                  
-                 // Make model visible now that falling animation is playing
+                 // Make model visible IMMEDIATELY for dramatic high-altitude entrance
                  if (model && model.visible !== undefined) {
                    model.visible = true;
                    setIsModelVisible(true);
-                   setPhysicsEnabled(true); // Enable physics now that model is ready
-                   console.log(`🎬 [CRITICAL] Model NOW VISIBLE and PHYSICS ENABLED for ${playerData.username} at Y=${localPositionRef.current.y.toFixed(1)} - falling should begin!`);
+                   // Physics will be enabled when gameReady becomes true
+                   console.log(`🎬 [CRITICAL] Model NOW VISIBLE for ${playerData.username} at Y=${localPositionRef.current.y.toFixed(1)} - waiting for game ready to enable physics`);
                    
                    // Ensure we're in falling animation state for server animation override protection
-                   if (localPositionRef.current.y > 100) {
+                   if (localPositionRef.current.y > 20) {
                      console.log(`🔄 [FALLING] Ensuring falling animation is active for high altitude spawn`);
                      setCurrentAnimation(ANIMATIONS.FALLING);
                    }
@@ -572,7 +584,7 @@ export const Player: React.FC<PlayerProps> = ({
                    }
                  }
              }
-          }, 10); // Minimal delay to ensure animation is ready before showing model
+          }, 0); // No delay - show model immediately for dramatic high-altitude entrance
         } else if (newAnimations['idle']) {
           // Fallback to idle if falling animation is not available
           setTimeout(() => {
@@ -589,8 +601,8 @@ export const Player: React.FC<PlayerProps> = ({
                  if (model && model.visible !== undefined) {
                    model.visible = true;
                    setIsModelVisible(true);
-                   setPhysicsEnabled(true); // Enable physics even for fallback idle
-                   console.log(`[Player] Model now visible for ${playerData.username} with idle animation playing (fallback) - physics enabled`);
+                   // Physics will be enabled when gameReady becomes true  
+                   console.log(`[Player] Model now visible for ${playerData.username} with idle animation playing (fallback) - waiting for game ready`);
                    
                    // Emit character ready event for local player (fallback case)
                    if (isLocalPlayer && gameReadyCallbacks) {
@@ -1120,7 +1132,7 @@ export const Player: React.FC<PlayerProps> = ({
             velocityY.current = Math.max(velocityY.current, TERMINAL_VELOCITY); // Clamp to terminal velocity
             
             // Debug physics when falling from high altitude
-            if (localPositionRef.current.y > 1000) {
+            if (localPositionRef.current.y > 120) {
               console.log(`🌊 [Physics] Y=${localPositionRef.current.y.toFixed(1)}, velocityY=${velocityY.current.toFixed(2)}, dt=${dt.toFixed(4)}, onGround=${isOnGround.current}, physicsEnabled=${physicsEnabled}`);
             }
           }
@@ -1132,6 +1144,9 @@ export const Player: React.FC<PlayerProps> = ({
           
           // Ground collision detection only when physics is enabled
           if (physicsEnabled && localPositionRef.current.y <= GROUND_LEVEL) {
+            // Store the altitude we fell from before collision correction
+            const fallHeight = Math.max(SPAWN_ALTITUDE - GROUND_LEVEL, localPositionRef.current.y + Math.abs(velocityY.current) * dt);
+            
             localPositionRef.current.y = GROUND_LEVEL;
             velocityY.current = 0;
             const wasInAir = !isOnGround.current;
@@ -1139,7 +1154,7 @@ export const Player: React.FC<PlayerProps> = ({
             
             // If just landed from falling, play landing animation
             if (wasInAir && currentAnimation === ANIMATIONS.FALLING) {
-              console.log(`🎯 [LANDING] ${playerData.username} hit the ground after falling from Y=${localPositionRef.current.y + velocityY.current * dt} - playing landing animation`);
+              console.log(`🎯 [LANDING] ${playerData.username} hit the ground after falling from Y=${fallHeight.toFixed(1)} - playing landing animation`);
               playAnimation(ANIMATIONS.LANDING, 0.3);
               
               // After landing animation, transition to idle
@@ -1171,7 +1186,7 @@ export const Player: React.FC<PlayerProps> = ({
             const horizontalError = localHorizontal.distanceTo(serverHorizontal);
             
             // Don't reconcile at all if character is still falling from high altitude
-            const isStillFalling = currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 5;
+            const isStillFalling = currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
             
             // Check if player is currently in air (not on ground) to avoid Y reconciliation during jumping/falling
             const isInAir = !isOnGround.current || Math.abs(velocityY.current) > 0.1;
@@ -1180,18 +1195,12 @@ export const Player: React.FC<PlayerProps> = ({
               // Only reconcile when not falling from altitude
               if (cameraMode !== CAMERA_MODES.ORBITAL) {
                   // Only reconcile X and Z coordinates, preserve Y for physics
-                  if (isInAir) {
-                    // Player is jumping/falling - only reconcile horizontal position
-                    localPositionRef.current.x = THREE.MathUtils.lerp(localPositionRef.current.x, serverPosition.x, RECONCILE_LERP_FACTOR);
-                    localPositionRef.current.z = THREE.MathUtils.lerp(localPositionRef.current.z, serverPosition.z, RECONCILE_LERP_FACTOR);
-                    console.log(`🔄 [Reconcile] Applied HORIZONTAL-ONLY reconciliation during air movement - Y preserved at: ${localPositionRef.current.y.toFixed(1)}`);
-                  } else {
-                    // Player is on ground - safe to reconcile all coordinates
-                    localPositionRef.current.lerp(serverPosition, RECONCILE_LERP_FACTOR);
-                    console.log(`🔄 [Reconcile] Applied FULL reconciliation on ground - Local Y now: ${localPositionRef.current.y.toFixed(1)}, Server Y: ${serverPosition.y.toFixed(1)}`);
-                  }
+                  // ALWAYS only reconcile horizontal position (X/Z), never Y - let client physics handle Y entirely
+                  localPositionRef.current.x = THREE.MathUtils.lerp(localPositionRef.current.x, serverPosition.x, RECONCILE_LERP_FACTOR);
+                  localPositionRef.current.z = THREE.MathUtils.lerp(localPositionRef.current.z, serverPosition.z, RECONCILE_LERP_FACTOR);
+                  console.log(`🔄 [Reconcile] Applied HORIZONTAL-ONLY reconciliation - Y preserved at: ${localPositionRef.current.y.toFixed(1)} (Server Y ignored: ${serverPosition.y.toFixed(1)})`);
               }
-            } else if (isStillFalling && localPositionRef.current.y > 1000) {
+            } else if (isStillFalling && localPositionRef.current.y > 120) {
               console.log(`🚫 [Reconcile] Skipping reconciliation during falling - Y=${localPositionRef.current.y.toFixed(1)}, Animation=${currentAnimation}`);
             }
             // During falling, skip reconciliation entirely to allow physics to work
@@ -1215,6 +1224,13 @@ export const Player: React.FC<PlayerProps> = ({
           // 3. Apply potentially reconciled predicted position AND reconciled local rotation directly to the model group
           // Always update position to ensure model follows player state
           group.current.position.copy(localPositionRef.current);
+
+          // 3.5. Send updated position to App for server sync (skip during initial falling sequence)
+          // Only skip during the dramatic high-altitude falling to preserve the entrance effect
+          const isHighAltitudeFalling = currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
+          if (onPositionChange && physicsEnabled && isModelVisible && !isHighAltitudeFalling) {
+            onPositionChange(localPositionRef.current);
+          }
           // --- Visual Rotation Logic --- 
           let targetVisualYaw = localRotationRef.current.y; // Default: Face camera/mouse direction
 
@@ -1358,7 +1374,7 @@ export const Player: React.FC<PlayerProps> = ({
         if (cameraMode === CAMERA_MODES.FOLLOW) {
           // --- FOLLOW CAMERA MODE --- 
           // Special close camera during falling animation for cinematic effect
-          const isFalling = currentAnimation === ANIMATIONS.FALLING && playerPosition.y > 10;
+          const isFalling = currentAnimation === ANIMATIONS.FALLING && playerPosition.y > 20;
           const cameraHeight = isFalling ? 2.0 : 3.0; // Lower when falling to get closer
           const currentDistance = isFalling ? 3.0 : zoomLevel.current; // Much closer when falling
 
@@ -1386,7 +1402,7 @@ export const Player: React.FC<PlayerProps> = ({
           const orbital = orbitalCameraRef.current;
           
           // Special close orbital during falling animation
-          const isFalling = currentAnimation === ANIMATIONS.FALLING && playerPosition.y > 10;
+          const isFalling = currentAnimation === ANIMATIONS.FALLING && playerPosition.y > 20;
           const orbitalDistance = isFalling ? 4.0 : orbital.distance; // Much closer when falling
           
           // Calculate orbital camera position using spherical coordinates
@@ -1432,7 +1448,7 @@ export const Player: React.FC<PlayerProps> = ({
       const serverAnim = playerData.currentAnimation;
 
       // Don't allow server to override falling animation during high altitude descent
-      const isHighAltitudeFalling = currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 10;
+      const isHighAltitudeFalling = currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
 
       console.log(`🎯 [Anim Check] Received ServerAnim: ${serverAnim}, Current LocalAnim: ${currentAnimation}, High Alt Falling: ${isHighAltitudeFalling}, Is Available: ${!!animations[serverAnim]}`);
 

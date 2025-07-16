@@ -96,6 +96,7 @@ function App() {
 
   // New import for handling player rotation data
   const playerRotationRef = useRef<THREE.Euler>(new THREE.Euler(0, 0, 0, 'YXZ'));
+  const playerPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 200, 0)); // Initialize with spawn altitude
 
   // --- GameReady Callbacks ---
   const gameReadyCallbacks: GameReadyCallbacks = {
@@ -260,7 +261,13 @@ function App() {
 
   const sendInput = useCallback((currentInputState: InputState) => {
     if (!conn || !identity || !connected) return; // Check connection status too
-    const currentPosition = localPlayer?.position || { x: 0, y: 0, z: 0 };
+    
+    // Use local client position for multiplayer sync
+    const currentPosition = {
+      x: playerPositionRef.current.x,
+      y: playerPositionRef.current.y, // Send actual client Y position (falling, jumping)
+      z: playerPositionRef.current.z
+    };
     
     // Now using the playerRotationRef for more accurate rotation tracking
     const currentRotation = {
@@ -290,6 +297,12 @@ function App() {
   const handlePlayerRotation = useCallback((rotation: THREE.Euler) => {
     // Update our stored rotation whenever the player rotates (from mouse movements)
     playerRotationRef.current.copy(rotation);
+  }, []);
+
+  // Add player position handler
+  const handlePlayerPosition = useCallback((position: THREE.Vector3) => {
+    // Update our stored position with the client's local physics position
+    playerPositionRef.current.copy(position);
   }, []);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -531,6 +544,7 @@ function App() {
             players={players} 
             localPlayerIdentity={identity} 
             onPlayerRotation={handlePlayerRotation}
+            onPlayerPosition={handlePlayerPosition} // Pass position callback
             currentInputRef={currentInputRef}
             isDebugPanelVisible={isDebugPanelExpanded}
             showControlsPanel={gameFullyReady} // Pass gameFullyReady instead of hasJoinedGame

@@ -47,6 +47,7 @@ interface GameSceneProps {
   players: ReadonlyMap<string, PlayerData>; // Receive the map
   localPlayerIdentity: Identity | null;
   onPlayerRotation?: (rotation: THREE.Euler) => void; // Optional callback for player rotation
+  onPlayerPosition?: (position: THREE.Vector3) => void; // Optional callback for player position
   currentInputRef?: React.MutableRefObject<InputState>; // Add input state ref prop
   isDebugPanelVisible?: boolean; // Prop to indicate if the debug panel is visible
   showControlsPanel?: boolean; // Whether to display the ControlsPanel
@@ -97,6 +98,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
   players, 
   localPlayerIdentity,
   onPlayerRotation,
+  onPlayerPosition, // Destructure position callback
   currentInputRef, // Receive input state ref
   isDebugPanelVisible = false, // Destructure the new prop
   showControlsPanel = false,
@@ -160,20 +162,22 @@ export const GameScene: React.FC<GameSceneProps> = ({
             playerData={player}
             isLocalPlayer={isLocal}
             onRotationChange={isLocal ? onPlayerRotation : undefined}
+            onPositionChange={isLocal ? onPlayerPosition : undefined} // Pass position callback
             currentInput={isLocal ? currentInputRef?.current : undefined}
             isDebugArrowVisible={isLocal ? isDebugPanelVisible : false} // Pass down arrow visibility
             isDebugPanelVisible={isDebugPanelVisible} // Pass down general debug visibility
             gameReadyCallbacks={isLocal ? gameReadyCallbacks : undefined} // Only pass to local player
+            gameReady={gameReady} // Pass gameReady state to control physics timing
           />
         );
       })}
 
       {/* Render Optimized Zombie Manager */}
       <ZombieManager 
-        zombieCount={5} // Reduced count to prevent WebGL context issues
+        zombieCount={15}
         players={players}
         isDebugVisible={isDebugPanelVisible}
-        minSpawnDistance={20} // Minimum 20 units from any player for more spread out spawning
+        minSpawnDistance={30} // Minimum 20 units from any player for more spread out spawning
         gameReadyCallbacks={gameReadyCallbacks} // Pass GameReady callbacks
       />
 
