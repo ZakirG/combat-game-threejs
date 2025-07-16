@@ -149,7 +149,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-right': "Standing Run Right.fbx", // Use dedicated run right animation
       jump: "Jumping.fbx",
       attack1: "Roundhouse Kick.fbx", // Changed from Standing Melee Punch
-      attack2: "Standing Melee Punch.fbx", // Combo attack (was cast)
+      attack2: "Flip Kick.fbx", // Combo attack (was cast)
       cast: "Punching.fbx", // Use different punching animation for cast
       damage: "Receive Hit.fbx",
       death: "death.fbx",

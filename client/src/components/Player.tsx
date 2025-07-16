@@ -49,6 +49,7 @@ import {
   SPAWN_ALTITUDE 
 } from '../characterConfigs';
 import { GameReadyCallbacks } from '../types/gameReady';
+import { triggerScreenshake, updateScreenshake, SCREENSHAKE_PRESETS } from '../utils/screenshake';
 
 // Define animation names for reuse
 const ANIMATIONS = {
@@ -1101,6 +1102,11 @@ export const Player: React.FC<PlayerProps> = ({
     {
       const dt = Math.min(delta, 1 / 30);
 
+      // Update screenshake effect (only for local player)
+      if (isLocalPlayer) {
+        updateScreenshake(camera, delta);
+      }
+
       // Update latest server data ref for local player
       if (isLocalPlayer) {
           dataRef.current = playerData;
@@ -1193,6 +1199,11 @@ export const Player: React.FC<PlayerProps> = ({
                 
                 if (hitZombies.length > 0) {
                   console.log(`[Player] ⚔️ Attack successful! Hit ${hitZombies.length} zombie(s)`);
+                  
+                  // Trigger screenshake effect for impact feedback
+                  const shakeIntensity = isComboAttack ? SCREENSHAKE_PRESETS.COMBO : SCREENSHAKE_PRESETS.MEDIUM;
+                  triggerScreenshake(camera, shakeIntensity);
+                  console.log(`[Player] 📳 Screenshake triggered - ${isComboAttack ? 'COMBO' : 'NORMAL'} intensity`);
                 }
               }
             }, 300); // 300ms delay to let attack animation play
