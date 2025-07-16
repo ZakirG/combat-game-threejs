@@ -202,7 +202,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
                       roughnessMap: externalTextures?.roughness,
                       metalnessMap: externalTextures?.metallic,
                       color: material.color || new THREE.Color(1, 1, 1),
-                      emissive: new THREE.Color(0.1, 0.1, 0.1), // Add slight emissive for visibility
+                      emissive: new THREE.Color(0, 0, 0), // Remove emissive, rely on environment and direct lights
                       transparent: material.transparent || false,
                       opacity: material.opacity !== undefined ? material.opacity : 1.0,
                       roughness: 0.7,
@@ -494,22 +494,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
   
   return (
     <group ref={group} position={[0, -0.8, 0]}>
-      {/* Brighter, balanced lighting for clear character visibility */}
-      <ambientLight intensity={0.8} />
-      <directionalLight 
-        position={[2, 3, 2]} 
-        intensity={1.5} 
-        castShadow={false}
-      />
-      <directionalLight 
-        position={[-1, 2, 1]} 
-        intensity={1.0} 
-        castShadow={false}
-      />
-      <pointLight 
-        position={[0, 1, 2]} 
-        intensity={0.8} 
-      />
+      {/* This component's lighting is now managed within the Canvas */}
     </group>
   );
 };
@@ -656,7 +641,7 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
           alpha: true,
           premultipliedAlpha: false,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.0,
+          toneMappingExposure: 1.5,
           preserveDrawingBuffer: false,
           powerPreference: "default"
         }}
@@ -664,8 +649,19 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
         {/* No background color - fully transparent */}
         
         {/* Add Environment back for PBR materials but without background */}
-        <Environment files="/environments/cape_hill_4k.exr" background={false} />
+        <Environment files="/environments/furstenstein_4k.hdr" background={false} />
         
+        {/* Add a balanced lighting setup to supplement the environment map */}
+        <ambientLight intensity={0.5} />
+        <directionalLight 
+          position={[5, 5, 5]} 
+          intensity={1.0} 
+        />
+        <directionalLight 
+          position={[-3, -3, 2]} 
+          intensity={0.5} 
+        />
+
         <Character3DModel
           characterName={characterName}
           onLoadComplete={handleLoadComplete}
