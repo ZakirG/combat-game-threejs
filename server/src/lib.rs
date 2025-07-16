@@ -175,8 +175,8 @@ pub fn register_player(ctx: &ReducerContext, username: String, character_class: 
     let player_count = ctx.db.player().iter().count();
     let colors = ["cyan", "magenta", "yellow", "lightgreen", "white", "orange"];
     let assigned_color = colors[player_count % colors.len()].to_string();
-    // Simple horizontal offset for spawning, spawn at ground level (Y=0)
-    let spawn_position = Vector3 { x: (player_count as f32 * 5.0) - 2.5, y: 0.0, z: 0.0 }; // Ground level spawn
+    // Simple horizontal offset for spawning, spawn at high altitude for dramatic entrance
+    let spawn_position = Vector3 { x: (player_count as f32 * 5.0) - 2.5, y: 100.0, z: 0.0 }; // High altitude spawn
 
     if let Some(logged_out_player) = ctx.db.logged_out_player().identity().find(player_identity) {
         spacetimedb::log::info!("Player {} is rejoining.", player_identity);

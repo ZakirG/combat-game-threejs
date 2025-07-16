@@ -21,7 +21,7 @@ import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { TextureLoader } from 'three';
-import { getCharacterConfig, getAnimationPath, getAnimationTimeScale } from '../characterConfigs';
+import { getCharacterConfig, getCharacterPreviewConfig, getAnimationPath, getAnimationTimeScale } from '../characterConfigs';
 
 // Character-specific texture configurations
 const CHARACTER_TEXTURES: Record<string, { folder: string; hasTextures: boolean }> = {
@@ -70,6 +70,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
   const [isModelVisible, setIsModelVisible] = useState<boolean>(false);
   
   const characterConfig = useMemo(() => getCharacterConfig(characterName), [characterName]);
+  const previewConfig = useMemo(() => getCharacterPreviewConfig(characterName), [characterName]);
   const textureConfig = CHARACTER_TEXTURES[characterName];
   
   // Static straight-on view - facing camera
@@ -159,10 +160,10 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
         const bbox = new THREE.Box3().setFromObject(fbx);
         console.log(`[Character3DPreview] Model bounding box:`, bbox);
         
-        // Apply character-specific scaling and positioning
-        fbx.scale.setScalar(characterConfig.scale);
+        // Apply character-specific scaling and positioning for preview
+        fbx.scale.setScalar(previewConfig.scale);
         // Push character DOWN to prevent floating up
-        fbx.position.set(0, characterConfig.yOffset - 0.5, 0); // Extra downward offset to prevent floating
+        fbx.position.set(0, previewConfig.yOffset - 0.5, 0); // Extra downward offset to prevent floating
         
         console.log(`[Character3DPreview] Model positioned at:`, fbx.position);
         console.log(`[Character3DPreview] Model scaled to:`, fbx.scale);
@@ -287,7 +288,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
     };
     
     animationsToLoad.forEach((animName) => {
-      const animPath = getAnimationPath(characterConfig, animName as keyof typeof characterConfig.animationTable);
+      const animPath = getAnimationPath(characterName, animName);
       console.log(`[Character3DPreview] Loading animation "${animName}" from: ${animPath}`);
       
       const loader = new FBXLoader();
@@ -319,7 +320,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
             }
             
             const action = mixer.clipAction(clip);
-            const timeScale = getAnimationTimeScale(characterConfig, animName);
+            const timeScale = getAnimationTimeScale(characterName, animName);
             action.setEffectiveTimeScale(timeScale);
             
             // Set loop mode

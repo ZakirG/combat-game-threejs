@@ -6,11 +6,13 @@
  * - Animation file mappings
  * - Movement speeds
  * - Animation time scales
+ * - Separate settings for character preview vs gameplay
  * 
  * To add a new character:
  * 1. Add a new entry to CHARACTER_CONFIGS
  * 2. Specify the model path, scale, and animation files
  * 3. Set movement speeds and any animation overrides
+ * 4. Configure both preview and gameplay positioning
  * 
  * No changes to Player.tsx are needed when adding new characters.
  */
@@ -39,11 +41,26 @@ export interface CharacterAnimationTable {
   landing: string;
 }
 
+// Separate configuration for character preview (character selector)
+export interface CharacterPreviewConfig {
+  scale: number;
+  yOffset: number;
+}
+
+// Separate configuration for gameplay
+export interface CharacterGameplayConfig {
+  scale: number;
+  yOffset: number;
+  highAltitudeSpawn: number; // Very high spawn altitude for dramatic entrance
+}
+
 export interface CharacterConfig {
   modelPath: string;
   basePath: string; // Base directory for animation files
-  scale: number;
-  yOffset: number;
+  scale: number; // Deprecated - use preview.scale or gameplay.scale
+  yOffset: number; // Deprecated - use preview.yOffset or gameplay.yOffset
+  preview: CharacterPreviewConfig; // Settings for character selector
+  gameplay: CharacterGameplayConfig; // Settings for main game
   movement: CharacterMovementConfig;
   animationTable: CharacterAnimationTable;
   timeScale?: Record<string, number>; // Optional per-animation speed overrides
@@ -55,6 +72,15 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     basePath: "/models/zaqir-2/",
     scale: 0.016, // 1.3x bigger (0.012 * 1.3)
     yOffset: 0.7, // Adjusted for ground level positioning
+    preview: {
+      scale: 0.010, // 1.3x bigger (0.012 * 1.3)
+      yOffset: 0.4 // Adjusted for ground level positioning
+    },
+    gameplay: {
+       scale: 0.016, // 1.3x bigger (0.012 * 1.3)
+       yOffset: 0.7, // Adjusted for ground level positioning
+       highAltitudeSpawn: 100.0 // Very high spawn altitude for dramatic entrance
+     },
     movement: {
       walkSpeed: 3.0,
       runSpeed: 6.0
@@ -93,6 +119,15 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     basePath: "/models/grok-ani/", // Use Grok Ani's own animations
     scale: 0.01,
     yOffset: 0.0, // Adjusted for ground level positioning
+    preview: {
+      scale: 0.012,
+      yOffset: 0.2
+    },
+    gameplay: {
+       scale: 0.01,
+       yOffset: 0.0, // Adjusted for ground level positioning
+       highAltitudeSpawn: 100.0 // Very high spawn altitude for dramatic entrance
+     },
     movement: {
       walkSpeed: 2.8,
       runSpeed: 5.5
@@ -128,6 +163,15 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     basePath: "/models/grok-rudi/", // Use Grok Rudi's own animations
     scale: 0.01, // Much larger scale for visibility (was 0.0156)
     yOffset: 1.2, // Adjusted for ground level positioning
+    preview: {
+      scale: 0.01, // Much larger scale for visibility (was 0.0156)
+      yOffset: 1.2 // Adjusted for ground level positioning
+    },
+    gameplay: {
+       scale: 0.01, // Much larger scale for visibility (was 0.0156)
+       yOffset: 1.2, // Adjusted for ground level positioning
+       highAltitudeSpawn: 100.0 // Very high spawn altitude for dramatic entrance
+     },
     movement: {
       walkSpeed: 3.2,
       runSpeed: 6.5
@@ -183,29 +227,42 @@ export const ZOMBIE_CONFIG: ZombieConfig = {
   yOffset: 0.0 // Adjusted for ground level positioning
 };
 
-// Helper function to get character config with fallback
+// Helper functions to get character configuration for specific contexts
 export function getCharacterConfig(characterClass: string): CharacterConfig {
-  const config = CHARACTER_CONFIGS[characterClass];
+  return CHARACTER_CONFIGS[characterClass] || CHARACTER_CONFIGS['Zaqir Mufasa'];
+}
+
+// Get configuration specifically for character preview (character selector)
+export function getCharacterPreviewConfig(characterClass: string): CharacterPreviewConfig {
+  const config = getCharacterConfig(characterClass);
+  return config.preview;
+}
+
+// Get configuration specifically for gameplay
+export function getCharacterGameplayConfig(characterClass: string): CharacterGameplayConfig {
+  const config = getCharacterConfig(characterClass);
+  return config.gameplay;
+}
+
+// Legacy helper functions (updated to use new structure)
+export function getAnimationPath(characterClass: string, animationName: string): string {
+  const config = getCharacterConfig(characterClass);
+  const animationFileName = config.animationTable[animationName as keyof CharacterAnimationTable];
   
-  if (!config) {
-    console.warn(`Unknown character class: ${characterClass}. Falling back to Zaqir Mufasa.`);
-    return CHARACTER_CONFIGS["Zaqir Mufasa"];
+  if (!animationFileName) {
+    console.warn(`Animation ${animationName} not found for ${characterClass}, using idle`);
+    return `${config.basePath}${config.animationTable.idle}`;
   }
   
-  return config;
+  return `${config.basePath}${animationFileName}`;
 }
 
-// Helper function to get full animation path
-export function getAnimationPath(config: CharacterConfig, animationKey: keyof CharacterAnimationTable): string {
-  const filename = config.animationTable[animationKey];
-  // URL encode the filename to handle spaces and special characters
-  const encodedFilename = encodeURIComponent(filename);
-  return `${config.basePath}${encodedFilename}`;
-}
-
-// Helper function to get animation time scale
-export function getAnimationTimeScale(config: CharacterConfig, animationKey: string): number {
-  return config.timeScale && config.timeScale[animationKey] !== undefined ? config.timeScale[animationKey] : 1.0;
+export function getAnimationTimeScale(characterClass: string, animationName: string): number {
+  const config = getCharacterConfig(characterClass);
+  if (config.timeScale && config.timeScale[animationName]) {
+    return config.timeScale[animationName];
+  }
+  return 1.0; // Default time scale
 }
 
 // Export available character classes for UI components

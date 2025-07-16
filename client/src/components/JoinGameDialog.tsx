@@ -151,8 +151,8 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
           </div>
         </div>
         <div style={styles.inputGroup}>
-          <label id="choose-your-fighter" style={styles.fighterLabel}>CHOOSE YOUR FIGHTER</label>
           <div style={styles.characterCarousel}>
+          <label id="choose-your-fighter" style={styles.fighterLabel}>CHOOSE YOUR FIGHTER</label>
             {/* Character info removed - now shown in 3D preview */}
             
             {/* Navigation and preview containers */}
@@ -552,7 +552,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   doubleInputContainer: {
     display: 'flex',
     gap: '60px',
-    paddingLeft: '40px',
+    paddingLeft: '25px',
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',

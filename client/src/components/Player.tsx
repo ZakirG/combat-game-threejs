@@ -40,9 +40,11 @@ import { TextureLoader } from 'three';
 import { PlayerData, InputState } from '../generated';
 import { 
   getCharacterConfig, 
+  getCharacterGameplayConfig,
   getAnimationPath, 
   getAnimationTimeScale,
   CharacterConfig,
+  CharacterGameplayConfig,
   CharacterAnimationTable 
 } from '../characterConfigs';
 
@@ -107,8 +109,9 @@ export const Player: React.FC<PlayerProps> = ({
   const dataRef = useRef<PlayerData>(playerData);
   const characterClass = playerData.characterClass || 'Zaqir Mufasa';
   
-  // Get character configuration
+  // Get character configuration for gameplay context
   const characterConfig = getCharacterConfig(characterClass);
+  const gameplayConfig = getCharacterGameplayConfig(characterClass);
   
   // Model management
   const [modelLoaded, setModelLoaded] = useState(false);
@@ -119,7 +122,9 @@ export const Player: React.FC<PlayerProps> = ({
   const [isModelVisible, setIsModelVisible] = useState<boolean>(false);
   
   // --- Client Prediction State ---
-  const localPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(playerData.position.x, playerData.position.y, playerData.position.z));
+  // For gameplay, use high altitude spawn if spawning at ground level (Y=0)
+  const initialY = playerData.position.y === 0 ? gameplayConfig.highAltitudeSpawn : playerData.position.y;
+  const localPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(playerData.position.x, initialY, playerData.position.z));
   const localRotationRef = useRef<THREE.Euler>(new THREE.Euler(0, 0, 0, 'YXZ')); // Initialize with zero rotation
   const debugArrowRef = useRef<THREE.ArrowHelper | null>(null); // Declare the ref for the debug arrow
   
@@ -223,8 +228,8 @@ export const Player: React.FC<PlayerProps> = ({
       characterConfig.modelPath,
       (fbx) => {
         
-        // Apply character-specific scaling
-        fbx.scale.setScalar(characterConfig.scale);
+        // Apply character-specific scaling for gameplay
+        fbx.scale.setScalar(gameplayConfig.scale);
         // Ensure proper initial positioning - no underground spawning
         fbx.position.set(0, 0, 0);
 
@@ -360,8 +365,8 @@ export const Player: React.FC<PlayerProps> = ({
         
         if (group.current) {
           group.current.add(fbx);
-          // Apply character-specific position adjustment - ensure no underground spawning
-          fbx.position.y = characterConfig.yOffset;
+          // Apply character-specific position adjustment for gameplay
+          fbx.position.y = gameplayConfig.yOffset;
           // Hide model initially to prevent T-pose visibility
           fbx.visible = false;
           
@@ -396,8 +401,11 @@ export const Player: React.FC<PlayerProps> = ({
         
         // Initialize local refs for local player
         if (isLocalPlayer) {
-          localPositionRef.current.set(playerData.position.x, playerData.position.y, playerData.position.z);
+          // For gameplay, spawn at high altitude for dramatic entrance
+          const spawnY = playerData.position.y === 0 ? gameplayConfig.highAltitudeSpawn : playerData.position.y;
+          localPositionRef.current.set(playerData.position.x, spawnY, playerData.position.z);
           localRotationRef.current.set(0, playerData.rotation.y, 0, 'YXZ');
+          console.log(`[Player] High altitude spawn for ${playerData.username} at Y=${spawnY}`);
         }
         
       },
@@ -440,7 +448,7 @@ export const Player: React.FC<PlayerProps> = ({
     // Build animation paths from character configuration
     const animationPaths: Record<string, string> = {};
     Object.entries(characterConfig.animationTable).forEach(([key, filename]) => {
-      animationPaths[key] = getAnimationPath(characterConfig, key as keyof CharacterAnimationTable);
+      animationPaths[key] = getAnimationPath(characterClass, key);
     });
     
     console.log('Animation paths:', animationPaths);
@@ -783,7 +791,7 @@ export const Player: React.FC<PlayerProps> = ({
     console.log(`▶️ Starting animation: ${name}`);
     
     // Get character-specific animation time scale
-    const timeScale = getAnimationTimeScale(characterConfig, name);
+    const timeScale = getAnimationTimeScale(characterClass, name);
     
     targetAction.reset()
                 .setEffectiveTimeScale(timeScale)
