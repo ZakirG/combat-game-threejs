@@ -36,6 +36,7 @@ export interface CharacterAnimationTable {
   'run-right': string;
   jump: string;
   attack1: string;
+  attack2: string; // Combo attack animation
   cast: string;
   damage: string;
   death: string;
@@ -99,6 +100,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-right': "Standing Run Right.fbx",
       jump: "Crouch Torch Walk Back.fbx", // Using available animation as placeholder
       attack1: "Mma Kick.fbx",
+      attack2: "Flip Kick.fbx", // Combo attack animation
       cast: "Elbow Punch.fbx",
       damage: "Hit To Body.fbx",
       death: "Standing React Death Backward.fbx",
@@ -113,6 +115,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       falling: 1.0, // Normal falling speed
       landing: 1.1, // Slightly faster landing
       attack1: 3.0, // 1.5x speed increase (2.0 * 1.5 = 3.0)
+      attack2: 3.0, // Same speed as attack1 for combo consistency
       cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
     }
   },
@@ -146,7 +149,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-right': "Standing Run Right.fbx", // Use dedicated run right animation
       jump: "Jumping.fbx",
       attack1: "Roundhouse Kick.fbx", // Changed from Standing Melee Punch
-      cast: "Standing Melee Punch.fbx", // Changed from Roundhouse Kick
+      attack2: "Standing Melee Punch.fbx", // Combo attack (was cast)
+      cast: "Punching.fbx", // Use different punching animation for cast
       damage: "Receive Hit.fbx",
       death: "death.fbx",
       falling: "Falling.fbx",
@@ -163,6 +167,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       falling: 1.0, // Normal falling speed
       landing: 1.2, // Slightly faster landing for quicker recovery
       attack1: 3.0, // 1.5x speed increase (2.0 * 1.5 = 3.0)
+      attack2: 3.0, // Same speed as attack1 for combo consistency
       cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
     }
   },
@@ -196,7 +201,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-right': "Standing Walk Right.fbx", // Use right walk for run right
       jump: "Standing Walk Forward.fbx", // Placeholder until jump animation is added
       attack1: "Punch.fbx", // Grok Rudi's first punch
-      cast: "Punch 2.fbx", // Grok Rudi's second punch for cast
+      attack2: "Punch 2.fbx", // Combo attack (was cast)
+      cast: "Mma Kick.fbx", // Use kick animation for cast
       damage: "Falling Back Death.fbx", // Use death animation for damage
       death: "Falling Back Death.fbx", // Grok Rudi's death animation
       falling: "Falling.fbx", // Grok Rudi's falling animation
@@ -213,7 +219,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-right': 1.0,    // Normal pace for run right
       idle: 0.8,           // Slower, more menacing combat idle
       attack1: 3.6,        // 1.5x speed increase (2.4 * 1.5 = 3.6)
-      cast: 3.3,           // 1.5x speed increase (2.2 * 1.5 = 3.3)
+      attack2: 3.3,        // Same speed as previous cast for combo consistency
+      cast: 3.0,           // New cast animation speed
       jump: 1.3,           // Double speed for faster jumping animation
       falling: 1.0,        // Normal falling speed
       landing: 1.0,        // Normal landing speed
