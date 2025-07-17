@@ -34,9 +34,9 @@ import { GameReadyCallbacks } from '../types/gameReady';
 
 // Configurable spawn settings
 const SPAWN_SETTINGS = {
-  MIN_DISTANCE_FROM_PLAYERS: 40, // Minimum distance from players (20 feet to prevent close spawning)
-  MAX_DISTANCE_FROM_PLAYERS: 50, // Maximum distance from players (increased to accommodate larger min distance)
-  WORLD_SIZE: 60, // Smaller spawn area for tighter action (reduced from 120)
+  MIN_DISTANCE_FROM_PLAYERS: 30, // Minimum distance from players (reduced from 40 for tighter action)
+  MAX_DISTANCE_FROM_PLAYERS: 35, // Maximum distance from players (reduced from 50 for closer spawning)
+  WORLD_SIZE: 45, // Much smaller spawn area for intense combat (reduced from 60)
   MAX_SPAWN_ATTEMPTS: 50, // Maximum attempts to find a safe spawn position
   FALLBACK_EDGE_DISTANCE: 0.4 // Multiplier for edge distance in fallback scenarios
 };
