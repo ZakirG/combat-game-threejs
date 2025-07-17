@@ -319,7 +319,7 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({ position }) => {
   const [startTime] = useState(Date.now());
   
   // Glow pillar properties
-  const PILLAR_HEIGHT = 12;
+  const PILLAR_HEIGHT = 2000; // Infinite pillar extending far up into space
   const PILLAR_RADIUS = 0.4;
   const FLOAT_AMPLITUDE = 0.2;
   const FLOAT_SPEED = 0.3;
@@ -337,8 +337,8 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({ position }) => {
         // Scale the sword appropriately
         loadedModel.scale.setScalar(2.3);
         
-        // Orient sword pointing straight up
-        loadedModel.rotation.set(1.5, 0, 0);
+                 // Orient sword pointing straight up
+         loadedModel.rotation.set(1.57, 0, 0); // 1.57 ≈ π/2 radians = 90 degrees for perfect vertical
         
         // Enable shadows
         loadedModel.traverse((child) => {
@@ -465,9 +465,9 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({ position }) => {
     const elapsed = (Date.now() - startTime) / 1000;
     
     if (swordGroup.current && swordModel) {
-      // Floating up and down motion
-      const floatOffset = Math.sin(elapsed * FLOAT_SPEED * Math.PI * 2) * FLOAT_AMPLITUDE;
-      swordGroup.current.position.y = position[1] + floatOffset + 3; // Hover 3 units above ground
+             // Floating up and down motion
+       const floatOffset = Math.sin(elapsed * FLOAT_SPEED * Math.PI * 2) * FLOAT_AMPLITUDE;
+       swordGroup.current.position.y = position[1] + floatOffset + 1.5; // Hover 1.5 units above ground
       
       // Gentle rotation around Y-axis
       swordGroup.current.rotation.y += ROTATION_SPEED * delta;
@@ -553,6 +553,15 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = () => {
 
       {/* Floating Sword with Light Blue Glow Pillar */}
       <FloatingSword position={[25, 0, 35]} />
+
+      {/* Second Desert Arch near the sword - tweak position and rotation for best visual */}
+      <LargeAsset
+        modelPath={ENVIRONMENT_CONFIG.desertArch.path}
+        position={[23, 7, 35]} // X: left/right, Y: up/down, Z: forward/back
+        scale={15.0} // Adjust size (current: 15.0, try 10.0-25.0)
+        rotation={[0, Math.PI * 0.75, 0]} // Y rotation: 0=forward, 0.5=90°, 1.0=180°
+        name="Desert Arch (Near Sword)"
+      />
     </group>
   );
 }; 
