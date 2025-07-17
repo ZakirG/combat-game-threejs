@@ -176,8 +176,14 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
     },
     swordTimeScale: {
-      'walk-forward': 1.2, // Slower sword walk
-      'run-forward': 1.1, // Slightly slower sword run
+      'walk-forward': 2.4, // Doubled speed for sword walk forward (1.2 * 2 = 2.4)
+      'walk-back': 2.4, // Doubled speed for sword walk back
+      'walk-left': 2.4, // Doubled speed for sword walk left
+      'walk-right': 2.4, // Doubled speed for sword walk right
+      'run-forward': 1.65, // 1.5x speed for sword run forward (1.1 * 1.5 = 1.65)
+      'run-left': 1.5, // 1.5x speed for sword run left
+      'run-right': 1.5, // 1.5x speed for sword run right
+      'run-back': 1.1, // Keep normal speed for run back
       idle: 0.8, // Slower sword idle stance
       jump: 1.0, // Normal sword jump speed
       falling: 1.0, // Normal falling speed
