@@ -76,6 +76,7 @@ const ANIMATIONS = {
   DEATH: 'death',
   FALLING: 'falling',
   LANDING: 'landing',
+  POWERUP: 'powerup', // Sword power-up animation
 };
 
 // Note: Movement speeds are now defined per-character in characterConfigs.ts
@@ -161,6 +162,17 @@ export const Player: React.FC<PlayerProps> = ({
   const [equippedSword, setEquippedSword] = useState<THREE.Group | null>(null);
   const [rightHandBone, setRightHandBone] = useState<THREE.Bone | null>(null);
   const swordAttachmentRef = useRef<THREE.Group | null>(null);
+  
+  // Power-up animation state - blocks all other animations and movement while active
+  const [isPlayingPowerUp, setIsPlayingPowerUp] = useState<boolean>(false);
+  const powerUpTimeoutRef = useRef<number | null>(null);
+  
+  // Movement freeze during power-up
+  const [isMovementFrozen, setIsMovementFrozen] = useState<boolean>(false);
+  const frozenPositionRef = useRef<THREE.Vector3 | null>(null);
+  
+  // Immediate race condition protection - ref is updated synchronously
+  const isPlayingPowerUpRef = useRef<boolean>(false);
   
   // Derive sword equipped state from equippedSword
   const isSwordEquipped = useMemo(() => !!equippedSword, [equippedSword]);
@@ -513,6 +525,37 @@ export const Player: React.FC<PlayerProps> = ({
     }
   }, [gameReady, isModelVisible, physicsEnabled, playerData.username]);
 
+  // Debug: Track when animations state actually updates
+  useEffect(() => {
+    if (Object.keys(animations).length > 0) {
+      console.log(`🎭 [Animation State] Animations state updated! Available: ${Object.keys(animations).length}`);
+      console.log(`🗡️ [Animation State] Sword animations available:`, Object.keys(animations).filter(key => key.startsWith('sword_')));
+      
+      // Check specifically for powerup animation
+      const powerupAnim = `sword_${ANIMATIONS.POWERUP}`;
+      if (animations[powerupAnim]) {
+        console.log(`⚡ [Animation State] Power-up animation '${powerupAnim}' is now available!`);
+      }
+    } else {
+      console.log(`🎭 [Animation State] Animations state cleared (length: 0)`);
+    }
+  }, [animations]);
+
+  // Debug: Track power-up state changes
+  useEffect(() => {
+    console.log(`⚡ [PowerUp State] isPlayingPowerUp changed to: ${isPlayingPowerUp}`);
+  }, [isPlayingPowerUp]);
+
+  // Debug: Track movement freeze state changes
+  useEffect(() => {
+    console.log(`🧊 [Movement State] isMovementFrozen changed to: ${isMovementFrozen}`);
+  }, [isMovementFrozen]);
+
+  // Debug: Track power-up ref for race condition protection
+  useEffect(() => {
+    console.log(`🛡️ [Race Protection Ref] isPlayingPowerUpRef is now: ${isPlayingPowerUpRef.current}`);
+  }, [isPlayingPowerUp]); // Track when state changes to see if ref is in sync
+
   // Function to load animations using character configuration
   const loadAnimations = (mixerInstance: THREE.AnimationMixer) => {
     if (!mixerInstance) {
@@ -540,13 +583,19 @@ export const Player: React.FC<PlayerProps> = ({
     
     // Load sword animations if they exist
     if (config.animations?.sword) {
+      console.log(`🗡️ [Debug] Loading sword animations for ${characterClass}:`, config.animations.sword);
       Object.entries(config.animations.sword).forEach(([key, filename]) => {
         const swordKey = `sword_${key}`;
-        animationPaths[swordKey] = getAnimationPath(characterClass, key, true);
+        const animPath = getAnimationPath(characterClass, key, true);
+        animationPaths[swordKey] = animPath;
+        console.log(`🗡️ [Debug] Sword animation mapping: ${key} → ${swordKey} → ${animPath}`);
       });
+    } else {
+      console.log(`🗡️ [Debug] No sword animations found for ${characterClass}`);
     }
     
     console.log('Animation paths (all variations):', animationPaths);
+    console.log(`🔍 [Debug] Looking for powerup in paths:`, animationPaths[`sword_${ANIMATIONS.POWERUP}`]);
     
     const loader = new FBXLoader();
     const newAnimations: Record<string, THREE.AnimationAction> = {};
@@ -596,6 +645,8 @@ export const Player: React.FC<PlayerProps> = ({
         
         // Debug: log all available animations
         console.log("Available animations: ", Object.keys(newAnimations).join(", "));
+        console.log(`🎉 [Animation Loading] All animations loaded! Total: ${Object.keys(newAnimations).length}`);
+        console.log(`🗡️ [Animation Loading] Sword animations:`, Object.keys(newAnimations).filter(key => key.startsWith('sword_')).join(", "));
         
         // Emit progress for animations loading completion
         if (isLocalPlayer && gameReadyCallbacks) {
@@ -740,7 +791,10 @@ export const Player: React.FC<PlayerProps> = ({
               name.includes('_run-')
             );
             
-            if (shouldLoop) {
+            // Special handling for power-up animation (should play once)
+            const isPowerup = name.includes('powerup') || name.includes('_powerup');
+            
+            if (shouldLoop && !isPowerup) {
               action.setLoop(THREE.LoopRepeat, Infinity);
               console.log(`🔄 [Loop Debug] Set ${name} to LOOP (infinite)`);
             } else {
@@ -1218,17 +1272,35 @@ export const Player: React.FC<PlayerProps> = ({
           // --- LOCAL PLAYER PREDICTION & RECONCILIATION --- 
 
           // 1. Calculate predicted position based on current input, rotation, and SERVER_TICK_DELTA
-          // Only update horizontal position when physics is enabled, but always allow horizontal movement
-          const predictedPosition = calculateClientMovement(
-            localPositionRef.current,
-            localRotationRef.current, // Pass current local rotation; function internally selects based on mode
-            currentInput,
-            SERVER_TICK_DELTA // Use FIXED delta for prediction to match server
-          );
-          
-          // Update position - horizontal movement always allowed, Y is handled by physics separately
-          localPositionRef.current.x = predictedPosition.x;
-          localPositionRef.current.z = predictedPosition.z;
+          // Only update horizontal position when physics is enabled and movement is not frozen
+          if (!isMovementFrozen) {
+            const predictedPosition = calculateClientMovement(
+              localPositionRef.current,
+              localRotationRef.current, // Pass current local rotation; function internally selects based on mode
+              currentInput,
+              SERVER_TICK_DELTA // Use FIXED delta for prediction to match server
+            );
+            
+            // Update position - horizontal movement always allowed, Y is handled by physics separately
+            localPositionRef.current.x = predictedPosition.x;
+            localPositionRef.current.z = predictedPosition.z;
+          } else {
+            console.log(`🧊 [Movement Frozen] Skipping movement calculation during power-up`);
+            
+            // Enforce frozen position (preserve Y for physics, but lock X/Z)
+            if (frozenPositionRef.current) {
+              const prevX = localPositionRef.current.x;
+              const prevZ = localPositionRef.current.z;
+              localPositionRef.current.x = frozenPositionRef.current.x;
+              localPositionRef.current.z = frozenPositionRef.current.z;
+              
+              // Debug log only if position was actually changing
+              if (Math.abs(prevX - frozenPositionRef.current.x) > 0.01 || Math.abs(prevZ - frozenPositionRef.current.z) > 0.01) {
+                console.log(`🧊 [Position Enforced] Reset from (${prevX.toFixed(2)}, ${prevZ.toFixed(2)}) to frozen position (${frozenPositionRef.current.x.toFixed(2)}, ${frozenPositionRef.current.z.toFixed(2)})`);
+              }
+              // Don't lock Y - allow gravity/physics to continue
+            }
+          }
           // Y position is NOT updated here - it's handled by physics below
           if (!physicsEnabled) {
             // SAFETY: Ensure Y position stays at spawn altitude until physics is enabled
@@ -1238,8 +1310,8 @@ export const Player: React.FC<PlayerProps> = ({
           // 1.5. Apply gravity and jumping physics
           const currentY = localPositionRef.current.y;
           
-          // Handle jumping input (only trigger once per press) - only when physics enabled
-          if (physicsEnabled && currentInput.jump && !wasJumpPressed.current && isOnGround.current) {
+          // Handle jumping input (only trigger once per press) - only when physics enabled and not frozen
+          if (physicsEnabled && !isMovementFrozen && currentInput.jump && !wasJumpPressed.current && isOnGround.current) {
             velocityY.current = JUMP_FORCE;
             isOnGround.current = false;
             wasJumpPressed.current = true;
@@ -1247,8 +1319,8 @@ export const Player: React.FC<PlayerProps> = ({
             wasJumpPressed.current = false;
           }
           
-          // Handle attack input (allow restarting attacks for faster combat + three-attack combo system)
-          if (currentInput.attack && !wasAttackPressed.current) {
+          // Handle attack input (allow restarting attacks for faster combat + three-attack combo system) - only when not frozen
+          if (!isMovementFrozen && currentInput.attack && !wasAttackPressed.current) {
             wasAttackPressed.current = true;
             
             const currentTime = Date.now();
@@ -1603,8 +1675,8 @@ export const Player: React.FC<PlayerProps> = ({
           // 2. RECONCILIATION (Position)
           const serverPosition = new THREE.Vector3(dataRef.current.position.x, dataRef.current.position.y, dataRef.current.position.z);
           
-          // Only allow reconciliation when physics is enabled and model is ready
-          const allowReconciliation = physicsEnabled && isModelVisible;
+          // Only allow reconciliation when physics is enabled, model is ready, and movement is not frozen
+          const allowReconciliation = physicsEnabled && isModelVisible && !isMovementFrozen;
           
           if (allowReconciliation) {
             // Compare local (unflipped) prediction with an unflipped version of the server state
@@ -1636,6 +1708,8 @@ export const Player: React.FC<PlayerProps> = ({
               // ...
             }
             // During falling, skip reconciliation entirely to allow physics to work
+          } else if (isMovementFrozen) {
+            console.log(`🧊 [Movement Frozen] Skipping server reconciliation during power-up`);
           } else {
             // During initial spawn period before physics is enabled - no reconciliation needed
             // FORCE character to stay at spawn altitude until physics is enabled
@@ -1648,20 +1722,28 @@ export const Player: React.FC<PlayerProps> = ({
           const currentQuat = new THREE.Quaternion().setFromEuler(localRotationRef.current);
           const rotationError = currentQuat.angleTo(reconcileTargetQuat);
           
-          if (rotationError > ROTATION_RECONCILE_THRESHOLD) {
+          // Don't reconcile rotation during falling to prevent camera jitter
+          const isStillFalling = currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
+          
+          if (rotationError > ROTATION_RECONCILE_THRESHOLD && !isStillFalling) {
               currentQuat.slerp(reconcileTargetQuat, RECONCILE_LERP_FACTOR);
               localRotationRef.current.setFromQuaternion(currentQuat, 'YXZ');
+              console.log(`🔄 [Rotation Reconcile] Applied rotation reconciliation - error: ${rotationError.toFixed(3)}`);
+          } else if (isStillFalling) {
+              console.log(`🚫 [Rotation Reconcile] Skipping rotation reconciliation during falling - Y=${localPositionRef.current.y.toFixed(1)}`);
           }
 
           // 3. Apply potentially reconciled predicted position AND reconciled local rotation directly to the model group
           // Always update position to ensure model follows player state
           group.current.position.copy(localPositionRef.current);
 
-          // 3.5. Send updated position to App for server sync (skip during initial falling sequence)
-          // Only skip during the dramatic high-altitude falling to preserve the entrance effect
+          // 3.5. Send updated position to App for server sync (skip during initial falling sequence and power-up)
+          // Only skip during the dramatic high-altitude falling to preserve the entrance effect, and during power-up to prevent conflicts
           const isHighAltitudeFalling = currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
-          if (onPositionChange && physicsEnabled && isModelVisible && !isHighAltitudeFalling) {
+          if (onPositionChange && physicsEnabled && isModelVisible && !isHighAltitudeFalling && !isMovementFrozen) {
             onPositionChange(localPositionRef.current);
+          } else if (isMovementFrozen) {
+            console.log(`🧊 [Movement Frozen] Skipping position sync to server during power-up`);
           }
           // --- Visual Rotation Logic --- 
           let targetVisualYaw = localRotationRef.current.y; // Default: Face camera/mouse direction
@@ -1882,13 +1964,18 @@ export const Player: React.FC<PlayerProps> = ({
       // Don't allow server to override falling animation during high altitude descent (LOCAL PLAYER ONLY)
       const isHighAltitudeFalling = isLocalPlayer && currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
 
-      console.log(`🎯 [Anim Check] Received ServerAnim: ${serverAnim}, Current LocalAnim: ${currentAnimation}, High Alt Falling: ${isHighAltitudeFalling}, Is Attacking: ${isAttacking}, Is Available: ${!!animations[serverAnim]}`);
+      // Check BOTH state and ref for immediate protection against race conditions
+      const isCurrentlyInPowerUp = isPlayingPowerUp || isPlayingPowerUpRef.current;
+      
+      console.log(`🎯 [Anim Check] Received ServerAnim: ${serverAnim}, Current LocalAnim: ${currentAnimation}, High Alt Falling: ${isHighAltitudeFalling}, Is Attacking: ${isAttacking}, Is Playing PowerUp: ${isPlayingPowerUp}, PowerUp Ref: ${isPlayingPowerUpRef.current}, Is Available: ${!!animations[serverAnim]}`);
 
-      // Play animation if it's different and available, but not during high altitude falling or local attacks
+      // Play animation if it's different and available, but not during high altitude falling, local attacks, or power-up
       if (isHighAltitudeFalling) {
         console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during high altitude falling at Y=${localPositionRef.current.y.toFixed(1)} (LOCAL PLAYER ONLY)`);
       } else if (isLocalPlayer && isAttacking) {
         console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during local attack animation (LOCAL PLAYER ONLY)`);
+      } else if (isLocalPlayer && isCurrentlyInPowerUp) {
+        console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during sword power-up animation (LOCAL PLAYER ONLY) - State: ${isPlayingPowerUp}, Ref: ${isPlayingPowerUpRef.current}`);
       } else if (serverAnim && serverAnim !== currentAnimation && animations[serverAnim]) {
          console.log(`🎬 [Anim Play] Server requested animation change to: ${serverAnim}`);
         try {
@@ -1904,7 +1991,7 @@ export const Player: React.FC<PlayerProps> = ({
          console.warn(`⚠️ [Anim Warn] Server requested unavailable animation: ${serverAnim}. Available: ${Object.keys(animations).join(', ')}`);
       }
     }
-  }, [playerData.currentAnimation, animations, mixer, playAnimation, currentAnimation, isAttacking]); // Dependencies include things that trigger animation changes
+  }, [playerData.currentAnimation, animations, mixer, playAnimation, currentAnimation, isAttacking, isPlayingPowerUp]); // Dependencies include things that trigger animation changes
 
   // Cleanup effects on unmount
   useEffect(() => {
@@ -1917,8 +2004,25 @@ export const Player: React.FC<PlayerProps> = ({
         coinEffectManagerRef.current.cleanup();
         console.log(`[Player] 🧹 Coin effect manager cleaned up on unmount`);
       }
+      if (powerUpTimeoutRef.current) {
+        clearTimeout(powerUpTimeoutRef.current);
+        console.log(`[Player] 🧹 Power-up timeout cleared on unmount`);
+      }
     };
   }, []);
+
+  // Cleanup power-up timeout when sword is unequipped
+  useEffect(() => {
+    if (!equippedSword && powerUpTimeoutRef.current) {
+      clearTimeout(powerUpTimeoutRef.current);
+      powerUpTimeoutRef.current = null;
+      setIsPlayingPowerUp(false);
+      setIsMovementFrozen(false);
+      isPlayingPowerUpRef.current = false; // Clear race condition protection
+      frozenPositionRef.current = null; // Clear frozen position
+      console.log(`[Player] 🧹 Power-up timeout cleared and movement unfrozen due to sword unequip`);
+    }
+  }, [equippedSword]);
 
   // Function to find the right hand bone in the skeleton
   const findRightHandBone = useCallback((model: THREE.Group): THREE.Bone | null => {
@@ -1995,7 +2099,7 @@ export const Player: React.FC<PlayerProps> = ({
   }, [characterClass]);
 
   // Function to equip sword to right hand
-  const equipSword = useCallback((swordModel: THREE.Group) => {
+  const equipSword = useCallback((swordModel: THREE.Group, swordPosition: THREE.Vector3) => {
     if (!model || !rightHandBone) {
       console.warn('[Player] ⚔️ Cannot equip sword: missing model or right hand bone');
       console.log('[Player] 🔍 Debug - model exists:', !!model);
@@ -2024,9 +2128,12 @@ export const Player: React.FC<PlayerProps> = ({
     }
     
     // Configure sword properties for hand attachment
-    swordModel.scale.setScalar(1.5 * swordScale); // Scale relative to character
+    swordModel.scale.setScalar(2.5 * swordScale); // Much bigger sword (increased from 1.5 to 3.0)
     swordModel.position.set(0, 25, 3); // Position forward and up from hand bone (hilt at hand level)
     swordModel.rotation.set(Math.PI / 2, 0, 0); // Orient sword pointing forward from hand
+    
+    console.log(`🗡️ [Debug] Sword equipped with scale: ${3.0 * swordScale}, final scale: ${swordModel.scale.x}`);
+    console.log(`🗡️ [Debug] Character scale: ${characterScale}, swordScale multiplier: ${swordScale}`);
     
     // Restore sword's natural materials (remove red debug color)
     swordModel.traverse((child) => {
@@ -2045,8 +2152,229 @@ export const Player: React.FC<PlayerProps> = ({
     setEquippedSword(swordModel);
     swordAttachmentRef.current = swordModel;
     
-    console.log('[Player] ✅ Sword equipped and ready! Animation system will switch to sword animations.');
-  }, [model, rightHandBone, equippedSword]);
+    console.log('[Player] ✅ Sword equipped and ready! Playing power-up animation...');
+    console.log(`🔍 [Debug] Available animations:`, Object.keys(animations));
+    console.log(`🔍 [Debug] Looking for powerup animation: ${ANIMATIONS.POWERUP}`);
+    console.log(`🔍 [Debug] isAttacking state: ${isAttacking}`);
+    console.log(`🔍 [Debug] equippedSword state: ${!!equippedSword}`);
+    console.log(`🔍 [Debug] swordModel provided: ${!!swordModel}`);
+    console.log(`🔍 [Debug] swordPosition: (${swordPosition.x.toFixed(2)}, ${swordPosition.y.toFixed(2)}, ${swordPosition.z.toFixed(2)})`);
+    
+    // IMMEDIATE race condition protection - set ref synchronously
+    isPlayingPowerUpRef.current = true;
+    console.log(`🛡️ [Race Protection] Set isPlayingPowerUpRef to true immediately`);
+    
+    // Move player to sword position immediately and freeze there (X/Z only, keep player on ground)
+    const swordGroundPosition = new THREE.Vector3(
+      swordPosition.x, 
+      localPositionRef.current.y, // Keep current Y position (stay on ground level)
+      swordPosition.z
+    );
+    localPositionRef.current.x = swordGroundPosition.x;
+    localPositionRef.current.z = swordGroundPosition.z;
+    // Don't change Y - let player stay at current ground level
+    
+    frozenPositionRef.current = swordGroundPosition.clone();
+    console.log(`🧊 [Sword Position] Moved player to sword X/Z location (${swordGroundPosition.x.toFixed(2)}, ${swordGroundPosition.z.toFixed(2)}) and froze, keeping ground Y=${localPositionRef.current.y.toFixed(2)}`);
+    
+    // Use a short delay to ensure state has updated and try playing power-up animation
+    setTimeout(() => {
+      console.log(`🔍 [Debug] Delayed check - Available animations:`, Object.keys(animations));
+      console.log(`🔍 [Debug] Delayed check - isAttacking: ${isAttacking}`);
+      console.log(`🔍 [Debug] Delayed check - equippedSword: ${!!equippedSword}`);
+      
+      const swordPowerupAnimation = `sword_${ANIMATIONS.POWERUP}`;
+      console.log(`🔍 [Debug] Looking for sword powerup animation: ${swordPowerupAnimation}`);
+      console.log(`🔍 [Debug] Animation exists: ${!!animations[swordPowerupAnimation]}`);
+      
+      if (animations[swordPowerupAnimation] && !isAttacking && Object.keys(animations).length > 0) {
+        console.log('[Player] ⚡ Playing sword power-up animation - ENTERING POWER-UP MODE');
+        
+                      // Enter power-up mode - blocks all other animations and movement
+              setIsPlayingPowerUp(true);
+              setIsMovementFrozen(true);
+              
+              // Position already set in equipSword function to sword location  
+              console.log(`🧊 [Movement Frozen] Position already locked at sword location - polling path`);
+        
+        // Position already set in equipSword function to sword location
+        console.log(`🧊 [Movement Frozen] Position already locked at sword location`);
+        
+        const powerupAction = animations[swordPowerupAnimation];
+        const currentAction = animations[currentAnimation];
+        
+        if (currentAction) {
+          currentAction.fadeOut(0.1); // Faster fade out to start power-up immediately
+        }
+        
+        // Get sword time scale for powerup
+        const timeScale = getAnimationTimeScale(characterClass, ANIMATIONS.POWERUP, true);
+        
+        powerupAction.reset()
+                     .setEffectiveTimeScale(timeScale)
+                     .setEffectiveWeight(1)
+                     .setLoop(THREE.LoopOnce, 1)
+                     .clampWhenFinished = true;
+        powerupAction.fadeIn(0.1).play(); // Faster fade in to start power-up immediately
+        
+        setCurrentAnimation(swordPowerupAnimation);
+        
+        // Use a fixed 1-second duration for clean power-up timing
+        const powerUpDuration = 1000; // 1 second
+        
+        // Clear any existing power-up timeout
+        if (powerUpTimeoutRef.current) {
+          clearTimeout(powerUpTimeoutRef.current);
+        }
+        
+        console.log(`[Player] ⚡ Power-up will last for ${powerUpDuration}ms`);
+        
+        powerUpTimeoutRef.current = setTimeout(() => {
+          console.log('[Player] ⚡ Power-up duration complete - EXITING POWER-UP MODE');
+          
+          // Exit power-up mode and unfreeze movement
+          setIsPlayingPowerUp(false);
+          setIsMovementFrozen(false);
+          isPlayingPowerUpRef.current = false; // Clear race condition protection
+          frozenPositionRef.current = null; // Clear frozen position
+          powerUpTimeoutRef.current = null;
+          
+          console.log('[Player] 🧊 Movement unfrozen - player can move again');
+          console.log(`🛡️ [Race Protection] Cleared isPlayingPowerUpRef`);
+          
+          // Small delay to let state clear before transitioning
+          setTimeout(() => {
+            console.log('[Player] ⚡ Power-up complete - allowing normal animation flow to resume');
+            
+            // Check if sword is still equipped and handle animation transition
+            if (swordAttachmentRef.current) {
+              // Resume with server animation state to prevent conflicts
+              const serverAnim = playerData.currentAnimation;
+              if (serverAnim && animations[serverAnim]) {
+                console.log(`[Player] ⚡ Resuming with server animation: ${serverAnim}`);
+                playAnimation(serverAnim, 0.3);
+              } else {
+                console.log('[Player] ⚡ Falling back to sword idle');
+                playAnimation(ANIMATIONS.IDLE, 0.3);
+              }
+            }
+          }, 50); // Small delay to ensure state has updated
+        }, powerUpDuration); // Fixed 1-second duration
+      } else {
+        // Fallback if power-up animation isn't available
+        if (!animations[swordPowerupAnimation]) {
+          console.log(`[Player] ⚠️ Power-up animation '${swordPowerupAnimation}' not found in animations object`);
+          console.log(`[Player] 🔍 Available sword animations:`, Object.keys(animations).filter(key => key.startsWith('sword_')));
+          console.log(`[Player] 🔍 Total animations available:`, Object.keys(animations).length);
+        }
+        if (isAttacking) {
+          console.log(`[Player] ⚠️ Cannot play power-up animation because isAttacking = ${isAttacking}`);
+        }
+        if (Object.keys(animations).length === 0) {
+          console.log(`[Player] ⚠️ No animations loaded yet, setting up polling for power-up animation...`);
+          
+          // Poll for animations to be ready with multiple retries
+          let retryCount = 0;
+          const maxRetries = 10; // Try for up to 5 seconds (500ms * 10)
+          
+          const pollForAnimations = () => {
+            retryCount++;
+            console.log(`[Player] 🔄 Polling attempt ${retryCount}/${maxRetries} for animations...`);
+            console.log(`[Player] 🔍 Current animations count: ${Object.keys(animations).length}`);
+            
+            if (animations[swordPowerupAnimation] && swordAttachmentRef.current) {
+              console.log('[Player] 🎬 Power-up animation now available! Playing... - ENTERING POWER-UP MODE');
+              
+              // Enter power-up mode - blocks all other animations and movement
+              setIsPlayingPowerUp(true);
+              setIsMovementFrozen(true);
+              
+              // Store current position to freeze at
+              frozenPositionRef.current = localPositionRef.current.clone();
+              console.log(`🧊 [Movement Frozen] Position locked at (${frozenPositionRef.current.x.toFixed(2)}, ${frozenPositionRef.current.y.toFixed(2)}, ${frozenPositionRef.current.z.toFixed(2)}) - polling path`);
+              
+              // Retry the power-up animation
+              const powerupAction = animations[swordPowerupAnimation];
+              const currentAction = animations[currentAnimation];
+              
+              if (currentAction) {
+                currentAction.fadeOut(0.1); // Faster fade out
+              }
+              
+              const timeScale = getAnimationTimeScale(characterClass, ANIMATIONS.POWERUP, true);
+              
+              powerupAction.reset()
+                           .setEffectiveTimeScale(timeScale)
+                           .setEffectiveWeight(1)
+                           .setLoop(THREE.LoopOnce, 1)
+                           .clampWhenFinished = true;
+              powerupAction.fadeIn(0.1).play(); // Faster fade in
+              
+              setCurrentAnimation(swordPowerupAnimation);
+              
+              // Use fixed 1-second duration for consistency
+              const powerUpDuration = 1000; // 1 second
+              
+              // Clear any existing power-up timeout
+              if (powerUpTimeoutRef.current) {
+                clearTimeout(powerUpTimeoutRef.current);
+              }
+              
+              console.log(`[Player] ⚡ Power-up (polling path) will last for ${powerUpDuration}ms`);
+              
+              powerUpTimeoutRef.current = setTimeout(() => {
+                console.log('[Player] ⚡ Power-up duration complete (polling path) - EXITING POWER-UP MODE');
+                
+                // Exit power-up mode and unfreeze movement
+                setIsPlayingPowerUp(false);
+                setIsMovementFrozen(false);
+                isPlayingPowerUpRef.current = false; // Clear race condition protection
+                frozenPositionRef.current = null; // Clear frozen position
+                powerUpTimeoutRef.current = null;
+                
+                console.log('[Player] 🧊 Movement unfrozen (polling path) - player can move again');
+                console.log(`🛡️ [Race Protection] Cleared isPlayingPowerUpRef (polling path)`);
+                
+                // Small delay to let power-up state clear
+                setTimeout(() => {
+                  if (swordAttachmentRef.current) {
+                    console.log('[Player] ⚡ Power-up complete (polling) - allowing normal animation flow to resume');
+                    
+                    // Resume with server animation state instead of forcing idle
+                    const serverAnim = playerData.currentAnimation;
+                    if (serverAnim && animations[serverAnim]) {
+                      console.log(`[Player] ⚡ Resuming with server animation (polling): ${serverAnim}`);
+                      playAnimation(serverAnim, 0.3);
+                    } else {
+                      console.log('[Player] ⚡ Falling back to sword idle (polling)');
+                      playAnimation(ANIMATIONS.IDLE, 0.3);
+                    }
+                  }
+                }, 50);
+              }, powerUpDuration); // Fixed 1-second duration
+              
+            } else if (retryCount < maxRetries && swordAttachmentRef.current) {
+              // Keep trying
+              console.log(`[Player] ⏳ Animations not ready yet, retrying in 500ms... (${retryCount}/${maxRetries})`);
+              setTimeout(pollForAnimations, 500);
+            } else {
+              // Give up and fall back to sword idle
+              console.log('[Player] ⚠️ Max retries reached or sword no longer equipped, falling back to sword idle');
+              if (swordAttachmentRef.current) {
+                playAnimation(ANIMATIONS.IDLE, 0.3);
+              }
+            }
+          };
+          
+          // Start polling
+          setTimeout(pollForAnimations, 500);
+          return; // Don't play idle yet, wait for polling
+        }
+        console.log('[Player] ⚠️ Power-up animation not found or blocked, switching directly to sword idle');
+        playAnimation(ANIMATIONS.IDLE, 0.3);
+      }
+    }, 100); // Short delay to ensure state updates have propagated
+  }, [model, rightHandBone, equippedSword, animations, isAttacking, currentAnimation, playAnimation, getAnimationTimeScale, characterClass, gameplayConfig.scale, ANIMATIONS.POWERUP, ANIMATIONS.IDLE, setIsPlayingPowerUp, setIsMovementFrozen, playerData.currentAnimation, localPositionRef]);
 
   // Function to unequip sword
   const unequipSword = useCallback(() => {
@@ -2066,11 +2394,21 @@ export const Player: React.FC<PlayerProps> = ({
     }
   }, [model, isLocalPlayer, findRightHandBone]);
 
-  // Handle animation switching when sword is equipped/unequipped (but not during combat)
+  // Handle animation switching when sword is equipped/unequipped (but not during combat or power-up)
   useEffect(() => {
-    // Only run if sword state actually changed and we're not attacking
+    // Check BOTH state and ref for immediate protection against race conditions
+    const isCurrentlyInPowerUp = isPlayingPowerUp || isPlayingPowerUpRef.current;
+    
+    // Only run if sword state actually changed and we're not attacking or in power-up mode
     if (prevSwordEquippedRef.current !== isSwordEquipped && 
-        mixer && Object.keys(animations).length > 0 && currentAnimation && !isAttacking) {
+        mixer && Object.keys(animations).length > 0 && currentAnimation && !isAttacking && !isCurrentlyInPowerUp) {
+      
+      // Don't switch animations if we're currently playing power-up
+      if (currentAnimation === `sword_${ANIMATIONS.POWERUP}`) {
+        console.log(`🗡️ Sword state changed but skipping animation switch - currently in power-up animation`);
+        prevSwordEquippedRef.current = isSwordEquipped; // Update the ref but don't switch
+        return;
+      }
       
       // Extract the base animation name (remove sword_ prefix if present)
       const baseAnimationName = currentAnimation.startsWith('sword_') 
@@ -2085,7 +2423,7 @@ export const Player: React.FC<PlayerProps> = ({
     
     // Update the previous state
     prevSwordEquippedRef.current = isSwordEquipped;
-  }, [isSwordEquipped, mixer, animations, currentAnimation, isAttacking, playAnimation]); // All dependencies needed for the effect
+  }, [isSwordEquipped, mixer, animations, currentAnimation, isAttacking, isPlayingPowerUp, playAnimation]); // All dependencies needed for the effect
 
   // Initialize global attack state
   useEffect(() => {

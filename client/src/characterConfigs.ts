@@ -44,6 +44,7 @@ export interface CharacterAnimationTable {
   death: string;
   falling: string;
   landing: string;
+  powerup?: string; // Optional power-up animation when sword is equipped
 }
 
 export interface AnimationTableSet {
@@ -151,15 +152,16 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         'run-left': "Great Sword Run Left.fbx",
         'run-right': "Great Sword Run Right.fbx",
         jump: "Sword And Shield Jump.fbx",
-        attack1: "Sword And Shield Attack B.fbx", // Now the first attack
-        attack2: "Sword And Shield Attack.fbx", // Now the second attack
-        attack3: "Sword And Shield Slash A.fbx", // Third combo attack animation
+        attack1: "Sword And Shield Attack.fbx", // Swapped: now the first attack
+        attack2: "Cartwheel.fbx", // Now the second attack
+        attack3: "Sword And Shield Attack B.fbx", // Swapped: third combo attack animation
         attack4: "Sword And Shield Slash B.fbx", // Fourth combo attack animation
         cast: "Great Sword Kick.fbx", // Use kick for casting with sword
         damage: "Hit To Body.fbx", // Keep same damage animation
         death: "Standing React Death Backward.fbx", // Keep same death animation
         falling: "Falling Idle.fbx", // Keep same falling animation
-        landing: "Falling To Landing.fbx" // Keep same landing animation
+        landing: "Falling To Landing.fbx", // Keep same landing animation
+        powerup: "Sword And Shield Power Up.fbx" // Special power-up animation when sword is equipped
       }
     },
     timeScale: {
@@ -167,7 +169,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-forward': 1.0,
       idle: 0.7, // Slower, more regal idle
       jump: 1.3, // Double speed for faster jumping animation
-      falling: 1.0, // Normal falling speed
+      falling: 1.3, // Normal falling speed
       landing: 0.275, // 4x slower landing (1.1 / 4 = 0.275)
       attack1: 3.0, // 1.5x speed increase (2.0 * 1.5 = 3.0)
       attack2: 3.0, // Same speed as attack1 for combo consistency
@@ -180,19 +182,20 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'walk-back': 2.4, // Doubled speed for sword walk back
       'walk-left': 2.4, // Doubled speed for sword walk left
       'walk-right': 2.4, // Doubled speed for sword walk right
-      'run-forward': 1.65, // 1.5x speed for sword run forward (1.1 * 1.5 = 1.65)
-      'run-left': 1.5, // 1.5x speed for sword run left
+      'run-forward': 1.3, // 1.5x speed for sword run forward (1.1 * 1.5 = 1.65)
+      'run-left': 1.3, // 1.5x speed for sword run left
       'run-right': 1.5, // 1.5x speed for sword run right
       'run-back': 1.1, // Keep normal speed for run back
       idle: 0.8, // Slower sword idle stance
-      jump: 1.0, // Normal sword jump speed
-      falling: 1.0, // Normal falling speed
+      jump: 2.0, // Normal sword jump speed
+      falling: 1.3, // Normal falling speed
       landing: 0.3, // Slower landing with sword
-      attack1: 4.0, // Speed for Sword And Shield Attack B.fbx (now first attack)
+      attack1: 3.0, // Swapped: Speed for Sword And Shield Slash A.fbx (now first attack)
       attack2: 1.8, // Speed for Sword And Shield Attack.fbx (now second attack)
-      attack3: 3.0, // Doubled speed for Sword And Shield Slash A.fbx
+      attack3: 4.0, // Swapped: Speed for Sword And Shield Attack B.fbx (now third attack)
       attack4: 2.5, // Final sword combo strike
-      cast: 2.5 // Sword casting speed
+      cast: 2.5, // Sword casting speed
+      powerup: 1.2 // Power-up animation speed when sword is equipped
     }
   },
   "Zaqir Mufasa": {

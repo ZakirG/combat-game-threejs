@@ -21,11 +21,14 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 import { Box } from '@react-three/drei';
 
+// Sword spawn position - single source of truth
+export const SWORD_SPAWN_POSITION: [number, number, number] = [25, 0, 35];
+
 interface EnvironmentAssetsProps {
   // Player data for sword collision detection
   players?: ReadonlyMap<string, any>;
   localPlayerIdentity?: any;
-  onSwordCollected?: (swordModel: THREE.Group) => void;
+  onSwordCollected?: (swordModel: THREE.Group, swordPosition: THREE.Vector3) => void;
 }
 
 // Configuration for environment assets
@@ -313,7 +316,7 @@ const LargeAsset: React.FC<LargeAssetProps> = ({ modelPath, position, scale, rot
 // Floating Sword Component with Light Blue Glow Pillar
 interface FloatingSwordProps {
   position: [number, number, number];
-  onSwordCollected?: (swordModel: THREE.Group) => void; // Callback when sword is collected
+  onSwordCollected?: (swordModel: THREE.Group, swordPosition: THREE.Vector3) => void; // Callback when sword is collected
   players?: ReadonlyMap<string, any>; // Player data for collision detection
   localPlayerIdentity?: any; // Local player identity for collision detection
 }
@@ -349,8 +352,8 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({
       (gltf) => {
         const loadedModel = gltf.scene.clone();
         
-        // Scale the sword appropriately
-        loadedModel.scale.setScalar(2.0);
+        // Scale the sword appropriately (much bigger for visibility)
+        loadedModel.scale.setScalar(3.0); // Increased from 2.0 to 4.0
         
         // Orient sword pointing straight up
         loadedModel.rotation.set(1.57, 0, 0); // 1.57 ≈ π/2 radians = 90 degrees for perfect vertical
@@ -509,7 +512,7 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({
             
             // Create a copy of the sword model for the player
             const swordCopy = swordModel.clone();
-            onSwordCollected(swordCopy);
+            onSwordCollected(swordCopy, swordPos.clone());
             
             // Hide the floating sword and pillar
             swordGroup.current.visible = false;
@@ -607,7 +610,7 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
 
       {/* Floating Sword with Light Blue Glow Pillar */}
       <FloatingSword 
-        position={[25, 0, 35]} 
+        position={SWORD_SPAWN_POSITION} 
         onSwordCollected={onSwordCollected}
         players={players}
         localPlayerIdentity={localPlayerIdentity}

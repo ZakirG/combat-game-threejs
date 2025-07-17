@@ -160,13 +160,13 @@ export const GameScene: React.FC<GameSceneProps> = ({
       <EnvironmentAssets 
         players={players}
         localPlayerIdentity={localPlayerIdentity}
-        onSwordCollected={(swordModel) => {
+        onSwordCollected={(swordModel, swordPosition) => {
           // Find the local player and equip the sword
           const localPlayer = Array.from(players.values()).find(player =>
             localPlayerIdentity?.toHexString() === player.identity.toHexString()
           );
           if (localPlayer && gameReadyCallbacks?.onSwordCollected) {
-            gameReadyCallbacks.onSwordCollected(swordModel);
+            gameReadyCallbacks.onSwordCollected(swordModel, swordPosition);
           }
         }}
       />
@@ -192,7 +192,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
 
       {/* Render Optimized Zombie Manager */}
       <ZombieManager 
-        zombieCount={20}
+        zombieCount={40}
         players={players}
         isDebugVisible={isDebugPanelVisible}
         minSpawnDistance={40} // Minimum 20 units from any player (20 feet to prevent close spawning)
