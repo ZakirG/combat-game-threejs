@@ -1151,7 +1151,11 @@ export const Player: React.FC<PlayerProps> = ({
         animations[currentAnimation] &&
         (currentAnimation === ANIMATIONS.JUMP ||
          currentAnimation === ANIMATIONS.ATTACK ||
-         currentAnimation === ANIMATIONS.CAST)
+         currentAnimation === ANIMATIONS.CAST ||
+         currentAnimation.startsWith('sword_') ||
+         currentAnimation === ANIMATIONS.ATTACK2 ||
+         currentAnimation === ANIMATIONS.ATTACK3 ||
+         currentAnimation === ANIMATIONS.ATTACK4)
       ) {
         const action = animations[currentAnimation];
         
@@ -1164,8 +1168,52 @@ export const Player: React.FC<PlayerProps> = ({
         const onFinished = (event: any) => {
           // Only act if the finished action is the one we are tracking
           if (event.action === action) {
-             // console.log(`Animation finished: ${currentAnimation}. Playing idle.`);
-             playAnimation(ANIMATIONS.IDLE, 0.1); // Faster transition back to idle
+             console.log(`Animation finished: ${currentAnimation}. Checking for movement input before transitioning.`);
+             
+             // Check if player is currently moving to determine appropriate animation
+             if (isLocalPlayer && currentInput) {
+               const { forward, backward, left, right, sprint } = currentInput;
+               const isMoving = forward || backward || left || right;
+               
+               if (isMoving) {
+                 // Player is still moving, determine appropriate movement animation
+                 let direction = 'forward';
+                 
+                 // Determine primary direction
+                 if (forward && !backward) {
+                   direction = 'forward';
+                 } else if (backward && !forward) {
+                   direction = 'back';
+                 } else if (left && !right) {
+                   direction = 'left';
+                 } else if (right && !left) {
+                   direction = 'right';
+                 } else if (forward && left) {
+                   direction = 'left';
+                 } else if (forward && right) {
+                   direction = 'right';
+                 } else if (backward && left) {
+                   direction = 'left';
+                 } else if (backward && right) {
+                   direction = 'right';
+                 }
+                 
+                 // Choose movement type based on sprint state
+                 const moveType = sprint ? 'run' : 'walk';
+                 const movementAnimation = `${moveType}-${direction}`;
+                 
+                 console.log(`Player is moving after attack, transitioning to: ${movementAnimation}`);
+                 playAnimation(movementAnimation, 0.1);
+               } else {
+                 // Player is not moving, transition to idle
+                 console.log(`Player is not moving after attack, transitioning to idle`);
+                 playAnimation(ANIMATIONS.IDLE, 0.1);
+               }
+             } else {
+               // Fallback to idle for non-local players or when no input available
+               playAnimation(ANIMATIONS.IDLE, 0.1);
+             }
+             
              mixer.removeEventListener('finished', onFinished); // Remove listener
           }
         };
@@ -1181,7 +1229,7 @@ export const Player: React.FC<PlayerProps> = ({
         };
       }
     }
-  }, [currentAnimation, animations, mixer, playAnimation]); // Ensure all dependencies are listed
+  }, [currentAnimation, animations, mixer, playAnimation, isLocalPlayer, currentInput]); // Added currentInput dependency
 
   // --- Handle Camera Toggle ---
   const toggleCameraMode = useCallback(() => {
