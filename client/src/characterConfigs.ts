@@ -46,6 +46,11 @@ export interface CharacterAnimationTable {
   landing: string;
 }
 
+export interface AnimationTableSet {
+  default: CharacterAnimationTable;     // existing/unarmed animations
+  sword?: CharacterAnimationTable;      // optional weapon-equipped animations
+}
+
 // Separate configuration for character preview (character selector)
 export interface CharacterPreviewConfig {
   scale: number;
@@ -67,8 +72,10 @@ export interface CharacterConfig {
   preview: CharacterPreviewConfig; // Settings for character selector
   gameplay: CharacterGameplayConfig; // Settings for main game
   movement: CharacterMovementConfig;
-  animationTable: CharacterAnimationTable;
-  timeScale?: Record<string, number>; // Optional per-animation speed overrides
+  animationTable: CharacterAnimationTable; // Deprecated - use animations.default
+  animations?: AnimationTableSet; // New structure with default and optional sword tables
+  timeScale?: Record<string, number>; // Optional per-animation speed overrides for default animations
+  swordTimeScale?: Record<string, number>; // Optional per-animation speed overrides for sword animations
 }
 
 export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
@@ -111,6 +118,50 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       falling: "Falling Idle.fbx", // Use available falling animation
       landing: "Falling To Landing.fbx" // Use available landing animation
     },
+    animations: {
+      default: {
+        idle: "Idle.fbx",
+        'walk-forward': "Walk forward.fbx",
+        'walk-back': "Happy Walk Backward.fbx", 
+        'walk-left': "Left Strafe Walk.fbx",
+        'walk-right': "Right Strafe Walk.fbx",
+        'run-forward': "Run Forward.fbx",
+        'run-back': "Standing Run Back.fbx",
+        'run-left': "Standing Run Left.fbx",
+        'run-right': "Standing Run Right.fbx",
+        jump: "Crouch Torch Walk Back.fbx", // Using available animation as placeholder
+        attack1: "Mma Kick.fbx",
+        attack2: "Flip Kick.fbx", // Combo attack animation
+        attack3: "Inverted Double Kick To Kip Up.fbx", // Third combo attack animation
+        attack4: "Martelo Do Chau.fbx", // Fourth combo attack animation
+        cast: "Elbow Punch.fbx",
+        damage: "Hit To Body.fbx",
+        death: "Standing React Death Backward.fbx",
+        falling: "Falling Idle.fbx", // Use available falling animation
+        landing: "Falling To Landing.fbx" // Use available landing animation
+      },
+      sword: {
+        idle: "Sword And Shield Idle.fbx",
+        'walk-forward': "Great Sword Walk Forward.fbx",
+        'walk-back': "Sword Walk Back.fbx",
+        'walk-left': "Great Sword Walk Right.fbx", // Using right walk as placeholder for left
+        'walk-right': "Great Sword Walk Right.fbx",
+        'run-forward': "Great Sword Run Forward.fbx",
+        'run-back': "Sword And Shield Run Back.fbx",
+        'run-left': "Great Sword Run Left.fbx",
+        'run-right': "Great Sword Run Right.fbx",
+        jump: "Sword And Shield Jump.fbx",
+        attack1: "Sword And Shield Attack B.fbx", // Now the first attack
+        attack2: "Sword And Shield Attack.fbx", // Now the second attack
+        attack3: "Sword And Shield Slash A.fbx", // Third combo attack animation
+        attack4: "Sword And Shield Slash B.fbx", // Fourth combo attack animation
+        cast: "Great Sword Kick.fbx", // Use kick for casting with sword
+        damage: "Hit To Body.fbx", // Keep same damage animation
+        death: "Standing React Death Backward.fbx", // Keep same death animation
+        falling: "Falling Idle.fbx", // Keep same falling animation
+        landing: "Falling To Landing.fbx" // Keep same landing animation
+      }
+    },
     timeScale: {
       'walk-forward': 2.7, // 1.5x faster walking (1.8 * 1.5 = 2.7)
       'run-forward': 1.0,
@@ -123,6 +174,19 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       attack3: 2.5, // Slightly slower for dramatic third combo finisher
       attack4: 3.5, // Faster fourth attack for quick finisher
       cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
+    },
+    swordTimeScale: {
+      'walk-forward': 1.2, // Slower sword walk
+      'run-forward': 1.1, // Slightly slower sword run
+      idle: 0.8, // Slower sword idle stance
+      jump: 1.0, // Normal sword jump speed
+      falling: 1.0, // Normal falling speed
+      landing: 0.3, // Slower landing with sword
+      attack1: 4.0, // Speed for Sword And Shield Attack B.fbx (now first attack)
+      attack2: 1.8, // Speed for Sword And Shield Attack.fbx (now second attack)
+      attack3: 3.0, // Doubled speed for Sword And Shield Slash A.fbx
+      attack4: 2.5, // Final sword combo strike
+      cast: 2.5 // Sword casting speed
     }
   },
   "Zaqir Mufasa": {
@@ -163,6 +227,30 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       death: "death.fbx",
       falling: "Falling.fbx",
       landing: "Landing.fbx"
+    },
+    animations: {
+      default: {
+        idle: "Idle.fbx",
+        'walk-forward': "Mutant Walk.fbx", // Use the mutant walk animation
+        'walk-back': "Standing Walk Back.fbx", 
+        'walk-left': "Standing Walk Left.fbx",
+        'walk-right': "Standing Walk Right.fbx",
+        'run-forward': "Fast Run.fbx", // Use the dedicated fast run animation
+        'run-back': "Standing Run Back.fbx", // Use dedicated run back animation
+        'run-left': "Standing Run Left.fbx", // Use dedicated run left animation
+        'run-right': "Standing Run Right.fbx", // Use dedicated run right animation
+        jump: "Jumping.fbx",
+        attack1: "Roundhouse Kick.fbx", // Changed from Standing Melee Punch
+        attack2: "Flip Kick.fbx", // Combo attack (was cast)
+        attack3: "Inverted Double Kick To Kip Up.fbx", // Third combo attack animation
+        attack4: "Martelo Do Chau.fbx", // Fourth combo attack animation
+        cast: "Punching.fbx", // Use different punching animation for cast
+        damage: "Receive Hit.fbx",
+        death: "death.fbx",
+        falling: "Falling.fbx",
+        landing: "Landing.fbx"
+      }
+      // No sword animations - will fall back to default when sword is equipped
     },
     timeScale: {
       'walk-forward': 1.0, // Normal speed for mutant walk
@@ -220,6 +308,30 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       falling: "Falling.fbx", // Grok Rudi's falling animation
       landing: "Landing.fbx" // Grok Rudi's landing animation
     },
+    animations: {
+      default: {
+        idle: "Fight Idle.fbx", // Grok Rudi's combat idle
+        'walk-forward': "Standing Walk Forward.fbx", // Grok Rudi's forward walk
+        'walk-back': "Walking Backward.fbx", // Grok Rudi's backward walk
+        'walk-left': "Standing Walk Left.fbx", // Grok Rudi's left walk
+        'walk-right': "Standing Walk Right.fbx", // Grok Rudi's right walk
+        'run-forward': "Fast Run (Sprint).fbx", // Grok Rudi's sprint
+        'run-back': "Walking Backward.fbx", // Use backward walk for run back
+        'run-left': "Standing Walk Left.fbx", // Use left walk for run left
+        'run-right': "Standing Walk Right.fbx", // Use right walk for run right
+        jump: "Standing Walk Forward.fbx", // Placeholder until jump animation is added
+        attack1: "Punch.fbx", // Grok Rudi's first punch
+        attack2: "Punch 2.fbx", // Combo attack (was cast)
+        attack3: "Mma Kick.fbx", // Third combo attack animation (use kick for Grok Rudi)
+        attack4: "Mma Kick.fbx", // Fourth combo attack animation (reuse kick for Grok Rudi)
+        cast: "Mma Kick.fbx", // Use kick animation for cast
+        damage: "Falling Back Death.fbx", // Use death animation for damage
+        death: "Falling Back Death.fbx", // Grok Rudi's death animation
+        falling: "Falling.fbx", // Grok Rudi's falling animation
+        landing: "Landing.fbx" // Grok Rudi's landing animation
+      }
+      // No sword animations - will fall back to default when sword is equipped
+    },
     timeScale: {
       'walk-forward': 1.0, // Natural walking pace
       'walk-back': 1.0,    // Natural backward pace
@@ -274,25 +386,72 @@ export function getCharacterGameplayConfig(characterClass: string): CharacterGam
   return config.gameplay;
 }
 
-// Legacy helper functions (updated to use new structure)
-export function getAnimationPath(characterClass: string, animationName: string): string {
+// Helper functions with sword support
+export function getAnimationPath(characterClass: string, animationName: string, isSwordEquipped: boolean = false): string {
   const config = getCharacterConfig(characterClass);
-  const animationFileName = config.animationTable[animationName as keyof CharacterAnimationTable];
+  
+  // Choose the appropriate animation table
+  let animationTable: CharacterAnimationTable;
+  if (isSwordEquipped && config.animations?.sword) {
+    animationTable = config.animations.sword;
+  } else if (config.animations?.default) {
+    animationTable = config.animations.default;
+  } else {
+    // Fallback to legacy animationTable
+    animationTable = config.animationTable;
+  }
+  
+  const animationFileName = animationTable[animationName as keyof CharacterAnimationTable];
   
   if (!animationFileName) {
-    console.warn(`Animation ${animationName} not found for ${characterClass}, using idle`);
-    return `${config.basePath}${config.animationTable.idle}`;
+    console.warn(`Animation ${animationName} not found for ${characterClass} (sword: ${isSwordEquipped}), using idle`);
+    // Try to get idle from the same table first, then fallback
+    const idleFileName = animationTable.idle || config.animationTable.idle;
+    return `${config.basePath}${idleFileName}`;
   }
   
   return `${config.basePath}${animationFileName}`;
 }
 
-export function getAnimationTimeScale(characterClass: string, animationName: string): number {
+export function getAnimationTimeScale(characterClass: string, animationName: string, isSwordEquipped: boolean = false): number {
   const config = getCharacterConfig(characterClass);
-  if (config.timeScale && config.timeScale[animationName]) {
-    return config.timeScale[animationName];
+  
+  // Choose the appropriate time scale settings
+  let timeScaleConfig: Record<string, number> | undefined;
+  if (isSwordEquipped && config.swordTimeScale) {
+    timeScaleConfig = config.swordTimeScale;
+  } else {
+    timeScaleConfig = config.timeScale;
   }
+  
+  if (timeScaleConfig && timeScaleConfig[animationName]) {
+    return timeScaleConfig[animationName];
+  }
+  
   return 1.0; // Default time scale
+}
+
+// Helper function to get the current animation table for a character
+export function getCurrentAnimationTable(characterClass: string, isSwordEquipped: boolean = false): CharacterAnimationTable {
+  const config = getCharacterConfig(characterClass);
+  
+  if (isSwordEquipped && config.animations?.sword) {
+    return config.animations.sword;
+  } else if (config.animations?.default) {
+    return config.animations.default;
+  } else {
+    // Fallback to legacy animationTable
+    return config.animationTable;
+  }
+}
+
+// Legacy helper functions (for backwards compatibility)
+export function getAnimationPathLegacy(characterClass: string, animationName: string): string {
+  return getAnimationPath(characterClass, animationName, false);
+}
+
+export function getAnimationTimeScaleLegacy(characterClass: string, animationName: string): number {
+  return getAnimationTimeScale(characterClass, animationName, false);
 }
 
 // Export available character classes for UI components in desired order

@@ -43,6 +43,7 @@ import {
   getCharacterGameplayConfig,
   getAnimationPath, 
   getAnimationTimeScale, 
+  getCurrentAnimationTable,
   CharacterConfig,
   CharacterGameplayConfig,
   CharacterAnimationTable,
@@ -159,6 +160,9 @@ export const Player: React.FC<PlayerProps> = ({
   const [equippedSword, setEquippedSword] = useState<THREE.Group | null>(null);
   const [rightHandBone, setRightHandBone] = useState<THREE.Bone | null>(null);
   const swordAttachmentRef = useRef<THREE.Group | null>(null);
+  
+  // Derive sword equipped state from equippedSword
+  const isSwordEquipped = useMemo(() => !!equippedSword, [equippedSword]);
 
   // --- Client Prediction State ---
   // For gameplay, force high altitude spawn on first entrance
@@ -514,13 +518,31 @@ export const Player: React.FC<PlayerProps> = ({
     
     console.log(`Loading animations for ${characterClass}...`);
     
-    // Build animation paths from character configuration
+    // Load both default and sword animations if they exist
+    const config = getCharacterConfig(characterClass);
     const animationPaths: Record<string, string> = {};
-    Object.entries(characterConfig.animationTable).forEach(([key, filename]) => {
-      animationPaths[key] = getAnimationPath(characterClass, key);
-    });
     
-    console.log('Animation paths:', animationPaths);
+    // Load default animations
+    if (config.animations?.default) {
+      Object.entries(config.animations.default).forEach(([key, filename]) => {
+        animationPaths[key] = getAnimationPath(characterClass, key, false);
+      });
+    } else {
+      // Fallback to legacy animationTable
+      Object.entries(config.animationTable).forEach(([key, filename]) => {
+        animationPaths[key] = getAnimationPath(characterClass, key, false);
+      });
+    }
+    
+    // Load sword animations if they exist
+    if (config.animations?.sword) {
+      Object.entries(config.animations.sword).forEach(([key, filename]) => {
+        const swordKey = `sword_${key}`;
+        animationPaths[swordKey] = getAnimationPath(characterClass, key, true);
+      });
+    }
+    
+    console.log('Animation paths (all variations):', animationPaths);
     
     const loader = new FBXLoader();
     const newAnimations: Record<string, THREE.AnimationAction> = {};
@@ -884,31 +906,47 @@ export const Player: React.FC<PlayerProps> = ({
     );
   };
 
-  // Update playAnimation to have better logging
+  // Update playAnimation to have better logging and sword support
   const playAnimation = useCallback((name: string, crossfadeDuration = 0.3) => {
-    console.log(`🎬 playAnimation called with: ${name}`);
+    console.log(`🎬 playAnimation called with: ${name} (sword equipped: ${isSwordEquipped})`);
     
     if (!mixer) {
       console.log(`❌ playAnimation: No mixer available`);
       return;
     }
     
-    if (!animations[name]) {
-      console.warn(`⚠️ Animation not found: ${name}`);
+    // Choose the appropriate animation based on sword state
+    let actualAnimationName = name;
+    let timeScaleIsSword = false;
+    
+    if (isSwordEquipped) {
+      const swordAnimationName = `sword_${name}`;
+      if (animations[swordAnimationName]) {
+        actualAnimationName = swordAnimationName;
+        timeScaleIsSword = true;
+        console.log(`⚔️ Using sword animation: ${swordAnimationName}`);
+      } else {
+        console.log(`⚠️ Sword animation ${swordAnimationName} not found, falling back to default: ${name}`);
+      }
+    }
+    
+    if (!animations[actualAnimationName]) {
+      console.warn(`⚠️ Animation not found: ${actualAnimationName}`);
       console.log("Available animations:", Object.keys(animations).join(", "));
       // Fallback to idle if requested animation is missing
       if (name !== ANIMATIONS.IDLE && animations[ANIMATIONS.IDLE]) {
         console.log(`🔄 Falling back to ${ANIMATIONS.IDLE}`);
-        name = ANIMATIONS.IDLE;
+        actualAnimationName = ANIMATIONS.IDLE;
+        timeScaleIsSword = false;
       } else {
          console.log(`❌ Cannot play requested or fallback idle`);
          return; // Cannot play requested or fallback idle
       }
     }
     
-    console.log(`🎯 Playing animation: ${name} (crossfade: ${crossfadeDuration}s)`);
+    console.log(`🎯 Playing animation: ${actualAnimationName} (crossfade: ${crossfadeDuration}s)`);
     
-    const targetAction = animations[name];
+    const targetAction = animations[actualAnimationName];
     const currentAction = animations[currentAnimation];
     
     if (currentAction && currentAction !== targetAction) {
@@ -916,10 +954,10 @@ export const Player: React.FC<PlayerProps> = ({
       currentAction.fadeOut(crossfadeDuration);
     }
     
-    console.log(`▶️ Starting animation: ${name}`);
+    console.log(`▶️ Starting animation: ${actualAnimationName}`);
     
-    // Get character-specific animation time scale
-    const timeScale = getAnimationTimeScale(characterClass, name);
+    // Get character-specific animation time scale with sword awareness
+    const timeScale = getAnimationTimeScale(characterClass, name, timeScaleIsSword);
     
     targetAction.reset()
                 .setEffectiveTimeScale(timeScale)
@@ -927,8 +965,8 @@ export const Player: React.FC<PlayerProps> = ({
                 .fadeIn(crossfadeDuration)
                 .play();
                 
-    setCurrentAnimation(name);
-  }, [animations, currentAnimation, mixer]); // Add mixer to dependencies
+    setCurrentAnimation(actualAnimationName);
+  }, [animations, currentAnimation, mixer, isSwordEquipped, characterClass]); // Add sword state to dependencies
 
   // --- NEW Effect: Explicitly set shadow props when model is loaded ---
   useEffect(() => {
@@ -1845,7 +1883,7 @@ export const Player: React.FC<PlayerProps> = ({
     setEquippedSword(swordModel);
     swordAttachmentRef.current = swordModel;
     
-    console.log('[Player] ✅ Sword equipped and ready!');
+    console.log('[Player] ✅ Sword equipped and ready! Animation system will switch to sword animations.');
   }, [model, rightHandBone, equippedSword]);
 
   // Function to unequip sword
@@ -1854,7 +1892,7 @@ export const Player: React.FC<PlayerProps> = ({
       rightHandBone.remove(equippedSword);
       setEquippedSword(null);
       swordAttachmentRef.current = null;
-      console.log('[Player] ⚔️ Sword unequipped');
+      console.log('[Player] ⚔️ Sword unequipped! Animation system will switch back to default animations.');
     }
   }, [rightHandBone, equippedSword]);
 
@@ -1866,13 +1904,30 @@ export const Player: React.FC<PlayerProps> = ({
     }
   }, [model, isLocalPlayer, findRightHandBone]);
 
-  // Expose sword equipping function for external use
+  // Handle animation switching when sword is equipped/unequipped
+  useEffect(() => {
+    if (mixer && Object.keys(animations).length > 0 && currentAnimation) {
+      // Extract the base animation name (remove sword_ prefix if present)
+      const baseAnimationName = currentAnimation.startsWith('sword_') 
+        ? currentAnimation.replace('sword_', '') 
+        : currentAnimation;
+      
+      console.log(`🗡️ Sword state changed (equipped: ${isSwordEquipped}), switching from ${currentAnimation} to appropriate variant of ${baseAnimationName}`);
+      
+      // Play the appropriate variant of the current animation
+      playAnimation(baseAnimationName, 0.2); // Quick crossfade for smooth transition
+    }
+  }, [isSwordEquipped, mixer, animations, playAnimation]); // Watch for sword state changes
+
+  // Expose sword equipping/unequipping functions for external use
   useEffect(() => {
     if (isLocalPlayer && gameReadyCallbacks) {
       // Add sword equipping capability to game ready callbacks
       gameReadyCallbacks.onSwordCollected = equipSword;
+      // Also expose unequip for testing (could be useful for dev tools)
+      (gameReadyCallbacks as any).onSwordUnequipped = unequipSword;
     }
-  }, [isLocalPlayer, gameReadyCallbacks, equipSword]);
+  }, [isLocalPlayer, gameReadyCallbacks, equipSword, unequipSword]);
 
   return (
     <group ref={group} castShadow>
