@@ -10,6 +10,8 @@
  * Used to determine when to hide loading screen and show game view
  */
 
+import * as THREE from 'three';
+
 export interface GameReadyState {
   isCharacterReady: boolean;
   isZombiesReady: boolean;
@@ -25,6 +27,7 @@ export interface GameReadyCallbacks {
   onCharacterProgress: (progress: number, status: string) => void;
   onZombieProgress: (progress: number, status: string) => void;
   onCoinCollected?: (count: number) => void;
+  onSwordCollected?: (swordModel: THREE.Group) => void;
 }
 
 export interface PlayerReadyState {

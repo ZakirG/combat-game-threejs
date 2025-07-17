@@ -42,7 +42,7 @@ import {
   getCharacterConfig, 
   getCharacterGameplayConfig,
   getAnimationPath, 
-  getAnimationTimeScale,
+  getAnimationTimeScale, 
   CharacterConfig,
   CharacterGameplayConfig,
   CharacterAnimationTable,
@@ -155,6 +155,11 @@ export const Player: React.FC<PlayerProps> = ({
   // Coin effect system
   const coinEffectManagerRef = useRef<CoinEffectManager | null>(null);
   
+  // Sword equipping system
+  const [equippedSword, setEquippedSword] = useState<THREE.Group | null>(null);
+  const [rightHandBone, setRightHandBone] = useState<THREE.Bone | null>(null);
+  const swordAttachmentRef = useRef<THREE.Group | null>(null);
+
   // --- Client Prediction State ---
   // For gameplay, force high altitude spawn on first entrance
   const initialY = SPAWN_ALTITUDE; // Always force high altitude regardless of server
@@ -1714,6 +1719,160 @@ export const Player: React.FC<PlayerProps> = ({
       }
     };
   }, []);
+
+  // Function to find the right hand bone in the skeleton
+  const findRightHandBone = useCallback((model: THREE.Group): THREE.Bone | null => {
+    let foundBone: THREE.Bone | null = null;
+    
+    console.log(`[Player] 🔍 Starting bone search for ${characterClass}...`);
+    
+    model.traverse((child) => {
+      if (child instanceof THREE.SkinnedMesh && child.skeleton) {
+        const bones = child.skeleton.bones;
+        console.log(`[Player] 🦴 Found skeleton with ${bones.length} bones`);
+        
+        // Debug: List all bone names first
+        console.log(`[Player] 🦴 All available bones:`, bones.map(b => b.name));
+        
+        // Search for right hand bone - prioritize actual hand bones over forearm
+        const rightHandPatterns = [
+          // Highest priority - actual hand bones
+          'righthand', 'right_hand', 'hand_r', 'handr', 'r_hand',
+          'mixamorig:righthand', 'mixamorig:right_hand', 'mixamorig:hand_r',
+          'bip01_r_hand', 'bip01_hand_r', 'bone_hand_r', 'hand.r',
+          // Lower priority - wrist/forearm bones (only if no hand found)
+          'rightwrist', 'right_wrist', 'wrist_r', 'r_wrist',
+          'mixamorig:rightwrist', 'mixamorig:right_wrist', 'mixamorig:wrist_r'
+        ];
+        
+        console.log(`[Player] 🔍 Searching with hand-priority patterns:`, rightHandPatterns);
+        
+        for (const bone of bones) {
+          const boneName = bone.name.toLowerCase().replace(/[\s_\-\.]/g, '');
+          
+          for (const pattern of rightHandPatterns) {
+            const patternClean = pattern.toLowerCase().replace(/[\s_\-\.]/g, '');
+            if (boneName.includes(patternClean) || boneName === patternClean) {
+              console.log(`[Player] ✋ Found right hand bone: "${bone.name}" (matched pattern: ${pattern})`);
+              foundBone = bone;
+              return; // Stop traversing once found
+            }
+          }
+        }
+        
+        // Only try forearm as last resort if no hand/wrist found
+        if (!foundBone) {
+          console.log(`[Player] 🔍 No hand/wrist found, trying forearm as fallback...`);
+          const forearmPatterns = [
+            'rightforearm', 'right_forearm', 'forearm_r', 'forearmr', 'r_forearm',
+            'mixamorig:rightforearm', 'mixamorig:right_forearm', 'mixamorig:forearm_r'
+          ];
+          
+          for (const bone of bones) {
+            const boneName = bone.name.toLowerCase().replace(/[\s_\-\.]/g, '');
+            
+            for (const pattern of forearmPatterns) {
+              const patternClean = pattern.toLowerCase().replace(/[\s_\-\.]/g, '');
+              if (boneName.includes(patternClean) || boneName === patternClean) {
+                console.log(`[Player] ✋ Found forearm bone as fallback: "${bone.name}"`);
+                foundBone = bone;
+                break;
+              }
+            }
+            if (foundBone) break;
+          }
+        }
+      }
+    });
+    
+    if (!foundBone) {
+      console.warn(`[Player] ⚠️ No suitable hand/wrist/forearm bone found in skeleton for ${characterClass}`);
+    } else {
+      console.log(`[Player] ✅ Final selected bone: "${foundBone.name}"`);
+    }
+    
+    return foundBone;
+  }, [characterClass]);
+
+  // Function to equip sword to right hand
+  const equipSword = useCallback((swordModel: THREE.Group) => {
+    if (!model || !rightHandBone) {
+      console.warn('[Player] ⚔️ Cannot equip sword: missing model or right hand bone');
+      console.log('[Player] 🔍 Debug - model exists:', !!model);
+      console.log('[Player] 🔍 Debug - rightHandBone exists:', !!rightHandBone);
+      return;
+    }
+    
+    // Prevent multiple attachments
+    if (equippedSword) {
+      console.log('[Player] ⚔️ Sword already equipped, skipping...');
+      return;
+    }
+    
+    console.log('[Player] ⚔️ Equipping sword to right hand bone:', rightHandBone.name);
+    console.log('[Player] 🔍 Debug - Bone world position:', rightHandBone.getWorldPosition(new THREE.Vector3()));
+    
+        // Calculate scale relative to character for proper sword sizing
+    const characterScale = gameplayConfig.scale;
+    const swordScale = 1 / characterScale; // Scale relative to character size
+    console.log('[Player] 📏 Character scale:', characterScale, 'Sword scale multiplier:', swordScale);
+    
+    // Move the original sword model to the hand bone
+    console.log('[Player] 🗡️ Attaching sword to hand bone...');
+    if (swordModel.parent) {
+      swordModel.parent.remove(swordModel); // Remove from its current parent
+    }
+    
+    // Configure sword properties for hand attachment
+    swordModel.scale.setScalar(1.5 * swordScale); // Scale relative to character
+    swordModel.position.set(0, 25, 3); // Position forward and up from hand bone (hilt at hand level)
+    swordModel.rotation.set(Math.PI / 2, 0, 0); // Orient sword pointing forward from hand
+    
+    // Restore sword's natural materials (remove red debug color)
+    swordModel.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.visible = true;
+        child.castShadow = true;
+        child.receiveShadow = true;
+        // Keep original materials - don't override them
+      }
+    });
+    
+    rightHandBone.add(swordModel);
+    console.log('[Player] ✅ Sword attached to hand bone with natural materials');
+    
+    // Store reference
+    setEquippedSword(swordModel);
+    swordAttachmentRef.current = swordModel;
+    
+    console.log('[Player] ✅ Sword equipped and ready!');
+  }, [model, rightHandBone, equippedSword]);
+
+  // Function to unequip sword
+  const unequipSword = useCallback(() => {
+    if (equippedSword && rightHandBone) {
+      rightHandBone.remove(equippedSword);
+      setEquippedSword(null);
+      swordAttachmentRef.current = null;
+      console.log('[Player] ⚔️ Sword unequipped');
+    }
+  }, [rightHandBone, equippedSword]);
+
+  // Find right hand bone when model loads
+  useEffect(() => {
+    if (model && isLocalPlayer) {
+      const bone = findRightHandBone(model);
+      setRightHandBone(bone);
+    }
+  }, [model, isLocalPlayer, findRightHandBone]);
+
+  // Expose sword equipping function for external use
+  useEffect(() => {
+    if (isLocalPlayer && gameReadyCallbacks) {
+      // Add sword equipping capability to game ready callbacks
+      gameReadyCallbacks.onSwordCollected = equipSword;
+    }
+  }, [isLocalPlayer, gameReadyCallbacks, equipSword]);
 
   return (
     <group ref={group} castShadow>

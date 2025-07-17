@@ -157,7 +157,19 @@ export const GameScene: React.FC<GameSceneProps> = ({
       <TexturedFloor />
 
       {/* Environment Assets (rocks, arch, statue) */}
-      <EnvironmentAssets />
+      <EnvironmentAssets 
+        players={players}
+        localPlayerIdentity={localPlayerIdentity}
+        onSwordCollected={(swordModel) => {
+          // Find the local player and equip the sword
+          const localPlayer = Array.from(players.values()).find(player =>
+            localPlayerIdentity?.toHexString() === player.identity.toHexString()
+          );
+          if (localPlayer && gameReadyCallbacks?.onSwordCollected) {
+            gameReadyCallbacks.onSwordCollected(swordModel);
+          }
+        }}
+      />
 
       {/* Render Players */}
       {Array.from(players.values()).map((player) => {

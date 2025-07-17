@@ -22,7 +22,10 @@ import * as THREE from 'three';
 import { Box } from '@react-three/drei';
 
 interface EnvironmentAssetsProps {
-  // No props needed for now - all configuration is internal
+  // Player data for sword collision detection
+  players?: ReadonlyMap<string, any>;
+  localPlayerIdentity?: any;
+  onSwordCollected?: (swordModel: THREE.Group) => void;
 }
 
 // Configuration for environment assets
@@ -310,13 +313,22 @@ const LargeAsset: React.FC<LargeAssetProps> = ({ modelPath, position, scale, rot
 // Floating Sword Component with Light Blue Glow Pillar
 interface FloatingSwordProps {
   position: [number, number, number];
+  onSwordCollected?: (swordModel: THREE.Group) => void; // Callback when sword is collected
+  players?: ReadonlyMap<string, any>; // Player data for collision detection
+  localPlayerIdentity?: any; // Local player identity for collision detection
 }
 
-const FloatingSword: React.FC<FloatingSwordProps> = ({ position }) => {
+const FloatingSword: React.FC<FloatingSwordProps> = ({ 
+  position, 
+  onSwordCollected, 
+  players, 
+  localPlayerIdentity 
+}) => {
   const swordGroup = useRef<THREE.Group>(null!);
   const glowPillarGroup = useRef<THREE.Group>(null!);
   const [swordModel, setSwordModel] = useState<THREE.Group | null>(null);
   const [startTime] = useState(Date.now());
+  const [isCollected, setIsCollected] = useState(false);
   
   // Glow pillar properties
   const PILLAR_HEIGHT = 2000; // Infinite pillar extending far up into space
@@ -324,9 +336,12 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({ position }) => {
   const FLOAT_AMPLITUDE = 0.2;
   const FLOAT_SPEED = 0.3;
   const ROTATION_SPEED = 0.2;
+  const COLLECTION_RADIUS = 3.0; // Distance for sword collection
 
   // Load sword model
   useEffect(() => {
+    if (isCollected) return; // Don't load if already collected
+    
     const loader = new GLTFLoader();
     
     loader.load(
@@ -335,10 +350,10 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({ position }) => {
         const loadedModel = gltf.scene.clone();
         
         // Scale the sword appropriately
-        loadedModel.scale.setScalar(2.3);
+        loadedModel.scale.setScalar(2.0);
         
-                 // Orient sword pointing straight up
-         loadedModel.rotation.set(1.57, 0, 0); // 1.57 ≈ π/2 radians = 90 degrees for perfect vertical
+        // Orient sword pointing straight up
+        loadedModel.rotation.set(1.57, 0, 0); // 1.57 ≈ π/2 radians = 90 degrees for perfect vertical
         
         // Enable shadows
         loadedModel.traverse((child) => {
@@ -366,11 +381,11 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({ position }) => {
         swordGroup.current.remove(swordModel);
       }
     };
-  }, []);
+  }, [isCollected]);
 
   // Create light blue glow pillar
   useEffect(() => {
-    if (!glowPillarGroup.current) return;
+    if (!glowPillarGroup.current || isCollected) return;
 
     // Create triple-layer glow effect with light blue color
     const pillarGeometry = new THREE.CylinderGeometry(
@@ -443,10 +458,12 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({ position }) => {
     glowPillarGroup.current.add(outerGlow);
     
     console.log('[EnvironmentAssets] 🔵 Light blue glow pillar created');
-  }, []);
+  }, [isCollected]);
 
   // Set initial positions
   useEffect(() => {
+    if (isCollected) return;
+    
     if (swordGroup.current) {
       swordGroup.current.position.set(...position);
     }
@@ -458,21 +475,54 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({ position }) => {
         position[2]
       );
     }
-  }, [position]);
+  }, [position, isCollected]);
 
-  // Animation loop
+  // Animation loop and collision detection
   useFrame((state, delta) => {
+    if (isCollected) return;
+    
     const elapsed = (Date.now() - startTime) / 1000;
     
     if (swordGroup.current && swordModel) {
-             // Floating up and down motion
-       const floatOffset = Math.sin(elapsed * FLOAT_SPEED * Math.PI * 2) * FLOAT_AMPLITUDE;
-       swordGroup.current.position.y = position[1] + floatOffset + 1.5; // Hover 1.5 units above ground
+      // Floating up and down motion
+      const floatOffset = Math.sin(elapsed * FLOAT_SPEED * Math.PI * 2) * FLOAT_AMPLITUDE;
+      swordGroup.current.position.y = position[1] + floatOffset + 1.5; // Hover 1.5 units above ground
       
       // Gentle rotation around Y-axis
       swordGroup.current.rotation.y += ROTATION_SPEED * delta;
+      
+      // Check for player collision (only for local player)
+      if (players && localPlayerIdentity && onSwordCollected) {
+        const localPlayer = players.get(localPlayerIdentity.toHexString());
+        if (localPlayer) {
+          const playerPos = new THREE.Vector3(
+            localPlayer.position.x,
+            localPlayer.position.y,
+            localPlayer.position.z
+          );
+          const swordPos = swordGroup.current.position;
+          const distance = playerPos.distanceTo(swordPos);
+          
+          if (distance <= COLLECTION_RADIUS) {
+            console.log('[EnvironmentAssets] ⚔️ Sword collected by player!');
+            setIsCollected(true);
+            
+            // Create a copy of the sword model for the player
+            const swordCopy = swordModel.clone();
+            onSwordCollected(swordCopy);
+            
+            // Hide the floating sword and pillar
+            swordGroup.current.visible = false;
+            glowPillarGroup.current.visible = false;
+          }
+        }
+      }
     }
   });
+
+  if (isCollected) {
+    return null; // Don't render anything if collected
+  }
 
   return (
     <>
@@ -482,7 +532,11 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({ position }) => {
   );
 };
 
-export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = () => {
+export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({ 
+  players, 
+  localPlayerIdentity, 
+  onSwordCollected 
+}) => {
   const [rockPositions] = useState<THREE.Vector3[]>(() => {
     // Generate positions once when component mounts
     const totalRocks = ENVIRONMENT_CONFIG.rocks['rock-1'].count + 
@@ -552,7 +606,12 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = () => {
       />
 
       {/* Floating Sword with Light Blue Glow Pillar */}
-      <FloatingSword position={[25, 0, 35]} />
+      <FloatingSword 
+        position={[25, 0, 35]} 
+        onSwordCollected={onSwordCollected}
+        players={players}
+        localPlayerIdentity={localPlayerIdentity}
+      />
 
       {/* Second Desert Arch near the sword - tweak position and rotation for best visual */}
       <LargeAsset
