@@ -43,11 +43,11 @@ if command -v lsof > /dev/null 2>&1; then
         echo "$port_5173_pids" | xargs kill -TERM 2>/dev/null || true
     fi
     
-    # Kill any processes on port 3000 (SpacetimeDB)
-    local port_3000_pids=$(lsof -ti :3000 || true)
-    if [ -n "$port_3000_pids" ]; then
-        echo "🔥 Killing processes on port 3000: $port_3000_pids"
-        echo "$port_3000_pids" | xargs kill -TERM 2>/dev/null || true
+    # Kill any processes on port 5555 (SpacetimeDB)
+    local port_5555_pids=$(lsof -ti :5555 || true)
+    if [ -n "$port_5555_pids" ]; then
+        echo "🔥 Killing processes on port 5555: $port_5555_pids"
+        echo "$port_5555_pids" | xargs kill -TERM 2>/dev/null || true
     fi
 fi
 

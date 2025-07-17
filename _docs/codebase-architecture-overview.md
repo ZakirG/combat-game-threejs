@@ -133,7 +133,7 @@ App.tsx (Root orchestrator)
 // SpacetimeDB connection setup
 const conn = moduleBindings.DbConnection.builder()
   .withModuleName("vibe-multiplayer")
-  .withAddress("ws://localhost:3000")
+  .withAddress("ws://localhost:5555")
   .onConnect(onConnect)
   .onDisconnect(onDisconnect)
   .build();

@@ -5,16 +5,18 @@
  * - Rock models (rock-1.glb, rock-2.glb, rock-3.glb) with random placement
  * - Desert arch (desert-arch.glb) positioned far from spawn
  * - X-statue (x-statue.glb) positioned very far from spawn
+ * - Floating sword with light blue glow pillar
  * 
  * Features:
  * - Random positioning for rocks within defined bounds
  * - Scaled models according to specifications
  * - Shadow casting and receiving
  * - Performance-optimized loading
+ * - Animated floating sword with magical light blue glow effect
  */
 
 import React, { useRef, useEffect, useState } from 'react';
-import { useLoader } from '@react-three/fiber';
+import { useLoader, useFrame } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 import { Box } from '@react-three/drei';
@@ -305,6 +307,181 @@ const LargeAsset: React.FC<LargeAssetProps> = ({ modelPath, position, scale, rot
   );
 };
 
+// Floating Sword Component with Light Blue Glow Pillar
+interface FloatingSwordProps {
+  position: [number, number, number];
+}
+
+const FloatingSword: React.FC<FloatingSwordProps> = ({ position }) => {
+  const swordGroup = useRef<THREE.Group>(null!);
+  const glowPillarGroup = useRef<THREE.Group>(null!);
+  const [swordModel, setSwordModel] = useState<THREE.Group | null>(null);
+  const [startTime] = useState(Date.now());
+  
+  // Glow pillar properties
+  const PILLAR_HEIGHT = 12;
+  const PILLAR_RADIUS = 0.4;
+  const FLOAT_AMPLITUDE = 0.2;
+  const FLOAT_SPEED = 0.3;
+  const ROTATION_SPEED = 0.2;
+
+  // Load sword model
+  useEffect(() => {
+    const loader = new GLTFLoader();
+    
+    loader.load(
+      '/models/items/fantasy_sword_3.glb',
+      (gltf) => {
+        const loadedModel = gltf.scene.clone();
+        
+        // Scale the sword appropriately
+        loadedModel.scale.setScalar(2.3);
+        
+        // Orient sword pointing straight up
+        loadedModel.rotation.set(1.5, 0, 0);
+        
+        // Enable shadows
+        loadedModel.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        if (swordGroup.current) {
+          swordGroup.current.add(loadedModel);
+        }
+        
+        setSwordModel(loadedModel);
+        console.log('[EnvironmentAssets] ✨ Floating sword loaded successfully');
+      },
+      undefined,
+      (error) => {
+        console.error('[EnvironmentAssets] ❌ Error loading floating sword:', error);
+      }
+    );
+
+    return () => {
+      if (swordModel && swordGroup.current) {
+        swordGroup.current.remove(swordModel);
+      }
+    };
+  }, []);
+
+  // Create light blue glow pillar
+  useEffect(() => {
+    if (!glowPillarGroup.current) return;
+
+    // Create triple-layer glow effect with light blue color
+    const pillarGeometry = new THREE.CylinderGeometry(
+      PILLAR_RADIUS, 
+      PILLAR_RADIUS, 
+      PILLAR_HEIGHT, 
+      8, 
+      1, 
+      true
+    );
+    
+    const middleGlowGeometry = new THREE.CylinderGeometry(
+      PILLAR_RADIUS * 1.5, 
+      PILLAR_RADIUS * 1.5, 
+      PILLAR_HEIGHT, 
+      8, 
+      1, 
+      true
+    );
+    
+    const outerGlowGeometry = new THREE.CylinderGeometry(
+      PILLAR_RADIUS * 2.0, 
+      PILLAR_RADIUS * 2.0, 
+      PILLAR_HEIGHT, 
+      8, 
+      1, 
+      true
+    );
+    
+    // Deep blue glow materials - much more translucent
+    const deepBlueColor = 0x4169E1; // Royal blue color for better blue tint
+    
+    const innerMaterial = new THREE.MeshBasicMaterial({
+      color: deepBlueColor,
+      transparent: true,
+      opacity: 0.04, // Much more translucent (was 0.15)
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      fog: false
+    });
+    
+    const middleMaterial = new THREE.MeshBasicMaterial({
+      color: deepBlueColor,
+      transparent: true,
+      opacity: 0.025, // Much more translucent (was 0.1)
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      fog: false
+    });
+    
+    const outerMaterial = new THREE.MeshBasicMaterial({
+      color: deepBlueColor,
+      transparent: true,
+      opacity: 0.015, // Much more translucent (was 0.06)
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      fog: false
+    });
+    
+    // Create glow layers
+    const innerGlow = new THREE.Mesh(pillarGeometry, innerMaterial);
+    const middleGlow = new THREE.Mesh(middleGlowGeometry, middleMaterial);
+    const outerGlow = new THREE.Mesh(outerGlowGeometry, outerMaterial);
+    
+    glowPillarGroup.current.add(innerGlow);
+    glowPillarGroup.current.add(middleGlow);
+    glowPillarGroup.current.add(outerGlow);
+    
+    console.log('[EnvironmentAssets] 🔵 Light blue glow pillar created');
+  }, []);
+
+  // Set initial positions
+  useEffect(() => {
+    if (swordGroup.current) {
+      swordGroup.current.position.set(...position);
+    }
+    if (glowPillarGroup.current) {
+      // Position pillar at ground level
+      glowPillarGroup.current.position.set(
+        position[0], 
+        position[1] + PILLAR_HEIGHT / 2 - 1.0, 
+        position[2]
+      );
+    }
+  }, [position]);
+
+  // Animation loop
+  useFrame((state, delta) => {
+    const elapsed = (Date.now() - startTime) / 1000;
+    
+    if (swordGroup.current && swordModel) {
+      // Floating up and down motion
+      const floatOffset = Math.sin(elapsed * FLOAT_SPEED * Math.PI * 2) * FLOAT_AMPLITUDE;
+      swordGroup.current.position.y = position[1] + floatOffset + 3; // Hover 3 units above ground
+      
+      // Gentle rotation around Y-axis
+      swordGroup.current.rotation.y += ROTATION_SPEED * delta;
+    }
+  });
+
+  return (
+    <>
+      <group ref={swordGroup} />
+      <group ref={glowPillarGroup} />
+    </>
+  );
+};
+
 export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = () => {
   const [rockPositions] = useState<THREE.Vector3[]>(() => {
     // Generate positions once when component mounts
@@ -373,6 +550,9 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = () => {
         rotation={ENVIRONMENT_CONFIG.statue.rotation}
         name="X-Statue"
       />
+
+      {/* Floating Sword with Light Blue Glow Pillar */}
+      <FloatingSword position={[25, 0, 35]} />
     </group>
   );
 }; 

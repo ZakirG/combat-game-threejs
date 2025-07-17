@@ -452,7 +452,7 @@ function App() {
         return;
     }
 
-    const dbHost = "localhost:3000";
+    const dbHost = "localhost:5555";
     const dbName = "vibe-multiplayer";
 
     console.log(`Connecting to SpacetimeDB at ${dbHost}, database: ${dbName}...`);

@@ -64,7 +64,7 @@ else
 fi
 
 echo "🚀 Starting SpacetimeDB server..."
-spacetime start &
+spacetime start --listen-addr 0.0.0.0:5555 &
 SERVER_PID=$!
 
 # Wait for server to start
@@ -75,7 +75,7 @@ echo "📦 Publishing module..."
 echo "N" | spacetime publish vibe-multiplayer
 
 echo "✅ SpacetimeDB server is running!"
-echo "🌐 Server URL: http://127.0.0.1:3000"
+echo "🌐 Server URL: http://127.0.0.1:5555"
 echo "📊 Database: vibe-multiplayer"
 echo ""
 echo "📝 Note: TypeScript client bindings are automatically regenerated on each start"
@@ -216,7 +216,7 @@ echo "🌐 Once both services are running, open your browser to:"
 echo "   http://localhost:5173"
 echo ""
 echo "📝 Tips:"
-echo "   - Server runs on port 3000"
+echo "   - Server runs on port 5555"
 echo "   - Client runs on port 5173"
 echo "   - TypeScript bindings are automatically regenerated on server start"
 echo "   - Press Ctrl+C in each terminal to stop services"

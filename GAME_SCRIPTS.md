@@ -38,7 +38,7 @@ To stop all game processes:
 This script will:
 - ✅ Kill all SpacetimeDB server processes
 - ✅ Kill all Vite development server processes
-- ✅ Free up ports 3000 and 5173
+- ✅ Free up ports 5555 and 5173
 - ✅ Clean up any remaining processes
 
 ## 🔧 Manual Commands (if needed)
@@ -70,7 +70,7 @@ npm run dev
 
 - The scripts are designed to work with **Warp terminal**
 - Both services need to be running simultaneously for the game to work
-- Server runs on port 3000, client on port 5173
+- Server runs on port 5555, client on port 5173
 - If you encounter issues, check the terminal output for error messages
 - You can restart the game by running `./stop-game.sh` followed by `./start-game.sh`
 
