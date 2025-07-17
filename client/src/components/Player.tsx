@@ -1587,11 +1587,11 @@ export const Player: React.FC<PlayerProps> = ({
                 const hitZombies = (window as any).checkZombieAttack(
                   localPositionRef.current, 
                   localRotationRef.current, 
-                  4.0 // Attack range of 4 units (matches new KNOCKBACK_CONFIG.ATTACK_RANGE)
+                  attackIsSword // Pass whether this is a sword attack
                 );
                 
                 if (hitZombies.length > 0) {
-                  console.log(`[Player] ⚔️ Attack successful! Hit ${hitZombies.length} zombie(s)`);
+                  console.log(`[Player] ⚔️ Attack successful! Hit ${hitZombies.length} zombie(s) with ${attackIsSword ? 'SWORD' : 'MELEE'} attack`);
                   
                   // Play blood spurt sound effect
                   playBloodSpurtSound();

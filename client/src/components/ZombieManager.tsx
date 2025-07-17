@@ -43,13 +43,15 @@ const SPAWN_SETTINGS = {
 
 // Configurable knockback physics for player attacks
 const KNOCKBACK_CONFIG = {
-  ATTACK_RANGE: 4.0,      // How far the attack reaches (reduced from 15.0)
-  FACING_LENIENCY: 0.3,   // Dot product, > 0 means "in front" (was -1.5)
-  FORCE: 90.0,            // How far back the zombie flies (tripled from 30.0)
-  HEIGHT: 24.0,           // How high the zombie flies (tripled from 8.0)
-  GRAVITY: -60.0,         // Gravity applied to the falling zombie
-  DECAY: 0.96,            // How quickly horizontal movement slows (closer to 1 is slower)
-  MAX_KILLS_AT_A_TIME: 1, // Maximum number of zombies that can be killed in one attack
+  ATTACK_RANGE: 4.0,           // How far normal attacks reach
+  SWORD_ATTACK_RANGE: 6.0,     // How far sword attacks reach (increased range)
+  FACING_LENIENCY: 0.3,        // Dot product, > 0 means "in front" (was -1.5)
+  FORCE: 90.0,                 // How far back the zombie flies (tripled from 30.0)
+  HEIGHT: 24.0,                // How high the zombie flies (tripled from 8.0)
+  GRAVITY: -60.0,              // Gravity applied to the falling zombie
+  DECAY: 0.96,                 // How quickly horizontal movement slows (closer to 1 is slower)
+  MAX_KILLS_AT_A_TIME: 1,      // Maximum number of zombies that can be killed in one normal attack
+  SWORD_MAX_KILLS_AT_A_TIME: 2, // Maximum number of zombies that can be killed in one sword attack
 };
 
 
@@ -996,7 +998,18 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   }, []);
 
   // Create global attack check function for Player components to use
-  const checkPlayerAttack = useCallback((playerPosition: THREE.Vector3, playerRotation: THREE.Euler, attackRange: number = KNOCKBACK_CONFIG.ATTACK_RANGE) => {
+  const checkPlayerAttack = useCallback((
+    playerPosition: THREE.Vector3, 
+    playerRotation: THREE.Euler, 
+    isSwordAttack: boolean = false,
+    attackRange?: number
+  ) => {
+    // Use sword-specific range if it's a sword attack, otherwise use provided range or default
+    const effectiveAttackRange = attackRange || (isSwordAttack ? KNOCKBACK_CONFIG.SWORD_ATTACK_RANGE : KNOCKBACK_CONFIG.ATTACK_RANGE);
+    
+    // Use sword-specific max kills if it's a sword attack
+    const maxKillsAtATime = isSwordAttack ? KNOCKBACK_CONFIG.SWORD_MAX_KILLS_AT_A_TIME : KNOCKBACK_CONFIG.MAX_KILLS_AT_A_TIME;
+    
     const candidateZombies: Array<{ zombieId: string; position: THREE.Vector3; distance: number; zombieData: any }> = [];
     
     // Get forward direction from player rotation - FLIPPED Z-axis from -1 to 1 to fix direction
@@ -1006,10 +1019,10 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     // // console.log(`[ZombieManager] 📍 Player pos: (${playerPosition.x.toFixed(2)}, ${playerPosition.y.toFixed(2)}, ${playerPosition.z.toFixed(2)})`);
     // // console.log(`[ZombieManager] 📐 Player rotation: (${playerRotation.x.toFixed(3)}, ${playerRotation.y.toFixed(3)}, ${playerRotation.z.toFixed(3)})`);
     // // console.log(`[ZombieManager] ➡️ Forward direction: (${forwardDirection.x.toFixed(3)}, ${forwardDirection.y.toFixed(3)}, ${forwardDirection.z.toFixed(3)})`);
-    // // console.log(`[ZombieManager] 📏 Attack range: ${attackRange} units`);
+    // // console.log(`[ZombieManager] 📏 Attack range: ${effectiveAttackRange} units`);
     // // console.log(`[ZombieManager] 🎯 Facing leniency: ${KNOCKBACK_CONFIG.FACING_LENIENCY} (lower = more lenient)`);
     // // console.log(`[ZombieManager] 🧟 Checking ${zombieInstancesRef.current.size} zombies...`);
-    // // console.log(`[ZombieManager] ⚔️ Max kills per attack: ${KNOCKBACK_CONFIG.MAX_KILLS_AT_A_TIME}`);
+    // // console.log(`[ZombieManager] ⚔️ Max kills per attack: ${maxKillsAtATime} (${isSwordAttack ? 'SWORD' : 'MELEE'} attack)`);
     
     // First pass: Find all eligible zombies within range and facing requirements
     for (const [zombieId, zombieData] of zombieInstancesRef.current) {
@@ -1021,14 +1034,13 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       // // console.log(`[ZombieManager]   📏 Distance: ${distance.toFixed(2)} units`);
       
       // Check if zombie is within attack range
-      if (distance <= attackRange) {
-        // // console.log(`[ZombieManager]   ✅ DISTANCE OK: ${distance.toFixed(2)} <= ${attackRange}`);
+      if (distance <= effectiveAttackRange) {
+        // // console.log(`[ZombieManager]   ✅ DISTANCE OK: ${distance.toFixed(2)} <= ${effectiveAttackRange}`);
         
         // Check if player is roughly facing the zombie
         const directionToZombie = new THREE.Vector3().subVectors(zombiePos, playerPosition).normalize();
         const dot = forwardDirection.dot(directionToZombie);
         
-        // // console.log(`[ZombieManager]   ➡️ Direction to zombie: (${directionToZombie.x.toFixed(3)}, ${directionToZombie.y.toFixed(3)}, ${directionToZombie.z.toFixed(3)})`);
         // // console.log(`[ZombieManager]   🎯 Dot product: ${dot.toFixed(3)} (need > ${KNOCKBACK_CONFIG.FACING_LENIENCY})`);
         
         // If dot product > a lenient value, player is facing zombie
@@ -1045,21 +1057,21 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
           // console.log(`[ZombieManager]   ❌ FACING FAILED: ${dot.toFixed(3)} <= ${KNOCKBACK_CONFIG.FACING_LENIENCY} (player not facing zombie)`);
         }
       } else {
-        // console.log(`[ZombieManager]   ❌ DISTANCE FAILED: ${distance.toFixed(2)} > ${attackRange} (too far away)`);
+        // console.log(`[ZombieManager]   ❌ DISTANCE FAILED: ${distance.toFixed(2)} > ${effectiveAttackRange} (too far away)`);
       }
     }
     
-    // Second pass: Sort by distance and select the closest ones up to MAX_KILLS_AT_A_TIME
+    // Second pass: Sort by distance and select the closest ones up to maxKillsAtATime
     candidateZombies.sort((a, b) => a.distance - b.distance);
-    const zombiesToKill = candidateZombies.slice(0, KNOCKBACK_CONFIG.MAX_KILLS_AT_A_TIME);
+    const zombiesToKill = candidateZombies.slice(0, maxKillsAtATime);
     
-    // console.log(`[ZombieManager] 🎯 Found ${candidateZombies.length} eligible zombies, killing ${zombiesToKill.length} closest ones`);
+    // console.log(`[ZombieManager] 🎯 Found ${candidateZombies.length} eligible zombies, killing ${zombiesToKill.length} closest ones (${isSwordAttack ? 'SWORD' : 'MELEE'} attack)`);
     
     const hitZombies: Array<{ zombieId: string; position: THREE.Vector3; distance: number }> = [];
     
     // Kill the selected zombies
     for (const zombie of zombiesToKill) {
-      // console.log(`[ZombieManager] 💀 ZOMBIE KILLED! ${zombie.zombieId} hit at distance ${zombie.distance.toFixed(2)}`);
+      // console.log(`[ZombieManager] 💀 ZOMBIE KILLED! ${zombie.zombieId} hit at distance ${zombie.distance.toFixed(2)} (${isSwordAttack ? 'SWORD' : 'MELEE'} attack)`);
       
       hitZombies.push({ 
         zombieId: zombie.zombieId, 
@@ -1072,7 +1084,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       zombie.zombieData.triggerDeath(directionToZombie);
     }
     
-    // console.log(`[ZombieManager] 🗡️ ATTACK CHECK COMPLETE: Hit ${hitZombies.length} zombies`);
+    // console.log(`[ZombieManager] 🗡️ ATTACK CHECK COMPLETE: Hit ${hitZombies.length} zombies (${isSwordAttack ? 'SWORD' : 'MELEE'} attack)`);
     return hitZombies;
   }, []);
 

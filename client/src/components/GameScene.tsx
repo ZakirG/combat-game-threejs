@@ -192,7 +192,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
 
       {/* Render Optimized Zombie Manager */}
       <ZombieManager 
-        zombieCount={40}
+        zombieCount={60}
         players={players}
         isDebugVisible={isDebugPanelVisible}
         minSpawnDistance={40} // Minimum 20 units from any player (20 feet to prevent close spawning)
