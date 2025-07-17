@@ -147,7 +147,8 @@ export const Player: React.FC<PlayerProps> = ({
   // Combo system state
   const [lastAttackTime, setLastAttackTime] = useState<number>(0);
   const [comboActive, setComboActive] = useState<boolean>(false);
-  const [comboStage, setComboStage] = useState<number>(0); // 0=none, 1=waiting for attack2, 2=waiting for attack3, 3=waiting for attack4
+  const [comboStage, setComboStage] = useState<number>(0); // 0-7 for 8-hit combo (0=none, 1-7=combo stages)
+  const [currentAttackIsSword, setCurrentAttackIsSword] = useState<boolean>(false); // Track current attack type
   const COMBO_WINDOW = 2000; // 2 seconds to perform combo (changed from 3 to match requirement)
   
   // Blood effect system
@@ -163,6 +164,9 @@ export const Player: React.FC<PlayerProps> = ({
   
   // Derive sword equipped state from equippedSword
   const isSwordEquipped = useMemo(() => !!equippedSword, [equippedSword]);
+  
+  // Track previous sword state to prevent unnecessary effect triggers
+  const prevSwordEquippedRef = useRef<boolean>(false);
 
   // --- Client Prediction State ---
   // For gameplay, force high altitude spawn on first entrance
@@ -1243,31 +1247,62 @@ export const Player: React.FC<PlayerProps> = ({
             const currentTime = Date.now();
             const timeSinceLastAttack = currentTime - lastAttackTime;
             
-            // Determine which attack to play based on combo stage and timing
+            // Determine which attack to play based on combo stage and timing (8-hit combo)
             let attackAnimation = ANIMATIONS.ATTACK;
             let isComboAttack = false;
             let comboDescription = 'FIRST';
+            let attackIsSword = false; // Track if this specific attack should be sword or melee
+            
+            console.log(`🔍 [DEBUG] Initial state - comboStage: ${comboStage}, comboActive: ${comboActive}, timeSinceLastAttack: ${timeSinceLastAttack}, isSwordEquipped: ${isSwordEquipped}`);
             
             if (comboActive && timeSinceLastAttack <= COMBO_WINDOW) {
+              isComboAttack = true;
               if (comboStage === 1) {
-                // Second attack in combo
-                attackAnimation = ANIMATIONS.ATTACK2;
-                isComboAttack = true;
+                attackAnimation = ANIMATIONS.ATTACK;  // Repeat attack1 for melee
                 comboDescription = 'SECOND';
               } else if (comboStage === 2) {
-                // Third attack in combo
-                attackAnimation = ANIMATIONS.ATTACK3;
-                isComboAttack = true;
+                attackAnimation = ANIMATIONS.ATTACK2; // Sword attack2
                 comboDescription = 'THIRD';
               } else if (comboStage === 3) {
-                // Fourth attack in combo
-                attackAnimation = ANIMATIONS.ATTACK4;
-                isComboAttack = true;
+                attackAnimation = ANIMATIONS.ATTACK2; // Repeat attack2 for melee
                 comboDescription = 'FOURTH';
+              } else if (comboStage === 4) {
+                attackAnimation = ANIMATIONS.ATTACK3; // Sword attack3
+                comboDescription = 'FIFTH';
+              } else if (comboStage === 5) {
+                attackAnimation = ANIMATIONS.ATTACK3; // Repeat attack3 for melee
+                comboDescription = 'SIXTH';
+              } else if (comboStage === 6) {
+                attackAnimation = ANIMATIONS.ATTACK4; // Sword attack4
+                comboDescription = 'SEVENTH';
+              } else if (comboStage === 7) {
+                attackAnimation = ANIMATIONS.ATTACK4; // Repeat attack4 for melee
+                comboDescription = 'EIGHTH';
               }
             }
             
-            console.log(`[Player] ⚔️ ${comboDescription} Attack triggered - Combo Stage: ${comboStage}, Time since last: ${timeSinceLastAttack}ms`);
+            console.log(`🔍 [DEBUG] After combo logic - attackAnimation: ${attackAnimation}, isComboAttack: ${isComboAttack}, comboDescription: ${comboDescription}`);
+            
+            // For sword-equipped characters, alternate between sword and melee attacks
+            if (isSwordEquipped) {
+              // Even stages (0,2,4,6): Sword attacks
+              // Odd stages (1,3,5,7): Melee attacks
+              if (comboStage % 2 === 0) {
+                attackIsSword = true;
+                comboDescription += ' SWORD';
+              } else {
+                attackIsSword = false;
+                comboDescription += ' MELEE';
+              }
+            } else {
+              // Not sword equipped: all attacks are melee
+              attackIsSword = false;
+              comboDescription += ' MELEE';
+            }
+            
+            console.log(`🔍 [DEBUG] After sword/melee logic - attackIsSword: ${attackIsSword}, final comboDescription: ${comboDescription}`);
+            
+            console.log(`[Player] ⚔️ ${comboDescription} Attack triggered - Combo Stage: ${comboStage}, Attack is Sword: ${attackIsSword}, Sword Equipped: ${isSwordEquipped}, Time since last: ${timeSinceLastAttack}ms`);
             
             // If already attacking, restart the attack sequence
             if (isAttacking) {
@@ -1276,27 +1311,52 @@ export const Player: React.FC<PlayerProps> = ({
             
             setIsAttacking(true);
             setLastAttackTime(currentTime);
+            setCurrentAttackIsSword(attackIsSword); // Set the current attack type
             
-            // Update combo state for next attack
+            // Expose attack info globally for zombie system
+            (window as any).currentPlayerAttackInfo = {
+              isSword: attackIsSword,
+              comboStage: comboStage,
+              attackAnimation: attackAnimation,
+              timestamp: currentTime
+            };
+            // Legacy support
+            (window as any).currentPlayerAttackIsSword = attackIsSword;
+            
+            // Update combo state for next attack (8-hit combo system)
+            console.log(`🔍 [DEBUG] Before combo update - comboStage: ${comboStage}, comboActive: ${comboActive}`);
+            
             if (comboStage === 0 || timeSinceLastAttack > COMBO_WINDOW) {
               // First attack or combo window expired - start new combo chain
               setComboActive(true);
-              setComboStage(1); // Next attack will be attack2
-              console.log(`[Player] 👊 First attack, combo window opened for attack2`);
+              setComboStage(1); // Next attack will be stage 1
+              console.log(`[Player] 👊 First attack, combo window opened for stage 1`);
             } else if (comboStage === 1) {
-              // Second attack - enable third attack
-              setComboStage(2); // Next attack will be attack3
-              console.log(`[Player] 🥊 Second combo attack! Window opened for attack3`);
+              setComboStage(2);
+              console.log(`[Player] 🥊 Stage 1 → Stage 2`);
             } else if (comboStage === 2) {
-              // Third attack - enable fourth attack
-              setComboStage(3); // Next attack will be attack4
-              console.log(`[Player] 💥 Third combo attack! Window opened for attack4`);
+              setComboStage(3);
+              console.log(`[Player] 💥 Stage 2 → Stage 3`);
             } else if (comboStage === 3) {
-              // Fourth attack - reset combo chain
+              setComboStage(4);
+              console.log(`[Player] 🔥 Stage 3 → Stage 4`);
+            } else if (comboStage === 4) {
+              setComboStage(5);
+              console.log(`[Player] ⚡ Stage 4 → Stage 5`);
+            } else if (comboStage === 5) {
+              setComboStage(6);
+              console.log(`[Player] 🌟 Stage 5 → Stage 6`);
+            } else if (comboStage === 6) {
+              setComboStage(7);
+              console.log(`[Player] 💫 Stage 6 → Stage 7`);
+            } else if (comboStage === 7) {
+              // Eighth attack - reset combo chain
               setComboActive(false);
               setComboStage(0);
-              console.log(`[Player] 🔥 FOURTH COMBO ATTACK! Ultimate combo chain complete`);
+              console.log(`[Player] 🎆 STAGE 7 COMPLETE! 8-HIT ULTIMATE COMBO FINISHED!`);
             }
+            
+            console.log(`🔍 [DEBUG] After combo update - new comboStage will be: ${comboStage === 0 || timeSinceLastAttack > COMBO_WINDOW ? 1 : comboStage < 7 ? comboStage + 1 : 0}`);
             
             // Clear any existing attack timeout to restart sequence
             if (attackTimeoutRef.current) {
@@ -1305,7 +1365,93 @@ export const Player: React.FC<PlayerProps> = ({
             }
             
             // Play appropriate attack animation (restart animation)
-            playAnimation(attackAnimation, 0.1); // Quick crossfade for responsiveness
+            // Handle sword vs melee animation selection manually for alternating combos
+            console.log(`🔍 [DEBUG] Animation selection - isSwordEquipped: ${isSwordEquipped}, attackIsSword: ${attackIsSword}, attackAnimation: ${attackAnimation}`);
+            console.log(`🔍 [DEBUG] Available animations: ${Object.keys(animations).join(', ')}`);
+            
+            if (isSwordEquipped) {
+              if (attackIsSword) {
+                // Play sword animation
+                const swordAnimationName = `sword_${attackAnimation}`;
+                console.log(`⚔️ [SWORD PATH] Attempting to play SWORD animation: ${swordAnimationName}`);
+                console.log(`🔍 [DEBUG] Sword animation exists: ${!!animations[swordAnimationName]}`);
+                
+                if (animations[swordAnimationName]) {
+                  const targetAction = animations[swordAnimationName];
+                  const currentAction = animations[currentAnimation];
+                  
+                  console.log(`🔍 [DEBUG] Playing sword animation ${swordAnimationName}, current: ${currentAnimation}`);
+                  
+                  if (currentAction && currentAction !== targetAction) {
+                    currentAction.fadeOut(0.1);
+                  }
+                  
+                  // Get sword time scale
+                  const timeScale = getAnimationTimeScale(characterClass, attackAnimation, true);
+                  console.log(`🔍 [DEBUG] Sword timeScale: ${timeScale}`);
+                  
+                  targetAction.reset()
+                              .setEffectiveTimeScale(timeScale)
+                              .setEffectiveWeight(1)
+                              .fadeIn(0.1)
+                              .play();
+                              
+                  setCurrentAnimation(swordAnimationName);
+                  console.log(`✅ [SWORD] Successfully playing ${swordAnimationName}`);
+                } else {
+                  console.warn(`⚠️ Sword animation ${swordAnimationName} not found, falling back to melee`);
+                  // Fallback to melee animation
+                  const meleeAnimationName = attackAnimation;
+                  const targetAction = animations[meleeAnimationName];
+                  const timeScale = getAnimationTimeScale(characterClass, attackAnimation, false);
+                  
+                  targetAction.reset()
+                              .setEffectiveTimeScale(timeScale)
+                              .setEffectiveWeight(1)
+                              .fadeIn(0.1)
+                              .play();
+                              
+                  setCurrentAnimation(meleeAnimationName);
+                }
+              } else {
+                // Play melee animation even though sword is equipped
+                const meleeAnimationName = attackAnimation;
+                console.log(`🥊 [MELEE PATH] Attempting to play MELEE animation: ${meleeAnimationName} (sword equipped but melee attack)`);
+                console.log(`🔍 [DEBUG] Melee animation exists: ${!!animations[meleeAnimationName]}`);
+                
+                if (animations[meleeAnimationName]) {
+                  const targetAction = animations[meleeAnimationName];
+                  const currentAction = animations[currentAnimation];
+                  
+                  console.log(`🔍 [DEBUG] Playing melee animation ${meleeAnimationName}, current: ${currentAnimation}`);
+                  
+                  if (currentAction && currentAction !== targetAction) {
+                    currentAction.fadeOut(0.1);
+                    console.log(`🔍 [DEBUG] Fading out current animation: ${currentAnimation}`);
+                  }
+                  
+                  // Get melee time scale (not sword time scale)
+                  const timeScale = getAnimationTimeScale(characterClass, attackAnimation, false);
+                  console.log(`🔍 [DEBUG] Melee timeScale: ${timeScale}`);
+                  
+                  targetAction.reset()
+                              .setEffectiveTimeScale(timeScale)
+                              .setEffectiveWeight(1)
+                              .fadeIn(0.1)
+                              .play();
+                              
+                  setCurrentAnimation(meleeAnimationName);
+                  console.log(`✅ [MELEE] Successfully playing ${meleeAnimationName}`);
+                } else {
+                  console.warn(`⚠️ Melee animation ${meleeAnimationName} not found`);
+                  console.log(`🔍 [DEBUG] Available keys: ${Object.keys(animations)}`);
+                }
+              }
+            } else {
+              // No sword equipped: use normal playAnimation (all melee)
+              console.log(`🥊 [NO SWORD] Playing normal MELEE animation: ${attackAnimation} (no sword equipped)`);
+              playAnimation(attackAnimation, 0.1); // Quick crossfade for responsiveness
+            }
             
             // Schedule zombie hit detection after animation starts
             setTimeout(() => {
@@ -1372,6 +1518,15 @@ export const Player: React.FC<PlayerProps> = ({
             // Complete the attack after full animation duration
             attackTimeoutRef.current = setTimeout(() => {
               setIsAttacking(false);
+              setCurrentAttackIsSword(false); // Clear attack type
+              // Clear global attack state
+              (window as any).currentPlayerAttackInfo = {
+                isSword: false,
+                comboStage: 0,
+                attackAnimation: null,
+                timestamp: 0
+              };
+              (window as any).currentPlayerAttackIsSword = false; // Legacy support
               attackTimeoutRef.current = null;
               console.log(`[Player] 🏁 Attack animation completed`);
               
@@ -1382,7 +1537,7 @@ export const Player: React.FC<PlayerProps> = ({
                   if (timeNow - lastAttackTime >= COMBO_WINDOW) {
                     setComboActive(false);
                     setComboStage(0);
-                    console.log(`[Player] ⏱️ Combo window expired, reset to normal attacks`);
+                    console.log(`[Player] ⏱️ 8-hit combo window expired, reset to normal attacks`);
                   }
                 }, COMBO_WINDOW);
               }
@@ -1468,10 +1623,10 @@ export const Player: React.FC<PlayerProps> = ({
                   // ALWAYS only reconcile horizontal position (X/Z), never Y - let client physics handle Y entirely
                   localPositionRef.current.x = THREE.MathUtils.lerp(localPositionRef.current.x, serverPosition.x, RECONCILE_LERP_FACTOR);
                   localPositionRef.current.z = THREE.MathUtils.lerp(localPositionRef.current.z, serverPosition.z, RECONCILE_LERP_FACTOR);
-                  console.log(`🔄 [Reconcile] Applied HORIZONTAL-ONLY reconciliation - Y preserved at: ${localPositionRef.current.y.toFixed(1)} (Server Y ignored: ${serverPosition.y.toFixed(1)})`);
+                  
               }
             } else if (isStillFalling && localPositionRef.current.y > 120) {
-              console.log(`🚫 [Reconcile] Skipping reconciliation during falling - Y=${localPositionRef.current.y.toFixed(1)}, Animation=${currentAnimation}`);
+              // ...
             }
             // During falling, skip reconciliation entirely to allow physics to work
           } else {
@@ -1904,20 +2059,40 @@ export const Player: React.FC<PlayerProps> = ({
     }
   }, [model, isLocalPlayer, findRightHandBone]);
 
-  // Handle animation switching when sword is equipped/unequipped
+  // Handle animation switching when sword is equipped/unequipped (but not during combat)
   useEffect(() => {
-    if (mixer && Object.keys(animations).length > 0 && currentAnimation) {
+    // Only run if sword state actually changed and we're not attacking
+    if (prevSwordEquippedRef.current !== isSwordEquipped && 
+        mixer && Object.keys(animations).length > 0 && currentAnimation && !isAttacking) {
+      
       // Extract the base animation name (remove sword_ prefix if present)
       const baseAnimationName = currentAnimation.startsWith('sword_') 
         ? currentAnimation.replace('sword_', '') 
         : currentAnimation;
       
-      console.log(`🗡️ Sword state changed (equipped: ${isSwordEquipped}), switching from ${currentAnimation} to appropriate variant of ${baseAnimationName}`);
+      console.log(`🗡️ Sword state ACTUALLY changed (${prevSwordEquippedRef.current} → ${isSwordEquipped}), switching from ${currentAnimation} to appropriate variant of ${baseAnimationName}`);
       
       // Play the appropriate variant of the current animation
       playAnimation(baseAnimationName, 0.2); // Quick crossfade for smooth transition
     }
-  }, [isSwordEquipped, mixer, animations, playAnimation]); // Watch for sword state changes
+    
+    // Update the previous state
+    prevSwordEquippedRef.current = isSwordEquipped;
+  }, [isSwordEquipped, mixer, animations, currentAnimation, isAttacking, playAnimation]); // All dependencies needed for the effect
+
+  // Initialize global attack state
+  useEffect(() => {
+    if (isLocalPlayer) {
+      (window as any).currentPlayerAttackInfo = {
+        isSword: false,
+        comboStage: 0,
+        attackAnimation: null,
+        timestamp: 0
+      };
+      (window as any).currentPlayerAttackIsSword = false;
+      console.log(`[Player] 🌐 Initialized global attack state for zombie system`);
+    }
+  }, [isLocalPlayer]);
 
   // Expose sword equipping/unequipping functions for external use
   useEffect(() => {
