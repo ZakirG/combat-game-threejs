@@ -731,15 +731,22 @@ export const Player: React.FC<PlayerProps> = ({
             newAnimations[name] = action;
             
             // Set loop mode based on animation type
-            if (
+            const shouldLoop = (
               name === 'idle' ||
               name.startsWith('walk-') ||
-              name.startsWith('run-')
-            ) {
+              name.startsWith('run-') ||
+              name.includes('_idle') ||
+              name.includes('_walk-') ||
+              name.includes('_run-')
+            );
+            
+            if (shouldLoop) {
               action.setLoop(THREE.LoopRepeat, Infinity);
+              console.log(`🔄 [Loop Debug] Set ${name} to LOOP (infinite)`);
             } else {
               action.setLoop(THREE.LoopOnce, 1);
               action.clampWhenFinished = true;
+              console.log(`🔄 [Loop Debug] Set ${name} to ONCE (single)`);
             }
             
             console.log(`✅ Animation "${name}" processed and ready.`);
