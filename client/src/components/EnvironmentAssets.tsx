@@ -37,12 +37,16 @@ export const SWORD_SPAWN_POSITION: [number, number, number] = [25, 0, 35];
 // Flamethrower spawn position 
 export const FLAMETHROWER_SPAWN_POSITION: [number, number, number] = [-25, 0, 35];
 
+// Cybertruck spawn position 
+export const CYBERTRUCK_SPAWN_POSITION: [number, number, number] = [-1, -0.8, -140];
+
 interface EnvironmentAssetsProps {
   // Player data for sword collision detection
   players?: ReadonlyMap<string, any>;
   localPlayerIdentity?: any;
   onSwordCollected?: (swordModel: THREE.Group, swordPosition: THREE.Vector3) => void;
   onFlamethrowerCollected?: (flamethrowerModel: THREE.Group, flamethrowerPosition: THREE.Vector3) => void;
+  onCybertruckCollected?: (cybertruckModel: THREE.Group, cybertruckPosition: THREE.Vector3) => void;
   // Callback to provide collision data to parent components
   onCollisionDataReady?: (collisionBoxes: THREE.Box3[]) => void;
 }
@@ -798,12 +802,252 @@ const FloatingFlamethrower: React.FC<FloatingFlamethrowerProps> = ({
   );
 };
 
+// Floating Cybertruck Component with Blue Pillar
+interface FloatingCybertruckProps {
+  position: [number, number, number];
+  onCybertruckCollected?: (cybertruckModel: THREE.Group, cybertruckPosition: THREE.Vector3) => void; // Callback when cybertruck is collected
+  players?: ReadonlyMap<string, any>; // Player data for collision detection
+  localPlayerIdentity?: any; // Local player identity for collision detection
+}
+
+const FloatingCybertruck: React.FC<FloatingCybertruckProps> = ({ 
+  position, 
+  onCybertruckCollected, 
+  players, 
+  localPlayerIdentity 
+}) => {
+  const cybertruckGroup = useRef<THREE.Group>(null!);
+  const glowPillarGroup = useRef<THREE.Group>(null!);
+  const [cybertruckModel, setCybertruckModel] = useState<THREE.Group | null>(null);
+  const [modelCenter, setModelCenter] = useState<THREE.Vector3>(new THREE.Vector3());
+  const [startTime] = useState(Date.now());
+  const [isCollected, setIsCollected] = useState(false);
+  
+  // Glow pillar properties
+  const PILLAR_HEIGHT = 2000; // Infinite pillar extending far up into space
+  const PILLAR_RADIUS = 0.2; // Bigger pillar radius for cybertruck (3x larger than default 0.4)
+  const COLLECTION_RADIUS = 5.0; // Distance for cybertruck collection (increased for 6x larger vehicle)
+
+  // Load cybertruck model
+  useEffect(() => {
+    if (isCollected) return; // Don't load if already collected
+    
+    const loader = new GLTFLoader();
+    
+    loader.load(
+      '/models/items/cybertruck.glb',
+      (gltf) => {
+        const loadedModel = gltf.scene.clone();
+        
+        // Scale the cybertruck appropriately - YOU CAN CHANGE THIS VALUE TO SCALE THE TRUCK
+        // Current scale: 6.0 (6x larger than original)
+        // For smaller: use 0.5, 0.3, etc.
+        // For larger: use 2.0, 3.0, etc.
+        loadedModel.scale.setScalar(4.0); // <-- CHANGE THIS TO SCALE THE CYBERTRUCK
+        
+        // Orient cybertruck (you can adjust rotation here)
+        loadedModel.rotation.set(0, 0, 0); // No rotation (facing forward)
+        
+        // Enable shadows
+        loadedModel.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        if (cybertruckGroup.current) {
+          cybertruckGroup.current.add(loadedModel);
+        }
+        
+        // Calculate the center of the cybertruck model for proper pillar alignment
+        const boundingBox = new THREE.Box3().setFromObject(loadedModel);
+        const center = boundingBox.getCenter(new THREE.Vector3());
+        setModelCenter(center);
+        
+        setCybertruckModel(loadedModel);
+        console.log('[EnvironmentAssets] 🚛 Floating cybertruck loaded successfully with scale:', loadedModel.scale.x);
+        console.log('[EnvironmentAssets] 🎯 Cybertruck model center offset:', center);
+      },
+      undefined,
+      (error) => {
+        console.error('[EnvironmentAssets] ❌ Error loading floating cybertruck:', error);
+      }
+    );
+
+    return () => {
+      if (cybertruckModel && cybertruckGroup.current) {
+        cybertruckGroup.current.remove(cybertruckModel);
+      }
+    };
+  }, [isCollected]);
+
+  // Create blue glow pillar with custom radius for cybertruck
+  useEffect(() => {
+    if (!glowPillarGroup.current || isCollected) return;
+
+    // Clear any existing pillar geometry
+    while(glowPillarGroup.current.children.length > 0) {
+      glowPillarGroup.current.remove(glowPillarGroup.current.children[0]);
+    }
+
+    // Create triple-layer glow effect with blue color using current PILLAR_RADIUS
+    const pillarGeometry = new THREE.CylinderGeometry(
+      PILLAR_RADIUS, 
+      PILLAR_RADIUS, 
+      PILLAR_HEIGHT, 
+      8, 
+      1, 
+      true
+    );
+    
+    const middleGlowGeometry = new THREE.CylinderGeometry(
+      PILLAR_RADIUS * 1.5, 
+      PILLAR_RADIUS * 1.5, 
+      PILLAR_HEIGHT, 
+      8, 
+      1, 
+      true
+    );
+    
+    const outerGlowGeometry = new THREE.CylinderGeometry(
+      PILLAR_RADIUS * 2.0, 
+      PILLAR_RADIUS * 2.0, 
+      PILLAR_HEIGHT, 
+      8, 
+      1, 
+      true
+    );
+    
+    // Deep blue glow materials - same as sword/flamethrower
+    const deepBlueColor = 0x4169E1; // Royal blue color
+    
+    const innerMaterial = new THREE.MeshBasicMaterial({
+      color: deepBlueColor,
+      transparent: true,
+      opacity: 0.04,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      fog: false
+    });
+    
+    const middleMaterial = new THREE.MeshBasicMaterial({
+      color: deepBlueColor,
+      transparent: true,
+      opacity: 0.025,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      fog: false
+    });
+    
+    const outerMaterial = new THREE.MeshBasicMaterial({
+      color: deepBlueColor,
+      transparent: true,
+      opacity: 0.015,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      fog: false
+    });
+    
+    // Create glow layers
+    const innerGlow = new THREE.Mesh(pillarGeometry, innerMaterial);
+    const middleGlow = new THREE.Mesh(middleGlowGeometry, middleMaterial);
+    const outerGlow = new THREE.Mesh(outerGlowGeometry, outerMaterial);
+    
+    glowPillarGroup.current.add(innerGlow);
+    glowPillarGroup.current.add(middleGlow);
+    glowPillarGroup.current.add(outerGlow);
+    
+    console.log('[EnvironmentAssets] 🔵 Blue glow pillar created for cybertruck with radius:', PILLAR_RADIUS);
+  }, [isCollected, PILLAR_RADIUS]); // Added PILLAR_RADIUS as dependency
+
+  // Set initial positions
+  useEffect(() => {
+    if (isCollected) return;
+    
+    if (cybertruckGroup.current) {
+      cybertruckGroup.current.position.set(...position);
+    }
+    if (glowPillarGroup.current) {
+      // Position pillar at ground level, centered on the cybertruck's actual center
+      glowPillarGroup.current.position.set(
+        position[0] + modelCenter.x, 
+        position[1] + PILLAR_HEIGHT / 2 - 1.0, 
+        position[2] + modelCenter.z
+      );
+    }
+  }, [position, isCollected]);
+
+  // Animation loop and collision detection
+  useFrame((state, delta) => {
+    if (isCollected) return;
+    
+    const elapsed = (Date.now() - startTime) / 1000;
+    
+    if (cybertruckGroup.current && cybertruckModel) {
+      // Keep cybertruck stationary on the ground (no floating or rotation)
+      cybertruckGroup.current.position.y = position[1]; // Place directly on ground level
+      
+      // Keep pillar centered on the cybertruck's actual center at all times
+      if (glowPillarGroup.current) {
+        glowPillarGroup.current.position.set(
+          cybertruckGroup.current.position.x + modelCenter.x + 1, 
+          position[1] + PILLAR_HEIGHT / 2 - 10.0, 
+          cybertruckGroup.current.position.z + modelCenter.z + 140 
+        );
+      }
+      
+      // Check for player collision (only for local player)
+      if (players && localPlayerIdentity && onCybertruckCollected) {
+        const localPlayer = players.get(localPlayerIdentity.toHexString());
+        if (localPlayer) {
+          const playerPos = new THREE.Vector3(
+            localPlayer.position.x,
+            localPlayer.position.y,
+            localPlayer.position.z
+          );
+          const cybertruckPos = cybertruckGroup.current.position;
+          const distance = playerPos.distanceTo(cybertruckPos);
+          
+          if (distance <= COLLECTION_RADIUS) {
+            console.log('[EnvironmentAssets] 🚛 Cybertruck collected by player!');
+            setIsCollected(true);
+            
+            // Create a copy of the cybertruck model for the player
+            const cybertruckCopy = cybertruckModel.clone();
+            onCybertruckCollected(cybertruckCopy, cybertruckPos.clone());
+            
+            // Hide the floating cybertruck and pillar
+            cybertruckGroup.current.visible = false;
+            glowPillarGroup.current.visible = false;
+          }
+        }
+      }
+    }
+  });
+
+  if (isCollected) {
+    return null; // Don't render anything if collected
+  }
+
+  return (
+    <>
+      <group ref={cybertruckGroup} />
+      <group ref={glowPillarGroup} />
+    </>
+  );
+};
+
 
 export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({ 
   players, 
   localPlayerIdentity, 
   onSwordCollected,
   onFlamethrowerCollected,
+  onCybertruckCollected,
   onCollisionDataReady
 }) => {
   const [rockConfig, setRockConfig] = useState<EnvironmentConfigData | null>(null);
@@ -925,6 +1169,14 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
       <FloatingFlamethrower 
         position={FLAMETHROWER_SPAWN_POSITION} 
         onFlamethrowerCollected={onFlamethrowerCollected}
+        players={players}
+        localPlayerIdentity={localPlayerIdentity}
+      />
+
+      {/* Floating Cybertruck with Blue Pillar */}
+      <FloatingCybertruck 
+        position={CYBERTRUCK_SPAWN_POSITION} 
+        onCybertruckCollected={onCybertruckCollected}
         players={players}
         localPlayerIdentity={localPlayerIdentity}
       />

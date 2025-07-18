@@ -194,6 +194,17 @@ export const GameScene: React.FC<GameSceneProps> = ({
             gameReadyCallbacks.onSwordCollected(swordModel, swordPosition);
           }
         }}
+        onCybertruckCollected={(cybertruckModel, cybertruckPosition) => {
+          // Handle cybertruck collection
+          const localPlayer = Array.from(players.values()).find(player =>
+            localPlayerIdentity?.toHexString() === player.identity.toHexString()
+          );
+          if (localPlayer) {
+            console.log('🚛 Cybertruck collected by player!', cybertruckModel, cybertruckPosition);
+            // You can add custom logic here for what happens when cybertruck is collected
+            // For now, just log it - you can extend this to add the cybertruck to player inventory, etc.
+          }
+        }}
         onCollisionDataReady={handleCollisionDataReady}
       />
 
