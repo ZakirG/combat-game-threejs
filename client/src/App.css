@@ -52,7 +52,7 @@
 
 .combo-visible {
   opacity: 1;
-  animation: comboAppear 0.4s ease-out forwards;
+  animation: comboAppear 0.8s ease-out forwards, shake 0.8s infinite 0.8s;
 }
 
 .combo-hidden {
@@ -61,13 +61,12 @@
 
 .combo-text {
   font-family: 'HorrorTheater', serif;
-  font-size: 26px;
+  font-size: 32px;
 }
 
 .combo-number {
   font-family: 'MountainKing', Arial, sans-serif;
   font-size: 20px;
-  animation: shake 0.8s infinite;
 }
 
 /* Combo appear animation - scale up then down */
