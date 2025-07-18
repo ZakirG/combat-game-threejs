@@ -46,6 +46,8 @@ enum PreviewState {
   IDLE = 'idle',
   ATTACK1 = 'attack1',
   ATTACK2 = 'attack2',
+  ATTACK3 = 'attack3',
+  ATTACK4 = 'attack4',
   IDLE_LOOP = 'idle_loop'
 }
 
@@ -315,7 +317,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
   
   // Load character animations
   const loadAnimations = useCallback((mixer: THREE.AnimationMixer, model: THREE.Group) => {
-    const animationsToLoad = ['idle', 'attack1', 'cast']; // attack2 will be 'cast'
+    const animationsToLoad = ['idle', 'attack1', 'attack2', 'attack3', 'attack4']; // Full combo sequence
     const loadedAnimations: Record<string, THREE.AnimationAction> = {};
     let loadedCount = 0;
     
@@ -323,14 +325,14 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
       loadedCount++;
       if (loadedCount >= animationsToLoad.length) {
         setAnimations(loadedAnimations);
-        setCurrentState(PreviewState.ATTACK1);
+        setCurrentState(PreviewState.IDLE);
         setStateTimer(0);
         
-        // Start with attack animation instead of idle
-        if (loadedAnimations['attack1']) {
-          playAnimation('attack1', loadedAnimations);
-        } else if (loadedAnimations['idle']) {
+        // Start with idle animation before the combo
+        if (loadedAnimations['idle']) {
           playAnimation('idle', loadedAnimations);
+        } else if (loadedAnimations['attack1']) {
+          playAnimation('attack1', loadedAnimations);
         }
         
         // Make model visible after a delay to ensure animation is actually playing
@@ -445,28 +447,10 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
     // Update state timer
     setStateTimer(prev => prev + delta);
     
-    // State machine for animation sequence - starts with attack
+    // State machine for animation sequence - starts with idle, then full combo
     switch (currentState) {
-      case PreviewState.ATTACK1:
-        // Attack1 animation for 1.5 seconds, then move to second attack
-        if (stateTimer > 1.5) {
-          setCurrentState(PreviewState.ATTACK2);
-          setStateTimer(0);
-          playAnimation('cast'); // Use cast as attack2
-        }
-        break;
-        
-      case PreviewState.ATTACK2:
-        // Attack2 animation for 1.5 seconds, then move to idle
-        if (stateTimer > 1.5) {
-          setCurrentState(PreviewState.IDLE);
-          setStateTimer(0);
-          playAnimation('idle');
-        }
-        break;
-        
       case PreviewState.IDLE:
-        // Idle for 2 seconds, then restart with attack1
+        // Idle for 2 seconds, then start combo with attack1
         if (stateTimer > 2.0) {
           setCurrentState(PreviewState.ATTACK1);
           setStateTimer(0);
@@ -474,12 +458,48 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
         }
         break;
         
+      case PreviewState.ATTACK1:
+        // Attack1 animation for 1.5 seconds, then move to attack2
+        if (stateTimer > 1.5) {
+          setCurrentState(PreviewState.ATTACK2);
+          setStateTimer(0);
+          playAnimation('attack2');
+        }
+        break;
+        
+      case PreviewState.ATTACK2:
+        // Attack2 animation for 1.5 seconds, then move to attack3
+        if (stateTimer > 1.5) {
+          setCurrentState(PreviewState.ATTACK3);
+          setStateTimer(0);
+          playAnimation('attack3');
+        }
+        break;
+        
+      case PreviewState.ATTACK3:
+        // Attack3 animation for 1.5 seconds, then move to attack4
+        if (stateTimer > 1.5) {
+          setCurrentState(PreviewState.ATTACK4);
+          setStateTimer(0);
+          playAnimation('attack4');
+        }
+        break;
+        
+      case PreviewState.ATTACK4:
+        // Attack4 animation for 1.5 seconds, then back to idle
+        if (stateTimer > 1.5) {
+          setCurrentState(PreviewState.IDLE);
+          setStateTimer(0);
+          playAnimation('idle');
+        }
+        break;
+        
       case PreviewState.VICTORY:
       case PreviewState.IDLE_LOOP:
-        // Legacy states - redirect to attack1
-        setCurrentState(PreviewState.ATTACK1);
+        // Legacy states - redirect to idle
+        setCurrentState(PreviewState.IDLE);
         setStateTimer(0);
-        playAnimation('attack1');
+        playAnimation('idle');
         break;
     }
   });

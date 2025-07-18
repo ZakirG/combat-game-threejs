@@ -61,7 +61,7 @@ export class CoinEffectManager {
   private activePickupEffects: ActivePickupEffect[] = [];
   
   // Glow pillar properties
-  private readonly PILLAR_HEIGHT = 10; // Height of the magical beam
+  private readonly PILLAR_HEIGHT = 30; // Height of the magical beam (3x taller)
   private readonly PILLAR_RADIUS = 0.3; // Thin beam radius
 
   constructor(scene: THREE.Scene) {
