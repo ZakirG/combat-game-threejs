@@ -51,6 +51,7 @@ import { LoadingScreen } from './components/LoadingScreen';
 import * as THREE from 'three';
 import { PlayerUI } from './components/PlayerUI';
 import { KillCounter } from './components/KillCounter';
+import { MaxComboCounter } from './components/MaxComboCounter';
 import CoinCounter from './components/CoinCounter';
 import { GameReadyState, GameReadyCallbacks, isGameReady } from './types/gameReady';
 
@@ -96,6 +97,7 @@ function App() {
   // --- Combo Counter State ---
   const [comboCount, setComboCount] = useState<number>(0);
   const [lastHitTime, setLastHitTime] = useState<number>(0);
+  const [maxComboCount, setMaxComboCount] = useState<number>(0);
 
   // --- Ref for current input state ---
   const currentInputRef = useRef<InputState>({
@@ -120,19 +122,26 @@ function App() {
     setTotalCoinCount(prev => prev + coinCount);
   }, []);
   
-  // --- Combo Counter Logic ---
+    // --- Combo Counter Logic ---
   const handleZombieHit = useCallback(() => {
     const currentTime = Date.now();
     
     setLastHitTime(prevLastHitTime => {
       const timeSinceLastHit = currentTime - prevLastHitTime;
-      
+    
       // If less than 2 seconds since last hit, continue combo
       if (timeSinceLastHit <= 2000 && prevLastHitTime > 0) {
-        setComboCount(prev => prev + 1);
+        setComboCount(prev => {
+          const newCombo = prev + 1;
+          // Update max combo if this is a new record
+          setMaxComboCount(current => Math.max(current, newCombo));
+          return newCombo;
+        });
       } else {
         // Start new combo
         setComboCount(1);
+        // Update max combo if needed (for the case where max is 0)
+        setMaxComboCount(current => Math.max(current, 1));
       }
       
       return currentTime;
@@ -712,6 +721,7 @@ function App() {
           {localPlayer && <PlayerUI playerData={localPlayer} />}
           {/* Kill Counter - always show when game is active */}
           <KillCounter killCount={totalKillCount} />
+        <MaxComboCounter maxComboCount={maxComboCount} />
           {/* Coin Counter - always show when game is active */}
           <CoinCounter coinCount={totalCoinCount} />
         </>

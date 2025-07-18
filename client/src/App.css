@@ -62,6 +62,7 @@
 .combo-text {
   font-family: 'HorrorTheater', serif;
   font-size: 32px;
+  animation: shake 0.8s infinite 0.8s, comboPulse 1.0s ease-in-out infinite 0.8s;
   
 }
 
@@ -84,25 +85,26 @@
 /* Pulsing scale animation for combo counter and name */
 @keyframes comboPulse {
   0% { transform: scale(1.0); }
-  50% { transform: scale(1.15); }
+  25% { transform: scale(1.15); }
+  50% { transform: scale(1.0); }
   100% { transform: scale(1.0); }
 }
 
 /* Shake animation for combo number - rapid shake then pause pattern */
 @keyframes shake {
   0% { transform: translateX(0); }
-  5% { transform: translateX(-4px); }
-  10% { transform: translateX(4px); }
-  15% { transform: translateX(-4px); }
-  20% { transform: translateX(4px); }
-  25% { transform: translateX(-4px); }
+  5% { transform: translateX(-8px); }
+  10% { transform: translateX(8px); }
+  15% { transform: translateX(-8px); }
+  20% { transform: translateX(8px); }
+  25% { transform: translateX(-8px); }
   30% { transform: translateX(0); }
   31%, 69% { transform: translateX(0); }
-  70% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
-  80% { transform: translateX(-4px); }
-  85% { transform: translateX(4px); }
-  90% { transform: translateX(-4px); }
+  70% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+  80% { transform: translateX(-8px); }
+  85% { transform: translateX(8px); }
+  90% { transform: translateX(-8px); }
   95% { transform: translateX(0); }
   96%, 100% { transform: translateX(0); }
 }
