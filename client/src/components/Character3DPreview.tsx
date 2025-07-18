@@ -392,6 +392,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
               action.setLoop(THREE.LoopRepeat, Infinity);
             } else {
               action.setLoop(THREE.LoopOnce, 1);
+              // Don't clamp when finished to prevent freezing on final frame
               action.clampWhenFinished = true;
             }
             
@@ -418,15 +419,15 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
       return;
     }
     
-    // Stop all current animations
+    // Stop all current animations with quick fade
     Object.values(animationsToUse).forEach(action => {
-      action.fadeOut(0.3);
+      action.fadeOut(0.1);
     });
     
     const targetAction = animationsToUse[animName];
     targetAction.reset()
                .setEffectiveWeight(1)
-               .fadeIn(0.3)
+               .fadeIn(0.1)
                .play();
                
     // console.log(`[Character3DPreview] Playing animation: ${animName}`);
