@@ -185,6 +185,19 @@ body.cursor-locked {
   }
 }
 
+/* Animation for zombie attack flash */
+@keyframes zombie-attack-flash {
+  0% {
+    background-color: rgba(255, 0, 0, 0.6);
+  }
+  50% {
+    background-color: rgba(255, 0, 0, 0.3);
+  }
+  100% {
+    background-color: rgba(0, 0, 0, 0);
+  }
+}
+
 .damage-overlay {
   position: fixed;
   top: 0;
@@ -197,6 +210,10 @@ body.cursor-locked {
 
 .damage-flash {
   animation: damage-flash 0.3s ease-out;
+}
+
+.zombie-attack-flash {
+  animation: zombie-attack-flash 0.5s ease-out;
 }
 
 /* Add styles for player status UI */

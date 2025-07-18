@@ -99,6 +99,10 @@ function App() {
   const [lastHitTime, setLastHitTime] = useState<number>(0);
   const [maxComboCount, setMaxComboCount] = useState<number>(0);
 
+  // --- Zombie Attack Effects State ---
+  const [showZombieAttackFlash, setShowZombieAttackFlash] = useState<boolean>(false);
+  const [shouldTriggerHitAnimation, setShouldTriggerHitAnimation] = useState<boolean>(false);
+
   // --- Ref for current input state ---
   const currentInputRef = useRef<InputState>({
     forward: false, backward: false, left: false, right: false,
@@ -147,6 +151,32 @@ function App() {
       return currentTime;
     });
   }, []);
+
+  // --- Zombie Attack Player Logic ---
+  const handleZombieAttackPlayer = useCallback((targetPlayerId: string) => {
+    // Only trigger effects if the attack targets the local player
+    if (!identity || targetPlayerId !== identity.toHexString()) {
+      return; // Not the local player, ignore
+    }
+    
+    console.log('[ZombieAttack] Local player hit by zombie!');
+    
+    // Trigger screen flash
+    setShowZombieAttackFlash(true);
+    
+    // Trigger hit animation for local player
+    setShouldTriggerHitAnimation(true);
+    
+    // Reset flash after animation completes
+    setTimeout(() => {
+      setShowZombieAttackFlash(false);
+    }, 500); // Match CSS animation duration
+    
+    // Reset hit animation trigger after a short delay
+    setTimeout(() => {
+      setShouldTriggerHitAnimation(false);
+    }, 100); // Short delay to allow Player component to detect the trigger
+  }, [identity]);
 
   // Reset combo count after 2 seconds of no hits
   useEffect(() => {
@@ -716,9 +746,17 @@ function App() {
             gameReady={gameFullyReady} // Pass gameReady state to control ControlsPanel timing
             onKillCountChange={handleKillCountChange} // Pass kill count callback
             onZombieHit={handleZombieHit} // Pass zombie hit callback
+            onZombieAttackPlayer={handleZombieAttackPlayer} // Pass zombie attack player callback
+            shouldTriggerHitAnimation={shouldTriggerHitAnimation} // Pass hit animation trigger
             comboCount={comboCount} // Pass combo count for display
           />
           {localPlayer && <PlayerUI playerData={localPlayer} />}
+          
+          {/* Zombie Attack Flash Effect */}
+          {showZombieAttackFlash && (
+            <div className="damage-overlay zombie-attack-flash" />
+          )}
+          
           {/* Kill Counter - always show when game is active */}
           <KillCounter killCount={totalKillCount} />
         <MaxComboCounter maxComboCount={maxComboCount} />

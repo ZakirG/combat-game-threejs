@@ -57,6 +57,8 @@ interface GameSceneProps {
   gameReady?: boolean; // Whether the game is fully ready
   onKillCountChange?: (killCount: number) => void; // Callback for kill count changes
   onZombieHit?: () => void; // Callback for zombie hits (for combo counter)
+  onZombieAttackPlayer?: (targetPlayerId: string) => void; // Callback for when zombies attack a player
+  shouldTriggerHitAnimation?: boolean; // Whether to trigger hit animation for local player
   comboCount?: number; // Current combo count for display
 }
 
@@ -111,6 +113,8 @@ export const GameScene: React.FC<GameSceneProps> = ({
   gameReady = false, // Destructure gameReady state
   onKillCountChange, // Destructure kill count callback
   onZombieHit, // Destructure zombie hit callback
+  onZombieAttackPlayer, // Destructure zombie attack player callback
+  shouldTriggerHitAnimation = false, // Destructure hit animation trigger
   comboCount = 0 // Destructure combo count
 }) => {
   // Ref for the main directional light
@@ -207,6 +211,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
             isDebugArrowVisible={isLocal ? isDebugPanelVisible : false} // Pass down arrow visibility
             isDebugPanelVisible={isDebugPanelVisible} // Pass down general debug visibility
             gameReadyCallbacks={isLocal ? gameReadyCallbacks : undefined} // Only pass to local player
+            shouldTriggerHitAnimation={isLocal ? shouldTriggerHitAnimation : false} // Pass hit animation trigger to local player only
             environmentCollisionBoxes={environmentCollisionBoxes} // Pass collision data
             gameReady={gameReady} // Pass gameReady state to control physics timing
           />
@@ -235,6 +240,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
         gameReadyCallbacks={gameReadyCallbacks} // Pass GameReady callbacks
         onKillCountChange={onKillCountChange} // Pass kill count callback
         onZombieHit={onZombieHit} // Pass zombie hit callback
+        onZombieAttackPlayer={onZombieAttackPlayer} // Pass zombie attack player callback
       />
 
       {/* Remove OrbitControls as we're using our own camera controls */}

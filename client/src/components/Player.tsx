@@ -112,6 +112,7 @@ interface PlayerProps {
   isDebugPanelVisible?: boolean; // Prop to control general debug helpers visibility
   gameReadyCallbacks?: GameReadyCallbacks; // Callbacks for GameReady events
   gameReady?: boolean; // Controls when physics should be enabled
+  shouldTriggerHitAnimation?: boolean; // Whether to trigger hit animation
   environmentCollisionBoxes?: THREE.Box3[]; // Collision boxes for environment objects
 }
 
@@ -125,6 +126,7 @@ export const Player: React.FC<PlayerProps> = ({
   isDebugPanelVisible = false, // Destructure with default false
   gameReadyCallbacks, // Destructure GameReady callbacks
   gameReady = false, // Destructure gameReady state
+  shouldTriggerHitAnimation = false, // Destructure hit animation trigger
   environmentCollisionBoxes = [] // Destructure collision boxes with default empty array
 }) => {
   const group = useRef<THREE.Group>(null!);
@@ -2818,6 +2820,14 @@ export const Player: React.FC<PlayerProps> = ({
     // Update the previous state
     prevSwordEquippedRef.current = isSwordEquipped;
   }, [isSwordEquipped, mixer, animations, currentAnimation, isAttacking, isPlayingPowerUp, playAnimation]); // All dependencies needed for the effect
+
+  // Hit animation trigger effect
+  useEffect(() => {
+    if (shouldTriggerHitAnimation && isLocalPlayer && animations['hit-to-body']) {
+      console.log('[Player] 🤕 Triggering hit animation - Hit To Body');
+      playAnimation('hit-to-body', 0.1);
+    }
+  }, [shouldTriggerHitAnimation, isLocalPlayer, animations, playAnimation]);
 
   // Initialize global attack state
   useEffect(() => {

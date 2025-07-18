@@ -161,7 +161,7 @@ export class CoinEffectManager {
 
     // Add both coin and pillar to scene
     this.scene.add(coinMesh);
-    this.scene.add(glowPillar);
+    // this.scene.add(glowPillar); // Commented out to hide pillar of light
 
     // Calculate flyaway direction (away from player and up)
     let flyawayVelocity = new THREE.Vector3(0, 0, 0);
@@ -275,18 +275,18 @@ export class CoinEffectManager {
         coin.mesh.position.copy(coin.position);
         
         // Update pillar position to stay centered with coin (closer to ground)
-        coin.glowPillar.position.set(
-          coin.position.x,
-          coin.position.y + this.PILLAR_HEIGHT / 2 - 1.0,
-          coin.position.z
-        );
+        // coin.glowPillar.position.set(
+        //   coin.position.x,
+        //   coin.position.y + this.PILLAR_HEIGHT / 2 - 1.0,
+        //   coin.position.z
+        // ); // Commented out to hide pillar of light
       } else {
         // Once landed, apply floating motion (up and down)
         const floatOffset = Math.sin((elapsed / 1000) * coin.floatSpeed * Math.PI * 2) * this.FLOAT_AMPLITUDE;
         coin.mesh.position.y = coin.baseY + floatOffset;
         
         // Keep pillar at ground level (don't float with coin, closer to ground)
-        coin.glowPillar.position.y = coin.position.y + this.PILLAR_HEIGHT / 2 - 1.0;
+        // coin.glowPillar.position.y = coin.position.y + this.PILLAR_HEIGHT / 2 - 1.0; // Commented out to hide pillar of light
       }
     }
   }

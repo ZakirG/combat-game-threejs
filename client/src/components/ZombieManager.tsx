@@ -160,6 +160,7 @@ interface ZombieInstanceProps {
   onLoadComplete?: () => void; // Callback when loading finishes
   onZombieDeath?: (zombieId: string) => void; // Callback when zombie dies (for scene cleanup)
   onZombieKilled?: (zombieId: string) => void; // Callback when zombie is killed (for kill counter)
+  onZombieAttackPlayer?: (targetPlayerId: string) => void; // Callback for when zombies attack a player
   onRegisterInstance?: (zombieId: string, positionRef: React.MutableRefObject<THREE.Vector3>, triggerDeath: (direction: THREE.Vector3) => void) => void; // Register for attack detection
   onUnregisterInstance?: (zombieId: string) => void; // Unregister when cleanup
 }
@@ -174,6 +175,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
   onLoadComplete,
   onZombieDeath,
   onZombieKilled,
+  onZombieAttackPlayer,
   onRegisterInstance,
   onUnregisterInstance
 }) => {
@@ -459,6 +461,27 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
         setTargetPlayer(null);
       }
       
+      // Check if zombie is attacking a player (will be filtered for local player in parent components)
+      if (newDecision.action === 'attack' && zombieStateRef.current.targetPlayerId && onZombieAttackPlayer) {
+        // Find the target player from the players map
+        const targetPlayer = Array.from(players.values()).find(p => 
+          p.identity.toHexString() === zombieStateRef.current.targetPlayerId
+        );
+        
+        // Check if the target is within striking distance (confirm attack validity)
+        if (targetPlayer) {
+          const playerPos = new THREE.Vector3(targetPlayer.position.x, 0, targetPlayer.position.z);
+          const zombiePos = new THREE.Vector3(zombiePosition.current.x, 0, zombiePosition.current.z);
+          const distance = zombiePos.distanceTo(playerPos);
+          
+          // If within striking distance, trigger the attack effect
+          if (distance <= 2.5) { // Slightly larger than STRIKING_DISTANCE for responsiveness
+            console.log(`[${zombieId}] 🧟 Attacking player ${targetPlayer.username} at distance ${distance.toFixed(2)}`);
+            onZombieAttackPlayer(targetPlayer.identity.toHexString());
+          }
+        }
+      }
+      
       // Start the appropriate animation
       if (newDecision.animation !== currentAnimation) {
         playZombieAnimation(newDecision.animation);
@@ -607,6 +630,7 @@ interface ZombieManagerProps {
   gameReadyCallbacks?: GameReadyCallbacks; // Callbacks for GameReady events
   onKillCountChange?: (killCount: number) => void; // Callback for kill count changes
   onZombieHit?: () => void; // Callback for zombie hits (for combo counter)
+  onZombieAttackPlayer?: (targetPlayerId: string) => void; // Callback for when zombies attack a player
 }
 
 // Main ZombieManager component
@@ -617,7 +641,8 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   minSpawnDistance = SPAWN_SETTINGS.MIN_DISTANCE_FROM_PLAYERS,
   gameReadyCallbacks,
   onKillCountChange,
-  onZombieHit
+  onZombieHit,
+  onZombieAttackPlayer
 }) => {
   const [resources, setResources] = useState<ZombieResources>({
     model: null,
@@ -1129,6 +1154,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
             onLoadComplete={handleZombieLoadComplete}
             onZombieDeath={handleZombieDeath}
             onZombieKilled={handleZombieKilled}
+            onZombieAttackPlayer={onZombieAttackPlayer}
             onRegisterInstance={handleZombieRegister}
             onUnregisterInstance={handleZombieUnregister}
           />
