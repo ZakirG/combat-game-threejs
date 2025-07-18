@@ -8,6 +8,8 @@
  * - Clean minimal design with animated loading bar
  * - Flash-game style loading bar with animated stripes
  * - Displays overall progress
+ * - Shows X-COMBAT title and x-statue image above loading panel
+ * - Shows key controls instructions below loading box
  * - Hides once GameReady event is triggered
  * 
  * Props:
@@ -67,6 +69,33 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
       zIndex: 2000,
+    },
+    contentContainer: {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      gap: '30px',
+    },
+    titleContainer: {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      gap: '20px',
+      marginBottom: '20px',
+    },
+    title: {
+      fontFamily: 'KnightsQuest, serif',
+      fontSize: '38px',
+      fontWeight: 'bold' as const,
+      color: '#2F1B14',
+      textShadow: '1px 1px 2px rgba(139, 69, 19, 0.3)',
+      margin: 0,
+      letterSpacing: '2px',
+    },
+    statueImage: {
+      filter: 'drop-shadow(4px 4px 4px black)',
+      width: '100px',
+      objectFit: 'contain' as const,
     },
     panel: {
       backgroundColor: 'rgba(245, 245, 220, 0.9)',
@@ -131,22 +160,102 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
       color: '#5D4037',
       fontWeight: 'bold' as const,
       textAlign: 'center' as const,
+    },
+    controlsContainer: {
+      backgroundColor: 'rgba(139, 69, 19, 0.15)',
+      border: '1px solid rgba(139, 69, 19, 0.3)',
+      borderRadius: '8px',
+      padding: '20px',
+      maxWidth: '500px',
+      width: '100%',
+    },
+    controlsHeader: {
+      fontFamily: 'Newrocker, serif',
+      fontSize: '14px',
+      color: '#5D4037',
+      fontWeight: 'bold' as const,
+      textAlign: 'center' as const,
+      marginBottom: '15px',
+      textShadow: '1px 1px 1px rgba(139, 69, 19, 0.2)',
+    },
+    controlsGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, 1fr)',
+      gap: '8px',
+      fontSize: '12px',
+      fontFamily: 'Arial, sans-serif',
+    },
+    controlRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+    },
+    controlKey: {
+      backgroundColor: 'rgba(139, 69, 19, 0.2)',
+      border: '1px solid rgba(139, 69, 19, 0.4)',
+      borderRadius: '4px',
+      padding: '2px 6px',
+      fontSize: '11px',
+      fontWeight: 'bold' as const,
+      color: '#3E2723',
+      minWidth: '50px',
+      textAlign: 'center' as const,
+      fontFamily: 'monospace',
+    },
+    controlAction: {
+      color: '#5D4037',
+      fontSize: '11px',
+      opacity: 0.9,
     }
   };
+
+  const controls = [
+    { key: 'WASD', action: 'Move' },
+    { key: 'Shift', action: 'Sprint' },
+    { key: 'Space', action: 'Jump' },
+    { key: 'Mouse', action: 'Look Around' },
+    { key: 'Left Click', action: 'Attack' },
+    { key: 'ESC', action: 'Unlock Mouse' }
+  ];
 
   return (
     <>
       <div style={styles.overlay}>
-        <div style={styles.panel}>
-          <div style={styles.loadingText}>Loading{dots}</div>
-          <div style={styles.progressContainer}>
-            <div style={styles.progressBarContainer}>
-              <div style={styles.progressBar}>
-                <div style={styles.progressStripes} />
+        <div style={styles.contentContainer}>
+          {/* Title and X-Statue */}
+          <div style={styles.titleContainer}>
+            <h1 style={styles.title}>X-COMBAT</h1>
+            <img 
+              src="/x-statue.png" 
+              alt="X Statue" 
+              style={styles.statueImage}
+            />
+          </div>
+
+          <div style={styles.panel}>
+            <div style={styles.loadingText}>Loading{dots}</div>
+            <div style={styles.progressContainer}>
+              <div style={styles.progressBarContainer}>
+                <div style={styles.progressBar}>
+                  <div style={styles.progressStripes} />
+                </div>
+              </div>
+              <div style={styles.progressText}>
+                {overallProgress}% Complete
               </div>
             </div>
-            <div style={styles.progressText}>
-              {overallProgress}% Complete
+          </div>
+
+          {/* Key Controls Instructions */}
+          <div style={styles.controlsContainer}>
+            <div style={styles.controlsHeader}>Game Controls</div>
+            <div style={styles.controlsGrid}>
+              {controls.map((control, index) => (
+                <div key={index} style={styles.controlRow}>
+                  <div style={styles.controlKey}>{control.key}</div>
+                  <div style={styles.controlAction}>{control.action}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

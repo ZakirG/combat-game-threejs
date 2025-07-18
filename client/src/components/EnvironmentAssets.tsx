@@ -15,7 +15,7 @@
  * - Animated floating sword with magical light blue glow effect
  */
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useLoader, useFrame } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
@@ -29,6 +29,8 @@ interface EnvironmentAssetsProps {
   players?: ReadonlyMap<string, any>;
   localPlayerIdentity?: any;
   onSwordCollected?: (swordModel: THREE.Group, swordPosition: THREE.Vector3) => void;
+  // Callback to provide collision data to parent components
+  onCollisionDataReady?: (collisionBoxes: THREE.Box3[]) => void;
 }
 
 // Configuration for environment assets
@@ -123,9 +125,11 @@ interface RockInstanceProps {
   position: THREE.Vector3;
   scale: number;
   rotation?: THREE.Euler;
+  onBoundingBoxReady?: (id: string, boundingBox: THREE.Box3, worldPosition: THREE.Vector3) => void;
+  instanceId?: string;
 }
 
-const RockInstance: React.FC<RockInstanceProps> = ({ modelPath, position, scale, rotation }) => {
+const RockInstance: React.FC<RockInstanceProps> = ({ modelPath, position, scale, rotation, onBoundingBoxReady, instanceId }) => {
   const group = useRef<THREE.Group>(null!);
   const [model, setModel] = useState<THREE.Group | null>(null);
   const [boundingBox, setBoundingBox] = useState<THREE.Box3 | null>(null);
@@ -160,6 +164,14 @@ const RockInstance: React.FC<RockInstanceProps> = ({ modelPath, position, scale,
         
         setModel(loadedModel);
         console.log(`[EnvironmentAssets] Loaded rock model: ${modelPath} at scale ${scale}`);
+        
+        // Report bounding box to parent when ready
+        if (onBoundingBoxReady && instanceId) {
+          // Position will be set in the next useEffect, so delay reporting slightly
+          setTimeout(() => {
+            onBoundingBoxReady(instanceId, box, position);
+          }, 50);
+        }
       },
       undefined,
       (error) => {
@@ -220,9 +232,10 @@ interface LargeAssetProps {
   scale: number;
   rotation?: [number, number, number];
   name: string;
+  onBoundingBoxReady?: (id: string, boundingBox: THREE.Box3, worldPosition: THREE.Vector3) => void;
 }
 
-const LargeAsset: React.FC<LargeAssetProps> = ({ modelPath, position, scale, rotation, name }) => {
+const LargeAsset: React.FC<LargeAssetProps> = ({ modelPath, position, scale, rotation, name, onBoundingBoxReady }) => {
   const group = useRef<THREE.Group>(null!);
   const [model, setModel] = useState<THREE.Group | null>(null);
   const [boundingBox, setBoundingBox] = useState<THREE.Box3 | null>(null);
@@ -258,6 +271,14 @@ const LargeAsset: React.FC<LargeAssetProps> = ({ modelPath, position, scale, rot
         setModel(loadedModel);
         console.log(`[EnvironmentAssets] ✅ Loaded ${name}: ${modelPath} at scale ${scale}, position [${position.join(', ')}]`);
         console.log(`[EnvironmentAssets] ${name} bounding box:`, box);
+        
+        // Report bounding box to parent when ready
+        if (onBoundingBoxReady) {
+          setTimeout(() => {
+            const worldPosition = new THREE.Vector3(...position);
+            onBoundingBoxReady(name, box, worldPosition);
+          }, 50);
+        }
       },
       (progress) => {
         if (name === 'X-Statue') {
@@ -538,7 +559,8 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({
 export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({ 
   players, 
   localPlayerIdentity, 
-  onSwordCollected 
+  onSwordCollected,
+  onCollisionDataReady
 }) => {
   const [rockPositions] = useState<THREE.Vector3[]>(() => {
     // Generate positions once when component mounts
@@ -547,6 +569,33 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
                       ENVIRONMENT_CONFIG.rocks['rock-3'].count;
     return generateRockPositions(totalRocks);
   });
+
+  // Collision data management
+  const collisionBoxesRef = useRef<Map<string, THREE.Box3>>(new Map());
+  const [collisionDataReady, setCollisionDataReady] = useState(false);
+
+  // Callback for individual assets to report their collision boxes
+  const handleAssetBoundingBox = useCallback((id: string, boundingBox: THREE.Box3, worldPosition: THREE.Vector3) => {
+    // Transform bounding box to world coordinates
+    const worldBoundingBox = boundingBox.clone().translate(worldPosition);
+    collisionBoxesRef.current.set(id, worldBoundingBox);
+    
+    // Check if all collision data is ready
+    const expectedAssets = rock1Positions.length + rock2Positions.length + rock3Positions.length + 2; // +2 for arch and statue
+    if (collisionBoxesRef.current.size >= expectedAssets && !collisionDataReady) {
+      setCollisionDataReady(true);
+      console.log(`[EnvironmentAssets] 🧱 All ${collisionBoxesRef.current.size} collision boxes ready!`);
+    }
+  }, [collisionDataReady]);
+
+  // Notify parent when collision data is ready
+  useEffect(() => {
+    if (collisionDataReady && onCollisionDataReady) {
+      const allCollisionBoxes = Array.from(collisionBoxesRef.current.values());
+      onCollisionDataReady(allCollisionBoxes);
+      console.log(`[EnvironmentAssets] 📡 Sent ${allCollisionBoxes.length} collision boxes to parent`);
+    }
+  }, [collisionDataReady, onCollisionDataReady]);
 
   // Split positions for different rock types
   const rock1Positions = rockPositions.slice(0, ENVIRONMENT_CONFIG.rocks['rock-1'].count);
@@ -564,9 +613,11 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
       {rock1Positions.map((position, index) => (
         <RockInstance
           key={`rock-1-${index}`}
+          instanceId={`rock-1-${index}`}
           modelPath={ENVIRONMENT_CONFIG.rocks['rock-1'].path}
           position={position}
           scale={ENVIRONMENT_CONFIG.rocks['rock-1'].scale}
+          onBoundingBoxReady={handleAssetBoundingBox}
         />
       ))}
 
@@ -574,9 +625,11 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
       {rock2Positions.map((position, index) => (
         <RockInstance
           key={`rock-2-${index}`}
+          instanceId={`rock-2-${index}`}
           modelPath={ENVIRONMENT_CONFIG.rocks['rock-2'].path}
           position={position}
           scale={ENVIRONMENT_CONFIG.rocks['rock-2'].scale}
+          onBoundingBoxReady={handleAssetBoundingBox}
         />
       ))}
 
@@ -584,9 +637,11 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
       {rock3Positions.map((position, index) => (
         <RockInstance
           key={`rock-3-${index}`}
+          instanceId={`rock-3-${index}`}
           modelPath={ENVIRONMENT_CONFIG.rocks['rock-3'].path}
           position={position}
           scale={ENVIRONMENT_CONFIG.rocks['rock-3'].scale}
+          onBoundingBoxReady={handleAssetBoundingBox}
         />
       ))}
 
@@ -597,6 +652,7 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
         scale={ENVIRONMENT_CONFIG.desertArch.scale}
         rotation={ENVIRONMENT_CONFIG.desertArch.rotation}
         name="Desert Arch"
+        onBoundingBoxReady={handleAssetBoundingBox}
       />
 
       {/* X-Statue (10x bigger than arch, 1000 units away) */}
@@ -606,6 +662,7 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
         scale={ENVIRONMENT_CONFIG.statue.scale}
         rotation={ENVIRONMENT_CONFIG.statue.rotation}
         name="X-Statue"
+        onBoundingBoxReady={handleAssetBoundingBox}
       />
 
       {/* Floating Sword with Light Blue Glow Pillar */}
@@ -623,6 +680,7 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
         scale={15.0} // Adjust size (current: 15.0, try 10.0-25.0)
         rotation={[0, Math.PI * 0.75, 0]} // Y rotation: 0=forward, 0.5=90°, 1.0=180°
         name="Desert Arch (Near Sword)"
+        onBoundingBoxReady={handleAssetBoundingBox}
       />
     </group>
   );

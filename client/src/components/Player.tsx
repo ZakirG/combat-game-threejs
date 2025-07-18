@@ -110,6 +110,7 @@ interface PlayerProps {
   isDebugPanelVisible?: boolean; // Prop to control general debug helpers visibility
   gameReadyCallbacks?: GameReadyCallbacks; // Callbacks for GameReady events
   gameReady?: boolean; // Controls when physics should be enabled
+  environmentCollisionBoxes?: THREE.Box3[]; // Collision boxes for environment objects
 }
 
 export const Player: React.FC<PlayerProps> = ({
@@ -121,7 +122,8 @@ export const Player: React.FC<PlayerProps> = ({
   isDebugArrowVisible = false, 
   isDebugPanelVisible = false, // Destructure with default false
   gameReadyCallbacks, // Destructure GameReady callbacks
-  gameReady = false // Destructure gameReady state
+  gameReady = false, // Destructure gameReady state
+  environmentCollisionBoxes = [] // Destructure collision boxes with default empty array
 }) => {
   const group = useRef<THREE.Group>(null!);
   const { camera } = useThree();
@@ -342,6 +344,28 @@ export const Player: React.FC<PlayerProps> = ({
 
   // --- State variables ---
 
+  // --- Collision Detection ---
+  const checkEnvironmentCollision = useCallback((position: THREE.Vector3, radius: number = 1.0): boolean => {
+    if (!environmentCollisionBoxes || environmentCollisionBoxes.length === 0) {
+      return false; // No collision data yet, allow movement
+    }
+    
+    // Create a simple sphere around the player for collision detection
+    const playerSphere = new THREE.Box3(
+      new THREE.Vector3(position.x - radius, position.y - radius, position.z - radius),
+      new THREE.Vector3(position.x + radius, position.y + radius, position.z + radius)
+    );
+    
+    // Check against all environment collision boxes
+    for (const collisionBox of environmentCollisionBoxes) {
+      if (playerSphere.intersectsBox(collisionBox)) {
+        return true; // Collision detected
+      }
+    }
+    
+    return false; // No collision
+  }, [environmentCollisionBoxes]);
+
   // --- Client-Side Movement Calculation (Matches Server Logic *before* Sign Flip) ---
   const calculateClientMovement = useCallback((currentPos: THREE.Vector3, currentRot: THREE.Euler, inputState: InputState, delta: number): THREE.Vector3 => {
     // console.log(`[Move Calc] cameraMode: ${cameraMode}`); // Suppressed log
@@ -393,12 +417,28 @@ export const Player: React.FC<PlayerProps> = ({
 
     // 5. Calculate the final position based on the raw world movement
     // The server-side sign flip is handled during reconciliation, not prediction.
-    const finalPosition = currentPos.clone().add(worldMoveVector);
+    const proposedPosition = currentPos.clone().add(worldMoveVector);
 
+    // 6. Check for collision with environment objects
+    if (checkEnvironmentCollision(proposedPosition, 1.0)) {
+      // Try sliding along walls by testing X and Z movement separately
+      const xOnlyPosition = currentPos.clone().add(new THREE.Vector3(worldMoveVector.x, 0, 0));
+      const zOnlyPosition = currentPos.clone().add(new THREE.Vector3(0, 0, worldMoveVector.z));
+      
+      if (!checkEnvironmentCollision(xOnlyPosition, 1.0)) {
+        // Can move in X direction only
+        return xOnlyPosition;
+      } else if (!checkEnvironmentCollision(zOnlyPosition, 1.0)) {
+        // Can move in Z direction only
+        return zOnlyPosition;
+      } else {
+        // Can't move at all, stay at current position
+        return currentPos;
+      }
+    }
 
-
-    return finalPosition;
-  }, [cameraMode]); // Depend on cameraMode from state
+    return proposedPosition;
+  }, [cameraMode, checkEnvironmentCollision]); // Depend on cameraMode and collision detection
 
   // --- Effect for model loading ---
   useEffect(() => {

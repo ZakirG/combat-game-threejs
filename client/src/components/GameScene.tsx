@@ -30,7 +30,7 @@
  * - Socket handlers for network communication
  */
 
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState, useCallback } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Box, Plane, Grid, Environment, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -109,7 +109,16 @@ export const GameScene: React.FC<GameSceneProps> = ({
   onKillCountChange // Destructure kill count callback
 }) => {
   // Ref for the main directional light
-  const directionalLightRef = useRef<THREE.DirectionalLight>(null!); 
+  const directionalLightRef = useRef<THREE.DirectionalLight>(null!);
+  
+  // Collision data for environment assets
+  const [environmentCollisionBoxes, setEnvironmentCollisionBoxes] = useState<THREE.Box3[]>([]);
+  
+  // Handle collision data from EnvironmentAssets
+  const handleCollisionDataReady = useCallback((collisionBoxes: THREE.Box3[]) => {
+    setEnvironmentCollisionBoxes(collisionBoxes);
+    console.log(`[GameScene] 🧱 Received ${collisionBoxes.length} collision boxes from environment`);
+  }, []); 
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -169,6 +178,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
             gameReadyCallbacks.onSwordCollected(swordModel, swordPosition);
           }
         }}
+        onCollisionDataReady={handleCollisionDataReady}
       />
 
       {/* Render Players */}
@@ -185,6 +195,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
             isDebugArrowVisible={isLocal ? isDebugPanelVisible : false} // Pass down arrow visibility
             isDebugPanelVisible={isDebugPanelVisible} // Pass down general debug visibility
             gameReadyCallbacks={isLocal ? gameReadyCallbacks : undefined} // Only pass to local player
+            environmentCollisionBoxes={environmentCollisionBoxes} // Pass collision data
             gameReady={gameReady} // Pass gameReady state to control physics timing
           />
         );
@@ -192,7 +203,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
 
       {/* Render Optimized Zombie Manager */}
       <ZombieManager 
-        zombieCount={60}
+        zombieCount={50}
         players={players}
         isDebugVisible={isDebugPanelVisible}
         minSpawnDistance={40} // Minimum 20 units from any player (20 feet to prevent close spawning)

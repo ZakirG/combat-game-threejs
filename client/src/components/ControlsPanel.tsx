@@ -56,9 +56,7 @@ export const ControlsPanel: React.FC<ControlsPanelProps> = ({
     { key: 'Space', action: 'Jump' },
     { key: 'Mouse', action: 'Look Around' },
     { key: 'Left Click', action: 'Attack' },
-    { key: 'Right Click', action: 'Cast Spell' },
-    { key: 'ESC', action: 'Unlock Mouse' },
-    { key: 'Tab', action: 'Debug Panel' }
+    { key: 'ESC', action: 'Unlock Mouse' }
   ];
 
   return (

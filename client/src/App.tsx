@@ -234,16 +234,65 @@ function App() {
       ShiftLeft: 'sprint', Space: 'jump',
   };
 
+  // Handle special keys not in the main input state
+  const handleSpecialKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.code === 'Tab') {
+      event.preventDefault(); // Prevent default tab behavior
+      console.log(`🎹 SPECIAL KEY: Tab -> Toggle Debug Panel`);
+      setIsDebugPanelExpanded((prev: boolean) => {
+        console.log(`🎹 ✅ Debug panel toggled: ${prev} -> ${!prev}`);
+        return !prev;
+      });
+    } else if (event.code === 'Escape') {
+      console.log(`🎹 SPECIAL KEY: Escape -> Unlock mouse pointer`);
+      if (document.pointerLockElement) {
+        document.exitPointerLock();
+        console.log(`🎹 ✅ Pointer lock released`);
+      } else {
+        console.log(`🎹 ⚠️ Pointer lock was not active`);
+      }
+    }
+  }, []);
+
+  // Prevent right-click context menu
+  const handleContextMenu = useCallback((event: MouseEvent) => {
+    event.preventDefault();
+    console.log(`🖱️ RIGHT-CLICK CONTEXT MENU PREVENTED`);
+  }, []);
+
   const determineAnimation = useCallback((input: InputState): string => {
-    if (input.attack) return 'attack1';
-    if (input.castSpell) return 'cast';
-    if (input.jump) return 'jump';
+    console.log(`🎬 ANIMATION DETERMINATION: Input state:`, {
+      attack: input.attack,
+      castSpell: input.castSpell,
+      jump: input.jump,
+      forward: input.forward,
+      backward: input.backward,
+      left: input.left,
+      right: input.right,
+      sprint: input.sprint
+    });
+    
+    if (input.attack) {
+      console.log(`🎬 ✅ Animation result: 'attack1' (attack input active)`);
+      return 'attack1';
+    }
+    if (input.castSpell) {
+      console.log(`🎬 ✅ Animation result: 'cast' (castSpell input active)`);
+      return 'cast';
+    }
+    if (input.jump) {
+      console.log(`🎬 ✅ Animation result: 'jump' (jump input active)`);
+      return 'jump';
+    }
     
     // Determine animation based on movement keys
     const { forward, backward, left, right, sprint } = input;
     const isMoving = forward || backward || left || right;
     
-    if (!isMoving) return 'idle';
+    if (!isMoving) {
+      console.log(`🎬 ✅ Animation result: 'idle' (no movement input)`);
+      return 'idle';
+    }
     
     // Improved direction determination with priority handling
     // This matches legacy implementation better
@@ -275,6 +324,7 @@ function App() {
     // Generate final animation name
     const animationName = `${moveType}-${direction}`;
     
+    console.log(`🎬 ✅ Animation result: '${animationName}' (movement: ${moveType}, direction: ${direction})`);
     return animationName;
   }, []);
 
@@ -307,6 +357,13 @@ function App() {
     }
 
     if (changed || currentInputState.sequence !== lastSentInputState.current.sequence) {
+        console.log(`📡 SENDING INPUT TO SERVER:`, {
+          animation: currentAnimation,
+          position: { x: currentPosition.x.toFixed(2), y: currentPosition.y.toFixed(2), z: currentPosition.z.toFixed(2) },
+          rotation: { x: currentRotation.x.toFixed(3), y: currentRotation.y.toFixed(3), z: currentRotation.z.toFixed(3) },
+          inputState: currentInputState,
+          sequence: currentInputState.sequence
+        });
         conn.reducers.updatePlayerInput(currentInputState, currentPosition, currentRotation, currentAnimation);
         lastSentInputState.current = { ...currentInputState };
     }
@@ -326,35 +383,72 @@ function App() {
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
       if (event.repeat) return; 
+      
+      // First handle special keys
+      handleSpecialKeyDown(event);
+      
+      // Then handle regular input keys
       const action = keyMap[event.code];
       if (action) {
+          console.log(`🎹 KEY DOWN: ${event.code} -> ${action} (was: ${currentInputRef.current[action]})`);
           if (!currentInputRef.current[action]) { 
              currentInputRef.current[action] = true;
+             console.log(`🎹 ✅ ${action} activated`);
+          }
+      } else {
+          // Log unmapped keys for debugging (but skip special keys we already handled)
+          if (!['Tab', 'Escape'].includes(event.code)) {
+            console.log(`🎹 ❓ UNMAPPED KEY DOWN: ${event.code}`);
           }
       }
-  }, []);
+  }, [handleSpecialKeyDown]);
 
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
       const action = keyMap[event.code];
       if (action) {
+          console.log(`🎹 KEY UP: ${event.code} -> ${action} (was: ${currentInputRef.current[action]})`);
           if (currentInputRef.current[action]) { 
               currentInputRef.current[action] = false;
+              console.log(`🎹 ❌ ${action} deactivated`);
           }
+      } else {
+          // Log unmapped keys for debugging
+          console.log(`🎹 ❓ UNMAPPED KEY UP: ${event.code}`);
       }
   }, []);
 
   const handleMouseDown = useCallback((event: MouseEvent) => {
-      if (event.button === 0) { 
+      console.log(`🖱️ MOUSE DOWN: Button ${event.button} (${event.button === 0 ? 'LEFT' : event.button === 1 ? 'MIDDLE' : event.button === 2 ? 'RIGHT' : 'OTHER'})`);
+      
+      if (event.button === 0) { // Left click
+           console.log(`🖱️ LEFT CLICK: attack (was: ${currentInputRef.current.attack})`);
            if (!currentInputRef.current.attack) {
                currentInputRef.current.attack = true;
+               console.log(`🖱️ ✅ attack activated`);
+           }
+      } else if (event.button === 2) { // Right click
+           console.log(`🖱️ RIGHT CLICK: castSpell (was: ${currentInputRef.current.castSpell})`);
+           if (!currentInputRef.current.castSpell) {
+               currentInputRef.current.castSpell = true;
+               console.log(`🖱️ ✅ castSpell activated`);
            }
       }
   }, []);
 
   const handleMouseUp = useCallback((event: MouseEvent) => {
-      if (event.button === 0) { 
+      console.log(`🖱️ MOUSE UP: Button ${event.button} (${event.button === 0 ? 'LEFT' : event.button === 1 ? 'MIDDLE' : event.button === 2 ? 'RIGHT' : 'OTHER'})`);
+      
+      if (event.button === 0) { // Left click
+           console.log(`🖱️ LEFT RELEASE: attack (was: ${currentInputRef.current.attack})`);
            if (currentInputRef.current.attack) {
                currentInputRef.current.attack = false;
+               console.log(`🖱️ ❌ attack deactivated`);
+           }
+      } else if (event.button === 2) { // Right click
+           console.log(`🖱️ RIGHT RELEASE: castSpell (was: ${currentInputRef.current.castSpell})`);
+           if (currentInputRef.current.castSpell) {
+               currentInputRef.current.castSpell = false;
+               console.log(`🖱️ ❌ castSpell deactivated`);
            }
       }
   }, []);
@@ -364,7 +458,16 @@ function App() {
     // Only rotate if we have pointer lock
     if (document.pointerLockElement === document.body) {
       const sensitivity = 0.002;
+      
+      // Log significant mouse movements for debugging (threshold to avoid spam)
+      if (Math.abs(event.movementX) > 5 || Math.abs(event.movementY) > 5) {
+        console.log(`🖱️ MOUSE MOVE: dx=${event.movementX}, dy=${event.movementY} (sensitivity: ${sensitivity})`);
+      }
+      
       // Update the Euler rotation with mouse movement
+      const oldRotationY = playerRotationRef.current.y;
+      const oldRotationX = playerRotationRef.current.x;
+      
       playerRotationRef.current.y -= event.movementX * sensitivity;
       
       // Clamp vertical rotation (looking up/down) to prevent flipping
@@ -372,6 +475,16 @@ function App() {
         -Math.PI / 2.5, 
         Math.min(Math.PI / 2.5, playerRotationRef.current.x - event.movementY * sensitivity)
       );
+      
+      // Log rotation changes for significant movements
+      if (Math.abs(event.movementX) > 10 || Math.abs(event.movementY) > 10) {
+        console.log(`🖱️ ROTATION UPDATE: Y ${oldRotationY.toFixed(3)} -> ${playerRotationRef.current.y.toFixed(3)}, X ${oldRotationX.toFixed(3)} -> ${playerRotationRef.current.x.toFixed(3)}`);
+      }
+    } else {
+      // Log when trying to move mouse without pointer lock
+      if (Math.abs(event.movementX) > 0 || Math.abs(event.movementY) > 0) {
+        console.log(`🖱️ ⚠️ MOUSE MOVE WITHOUT POINTER LOCK: dx=${event.movementX}, dy=${event.movementY}`);
+      }
     }
   }, []);
 
@@ -387,9 +500,10 @@ function App() {
       window.addEventListener('mousedown', handleMouseDown);
       window.addEventListener('mouseup', handleMouseUp);
       window.addEventListener('mousemove', handleMouseMove); // Add mouse move listener
+      window.addEventListener('contextmenu', handleContextMenu); // Prevent right-click menu
       document.addEventListener('pointerlockchange', handlePointerLockChange); // Listen for lock changes
-      console.log("Input listeners added.");
-  }, [handleKeyDown, handleKeyUp, handleMouseDown, handleMouseUp, handleMouseMove, handlePointerLockChange]);
+      console.log("🎮 Input listeners added: keyboard, mouse, context menu, pointer lock");
+  }, [handleKeyDown, handleKeyUp, handleMouseDown, handleMouseUp, handleMouseMove, handleContextMenu, handlePointerLockChange]);
 
   const removeInputListeners = useCallback(() => {
       window.removeEventListener('keydown', handleKeyDown);
@@ -397,9 +511,10 @@ function App() {
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove); // Remove mouse move listener
+      window.removeEventListener('contextmenu', handleContextMenu); // Remove context menu listener
       document.removeEventListener('pointerlockchange', handlePointerLockChange); // Remove listener
-      console.log("Input listeners removed.");
-  }, [handleKeyDown, handleKeyUp, handleMouseDown, handleMouseUp, handleMouseMove, handlePointerLockChange]);
+      console.log("🎮 Input listeners removed: keyboard, mouse, context menu, pointer lock");
+  }, [handleKeyDown, handleKeyUp, handleMouseDown, handleMouseUp, handleMouseMove, handleContextMenu, handlePointerLockChange]);
 
   const setupDelegatedListeners = useCallback(() => {
       document.body.addEventListener('click', handleDelegatedClick, true);
