@@ -71,52 +71,55 @@ const ENVIRONMENT_CONFIG = {
   }
 };
 
-// Spawn area configuration for rocks
-const ROCK_SPAWN_CONFIG = {
-  minDistance: 15.0, // Minimum distance from origin (spawn area)
-  maxDistance: 80.0, // Maximum distance from origin
-  minDistanceBetweenRocks: 8.0, // Minimum distance between rock instances
-  groundLevel: 0.0 // Y position for all rocks
-};
+// Rock configuration interface
+interface RockConfig {
+  position: [number, number, number];
+  rotationY: number;
+}
 
-// Generate random positions for rocks, ensuring they don't overlap
-function generateRockPositions(totalRocks: number): THREE.Vector3[] {
-  const positions: THREE.Vector3[] = [];
-  const maxAttempts = 100; // Prevent infinite loops
+interface EnvironmentConfigData {
+  rocks: {
+    'rock-1': RockConfig[];
+    'rock-2': RockConfig[];
+    'rock-3': RockConfig[];
+  };
+}
 
-  for (let i = 0; i < totalRocks; i++) {
-    let attempts = 0;
-    let validPosition = false;
-    let newPosition: THREE.Vector3;
-
-    do {
-      // Generate random position within ring area (avoiding spawn center)
-      const angle = Math.random() * Math.PI * 2;
-      const distance = ROCK_SPAWN_CONFIG.minDistance + 
-                      Math.random() * (ROCK_SPAWN_CONFIG.maxDistance - ROCK_SPAWN_CONFIG.minDistance);
-      
-      newPosition = new THREE.Vector3(
-        Math.cos(angle) * distance,
-        ROCK_SPAWN_CONFIG.groundLevel,
-        Math.sin(angle) * distance
-      );
-
-      // Check if position is far enough from existing rocks
-      validPosition = positions.every(existingPos => 
-        newPosition.distanceTo(existingPos) >= ROCK_SPAWN_CONFIG.minDistanceBetweenRocks
-      );
-
-      attempts++;
-    } while (!validPosition && attempts < maxAttempts);
-
-    if (validPosition) {
-      positions.push(newPosition);
-    } else {
-      console.warn(`[EnvironmentAssets] Could not find valid position for rock ${i + 1}`);
+// Load rock configuration from JSON file
+async function loadRockConfiguration(): Promise<EnvironmentConfigData> {
+  try {
+    const response = await fetch('/environment-config.json');
+    if (!response.ok) {
+      throw new Error(`Failed to load environment config: ${response.status}`);
     }
+    const config = await response.json();
+    console.log('[EnvironmentAssets] ✅ Loaded fixed rock configuration from JSON');
+    return config;
+  } catch (error) {
+    console.error('[EnvironmentAssets] ❌ Failed to load rock configuration:', error);
+    console.warn('[EnvironmentAssets] 🔄 Falling back to default rock positions');
+    
+    // Fallback configuration if JSON loading fails
+    return {
+      rocks: {
+        'rock-1': [
+          { position: [25.0, 0.0, -30.0], rotationY: 0.5 },
+          { position: [-35.0, 0.0, 20.0], rotationY: 1.2 },
+          { position: [45.0, 0.0, 35.0], rotationY: 2.8 },
+          { position: [-20.0, 0.0, -45.0], rotationY: 4.1 },
+          { position: [15.0, 0.0, 55.0], rotationY: 0.9 }
+        ],
+        'rock-2': [
+          { position: [-50.0, 0.0, -15.0], rotationY: 1.8 },
+          { position: [30.0, 0.0, -50.0], rotationY: 3.2 },
+          { position: [-25.0, 0.0, 40.0], rotationY: 0.3 },
+          { position: [55.0, 0.0, -20.0], rotationY: 2.1 },
+          { position: [-40.0, 0.0, -35.0], rotationY: 5.0 }
+        ],
+        'rock-3': []
+      }
+    };
   }
-
-  return positions;
 }
 
 // Individual rock instance component
@@ -124,12 +127,12 @@ interface RockInstanceProps {
   modelPath: string;
   position: THREE.Vector3;
   scale: number;
-  rotation?: THREE.Euler;
+  rotationY?: number; // Y-axis rotation in radians to prevent upside-down rocks
   onBoundingBoxReady?: (id: string, boundingBox: THREE.Box3, worldPosition: THREE.Vector3) => void;
   instanceId?: string;
 }
 
-const RockInstance: React.FC<RockInstanceProps> = ({ modelPath, position, scale, rotation, onBoundingBoxReady, instanceId }) => {
+const RockInstance: React.FC<RockInstanceProps> = ({ modelPath, position, scale, rotationY, onBoundingBoxReady, instanceId }) => {
   const group = useRef<THREE.Group>(null!);
   const [model, setModel] = useState<THREE.Group | null>(null);
   const [boundingBox, setBoundingBox] = useState<THREE.Box3 | null>(null);
@@ -186,20 +189,17 @@ const RockInstance: React.FC<RockInstanceProps> = ({ modelPath, position, scale,
     };
   }, [modelPath, scale]);
 
-  // Set position and rotation
+  // Set position and rotation (Y-axis only to prevent upside-down rocks)
   useEffect(() => {
     if (group.current) {
       group.current.position.copy(position);
-      if (rotation) {
-        group.current.rotation.copy(rotation);
-      } else {
-        // Random rotation on all axes for natural rock placement
-        group.current.rotation.x = Math.random() * Math.PI * 2;
-        group.current.rotation.y = Math.random() * Math.PI * 2;
-        group.current.rotation.z = Math.random() * Math.PI * 2;
-      }
+      
+      // Only apply Y-axis rotation to keep rocks upright
+      group.current.rotation.x = 0; // No X rotation (prevents forward/backward tilt)
+      group.current.rotation.y = rotationY ?? 0; // Use provided Y rotation or default to 0
+      group.current.rotation.z = 0; // No Z rotation (prevents side tilt)
     }
-  }, [position, rotation]);
+  }, [position, rotationY]);
 
   return (
     <group ref={group}>
@@ -562,13 +562,19 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
   onSwordCollected,
   onCollisionDataReady
 }) => {
-  const [rockPositions] = useState<THREE.Vector3[]>(() => {
-    // Generate positions once when component mounts
-    const totalRocks = ENVIRONMENT_CONFIG.rocks['rock-1'].count + 
-                      ENVIRONMENT_CONFIG.rocks['rock-2'].count + 
-                      ENVIRONMENT_CONFIG.rocks['rock-3'].count;
-    return generateRockPositions(totalRocks);
-  });
+  const [rockConfig, setRockConfig] = useState<EnvironmentConfigData | null>(null);
+
+  // Load rock configuration on mount
+  useEffect(() => {
+    loadRockConfiguration().then(config => {
+      setRockConfig(config);
+      console.log('[EnvironmentAssets] 🗻 Rock configuration loaded:', {
+        'rock-1': config.rocks['rock-1'].length,
+        'rock-2': config.rocks['rock-2'].length, 
+        'rock-3': config.rocks['rock-3'].length
+      });
+    });
+  }, []);
 
   // Collision data management
   const collisionBoxesRef = useRef<Map<string, THREE.Box3>>(new Map());
@@ -581,7 +587,7 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
     collisionBoxesRef.current.set(id, worldBoundingBox);
     
     // Check if all collision data is ready
-    const expectedAssets = rock1Positions.length + rock2Positions.length + rock3Positions.length + 2; // +2 for arch and statue
+    const expectedAssets = rock1Configs.length + rock2Configs.length + rock3Configs.length + 2; // +2 for arch and statue
     if (collisionBoxesRef.current.size >= expectedAssets && !collisionDataReady) {
       setCollisionDataReady(true);
       // console.log(`[EnvironmentAssets] 🧱 All ${collisionBoxesRef.current.size} collision boxes ready!`);
@@ -597,50 +603,48 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
     }
   }, [collisionDataReady, onCollisionDataReady]);
 
-  // Split positions for different rock types
-  const rock1Positions = rockPositions.slice(0, ENVIRONMENT_CONFIG.rocks['rock-1'].count);
-  const rock2Positions = rockPositions.slice(
-    ENVIRONMENT_CONFIG.rocks['rock-1'].count, 
-    ENVIRONMENT_CONFIG.rocks['rock-1'].count + ENVIRONMENT_CONFIG.rocks['rock-2'].count
-  );
-  const rock3Positions = rockPositions.slice(
-    ENVIRONMENT_CONFIG.rocks['rock-1'].count + ENVIRONMENT_CONFIG.rocks['rock-2'].count
-  );
+  // Get rock configurations from loaded JSON
+  const rock1Configs = rockConfig?.rocks['rock-1'] ?? [];
+  const rock2Configs = rockConfig?.rocks['rock-2'] ?? [];
+  const rock3Configs = rockConfig?.rocks['rock-3'] ?? [];
 
   return (
     <group name="environment-assets">
-      {/* Rock-1 instances (4x bigger) */}
-      {rock1Positions.map((position, index) => (
+      {/* Rock-1 instances (large rocks) */}
+      {rock1Configs.map((config, index) => (
         <RockInstance
           key={`rock-1-${index}`}
           instanceId={`rock-1-${index}`}
           modelPath={ENVIRONMENT_CONFIG.rocks['rock-1'].path}
-          position={position}
+          position={new THREE.Vector3(...config.position)}
           scale={ENVIRONMENT_CONFIG.rocks['rock-1'].scale}
+          rotationY={config.rotationY}
           onBoundingBoxReady={handleAssetBoundingBox}
         />
       ))}
 
-      {/* Rock-2 instances (normal size) */}
-      {rock2Positions.map((position, index) => (
+      {/* Rock-2 instances (medium rocks) */}
+      {rock2Configs.map((config, index) => (
         <RockInstance
           key={`rock-2-${index}`}
           instanceId={`rock-2-${index}`}
           modelPath={ENVIRONMENT_CONFIG.rocks['rock-2'].path}
-          position={position}
+          position={new THREE.Vector3(...config.position)}
           scale={ENVIRONMENT_CONFIG.rocks['rock-2'].scale}
+          rotationY={config.rotationY}
           onBoundingBoxReady={handleAssetBoundingBox}
         />
       ))}
 
-      {/* Rock-3 instances (normal size) */}
-      {rock3Positions.map((position, index) => (
+      {/* Rock-3 instances (small rocks) */}
+      {rock3Configs.map((config, index) => (
         <RockInstance
           key={`rock-3-${index}`}
           instanceId={`rock-3-${index}`}
           modelPath={ENVIRONMENT_CONFIG.rocks['rock-3'].path}
-          position={position}
+          position={new THREE.Vector3(...config.position)}
           scale={ENVIRONMENT_CONFIG.rocks['rock-3'].scale}
+          rotationY={config.rotationY}
           onBoundingBoxReady={handleAssetBoundingBox}
         />
       ))}

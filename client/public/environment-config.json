@@ -1,0 +1,72 @@
+{
+  "rocks": {
+    "rock-1": [
+      {
+        "position": [25.0, 0.0, -30.0],
+        "rotationY": 0.5
+      },
+      {
+        "position": [-35.0, 0.0, 20.0],
+        "rotationY": 1.2
+      },
+      {
+        "position": [45.0, 0.0, 35.0],
+        "rotationY": 2.8
+      },
+      {
+        "position": [-20.0, 0.0, -45.0],
+        "rotationY": 4.1
+      },
+      {
+        "position": [15.0, 0.0, 55.0],
+        "rotationY": 0.9
+      }
+    ],
+    "rock-2": [
+      {
+        "position": [-50.0, 0.0, -15.0],
+        "rotationY": 1.8
+      },
+      {
+        "position": [30.0, 0.0, -50.0],
+        "rotationY": 3.2
+      },
+      {
+        "position": [-25.0, 0.0, 40.0],
+        "rotationY": 0.3
+      },
+      {
+        "position": [55.0, 0.0, -20.0],
+        "rotationY": 2.1
+      },
+      {
+        "position": [-40.0, 0.0, -35.0],
+        "rotationY": 5.0
+      }
+    ],
+    "rock-3": []
+  },
+  "description": "Fixed rock positions and rotations configuration. Positions are [x, y, z] coordinates and rotationY is in radians (0 to 2π). Only Y-axis rotation is used to prevent rocks from appearing upside down.",
+  "notes": {
+    "positionRanges": {
+      "x": "Positive = East, Negative = West",
+      "y": "Always 0.0 for ground level",
+      "z": "Positive = North, Negative = South"
+    },
+    "rotationY": {
+      "description": "Horizontal rotation in radians",
+      "range": "0 to 6.28 (0 to 2π)",
+      "examples": {
+        "0.0": "Facing North",
+        "1.57": "Facing East (90 degrees)",
+        "3.14": "Facing South (180 degrees)",
+        "4.71": "Facing West (270 degrees)"
+      }
+    },
+    "positioning": {
+      "strategy": "Rocks are positioned to create natural cover and visual interest while avoiding spawn areas and key gameplay zones",
+      "minDistanceFromSpawn": "15 units minimum",
+      "spacing": "Approximately 8-15 units between rocks for good gameplay flow"
+    }
+  }
+} 
