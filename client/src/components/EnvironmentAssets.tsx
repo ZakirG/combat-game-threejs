@@ -22,17 +22,27 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import * as THREE from 'three';
 import { Box } from '@react-three/drei';
 
+// Global Item Animation Configuration -- only for sword + gun, not coins
+export const ITEM_ANIMATION_CONFIG = {
+  ENABLE_FLOATING: true,        // Toggle to enable/disable up-down bouncing
+  ENABLE_ROTATION: true,        // Toggle to enable/disable rotation
+  FLOAT_SPEED: 0.3,            // Speed of up-down bouncing (higher = faster)
+  ROTATION_SPEED: 0.2,         // Speed of Y-axis rotation (higher = faster)
+  FLOAT_AMPLITUDE: 0.2,        // How high/low the items float (bounce distance)
+};
+
 // Sword spawn position - single source of truth
 export const SWORD_SPAWN_POSITION: [number, number, number] = [25, 0, 35];
 
-// Flamethrower spawn position
-export const FLAMETHROWER_SPAWN_POSITION: [number, number, number] = [35, 0, 25];
+// Flamethrower spawn position 
+export const FLAMETHROWER_SPAWN_POSITION: [number, number, number] = [-25, 0, 35];
 
 interface EnvironmentAssetsProps {
   // Player data for sword collision detection
   players?: ReadonlyMap<string, any>;
   localPlayerIdentity?: any;
   onSwordCollected?: (swordModel: THREE.Group, swordPosition: THREE.Vector3) => void;
+  onFlamethrowerCollected?: (flamethrowerModel: THREE.Group, flamethrowerPosition: THREE.Vector3) => void;
   // Callback to provide collision data to parent components
   onCollisionDataReady?: (collisionBoxes: THREE.Box3[]) => void;
 }
@@ -361,9 +371,6 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({
   // Glow pillar properties
   const PILLAR_HEIGHT = 2000; // Infinite pillar extending far up into space
   const PILLAR_RADIUS = 0.4;
-  const FLOAT_AMPLITUDE = 0.2;
-  const FLOAT_SPEED = 0.3;
-  const ROTATION_SPEED = 0.2;
   const COLLECTION_RADIUS = 3.0; // Distance for sword collection
 
   // Load sword model
@@ -513,11 +520,17 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({
     
     if (swordGroup.current && swordModel) {
       // Floating up and down motion
-      const floatOffset = Math.sin(elapsed * FLOAT_SPEED * Math.PI * 2) * FLOAT_AMPLITUDE;
-      swordGroup.current.position.y = position[1] + floatOffset + 1.5; // Hover 1.5 units above ground
+      if (ITEM_ANIMATION_CONFIG.ENABLE_FLOATING) {
+        const floatOffset = Math.sin(elapsed * ITEM_ANIMATION_CONFIG.FLOAT_SPEED * Math.PI * 2) * ITEM_ANIMATION_CONFIG.FLOAT_AMPLITUDE;
+        swordGroup.current.position.y = position[1] + floatOffset + 1.5; // Hover 1.5 units above ground
+      } else {
+        swordGroup.current.position.y = position[1] + 1.5; // Static position above ground
+      }
       
       // Gentle rotation around Y-axis
-      swordGroup.current.rotation.y += ROTATION_SPEED * delta;
+      if (ITEM_ANIMATION_CONFIG.ENABLE_ROTATION) {
+        swordGroup.current.rotation.y += ITEM_ANIMATION_CONFIG.ROTATION_SPEED * delta;
+      }
       
       // Check for player collision (only for local player)
       if (players && localPlayerIdentity && onSwordCollected) {
@@ -560,35 +573,47 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({
   );
 };
 
-// Floating Flamethrower Component (No glow pillar)
+// Floating Flamethrower Component
 interface FloatingFlamethrowerProps {
   position: [number, number, number];
+  onFlamethrowerCollected?: (flamethrowerModel: THREE.Group, flamethrowerPosition: THREE.Vector3) => void; // Callback when flamethrower is collected
+  players?: ReadonlyMap<string, any>; // Player data for collision detection
+  localPlayerIdentity?: any; // Local player identity for collision detection
 }
 
-const FloatingFlamethrower: React.FC<FloatingFlamethrowerProps> = ({ position }) => {
+const FloatingFlamethrower: React.FC<FloatingFlamethrowerProps> = ({ 
+  position, 
+  onFlamethrowerCollected, 
+  players, 
+  localPlayerIdentity 
+}) => {
   const flamethrowerGroup = useRef<THREE.Group>(null!);
+  const glowPillarGroup = useRef<THREE.Group>(null!);
   const [flamethrowerModel, setFlamethrowerModel] = useState<THREE.Group | null>(null);
   const [startTime] = useState(Date.now());
+  const [isCollected, setIsCollected] = useState(false);
   
-  // Animation properties (no glow pillar)
-  const FLOAT_AMPLITUDE = 0.2;
-  const FLOAT_SPEED = 0.3;
-  const ROTATION_SPEED = 0.2; // Same rotation speed as sword
+  // Glow pillar properties
+  const PILLAR_HEIGHT = 2000; // Infinite pillar extending far up into space
+  const PILLAR_RADIUS = 0.4;
+  const COLLECTION_RADIUS = 3.0; // Distance for flamethrower collection
 
   // Load flamethrower model
   useEffect(() => {
+    if (isCollected) return; // Don't load if already collected
+    
     const loader = new FBXLoader();
     
-    loader.load(
-      '/models/items/flamethrower mod.fbx',
+         loader.load(
+       '/models/items/flamethrower.fbx',
       (fbx) => {
         const loadedModel = fbx.clone();
         
-        // Scale the flamethrower much smaller
-        loadedModel.scale.setScalar(0.005);
+        // Scale the flamethrower appropriately (much bigger for visibility)
+        loadedModel.scale.setScalar(0.01); // Increased from 2.0 to 4.0
         
-        // Orient flamethrower (adjust rotation as needed for proper orientation)
-        loadedModel.rotation.set(0, 0, 0); // Start with default rotation, can adjust later
+        // Orient flamethrower pointing straight up
+        loadedModel.rotation.set(0, 0, 0); // 1.57 ≈ π/2 radians = 90 degrees for perfect vertical
         
         // Enable shadows
         loadedModel.traverse((child) => {
@@ -603,7 +628,7 @@ const FloatingFlamethrower: React.FC<FloatingFlamethrowerProps> = ({ position })
         }
         
         setFlamethrowerModel(loadedModel);
-        console.log('[EnvironmentAssets] ✨ Floating flamethrower loaded successfully');
+        // console.log('[EnvironmentAssets] ✨ Floating flamethrower loaded successfully');
       },
       undefined,
       (error) => {
@@ -616,38 +641,169 @@ const FloatingFlamethrower: React.FC<FloatingFlamethrowerProps> = ({ position })
         flamethrowerGroup.current.remove(flamethrowerModel);
       }
     };
-  }, []);
+  }, [isCollected]);
+
+  // Create light blue glow pillar
+  useEffect(() => {
+    if (!glowPillarGroup.current || isCollected) return;
+
+    // Create triple-layer glow effect with light blue color
+    const pillarGeometry = new THREE.CylinderGeometry(
+      PILLAR_RADIUS, 
+      PILLAR_RADIUS, 
+      PILLAR_HEIGHT, 
+      8, 
+      1, 
+      true
+    );
+    
+    const middleGlowGeometry = new THREE.CylinderGeometry(
+      PILLAR_RADIUS * 1.5, 
+      PILLAR_RADIUS * 1.5, 
+      PILLAR_HEIGHT, 
+      8, 
+      1, 
+      true
+    );
+    
+    const outerGlowGeometry = new THREE.CylinderGeometry(
+      PILLAR_RADIUS * 2.0, 
+      PILLAR_RADIUS * 2.0, 
+      PILLAR_HEIGHT, 
+      8, 
+      1, 
+      true
+    );
+    
+    // Deep blue glow materials - much more translucent
+    const deepBlueColor = 0x4169E1; // Royal blue color for better blue tint
+    
+    const innerMaterial = new THREE.MeshBasicMaterial({
+      color: deepBlueColor,
+      transparent: true,
+      opacity: 0.04, // Much more translucent (was 0.15)
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      fog: false
+    });
+    
+    const middleMaterial = new THREE.MeshBasicMaterial({
+      color: deepBlueColor,
+      transparent: true,
+      opacity: 0.025, // Much more translucent (was 0.1)
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      fog: false
+    });
+    
+    const outerMaterial = new THREE.MeshBasicMaterial({
+      color: deepBlueColor,
+      transparent: true,
+      opacity: 0.015, // Much more translucent (was 0.06)
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      fog: false
+    });
+    
+    // Create glow layers
+    const innerGlow = new THREE.Mesh(pillarGeometry, innerMaterial);
+    const middleGlow = new THREE.Mesh(middleGlowGeometry, middleMaterial);
+    const outerGlow = new THREE.Mesh(outerGlowGeometry, outerMaterial);
+    
+    glowPillarGroup.current.add(innerGlow);
+    glowPillarGroup.current.add(middleGlow);
+    glowPillarGroup.current.add(outerGlow);
+    
+    // console.log('[EnvironmentAssets] 🔵 Light blue glow pillar created');
+  }, [isCollected]);
 
   // Set initial positions
   useEffect(() => {
+    if (isCollected) return;
+    
     if (flamethrowerGroup.current) {
       flamethrowerGroup.current.position.set(...position);
     }
-  }, [position]);
+    if (glowPillarGroup.current) {
+      // Position pillar at ground level
+      glowPillarGroup.current.position.set(
+        position[0], 
+        position[1] + PILLAR_HEIGHT / 2 - 1.0, 
+        position[2]
+      );
+    }
+  }, [position, isCollected]);
 
-  // Animation loop (same rotation behavior as sword)
+  // Animation loop and collision detection
   useFrame((state, delta) => {
+    if (isCollected) return;
+    
     const elapsed = (Date.now() - startTime) / 1000;
     
     if (flamethrowerGroup.current && flamethrowerModel) {
       // Floating up and down motion
-      const floatOffset = Math.sin(elapsed * FLOAT_SPEED * Math.PI * 2) * FLOAT_AMPLITUDE;
-      flamethrowerGroup.current.position.y = position[1] + floatOffset + 1.5; // Hover 1.5 units above ground
+      if (ITEM_ANIMATION_CONFIG.ENABLE_FLOATING) {
+        const floatOffset = Math.sin(elapsed * ITEM_ANIMATION_CONFIG.FLOAT_SPEED * Math.PI * 2) * ITEM_ANIMATION_CONFIG.FLOAT_AMPLITUDE;
+        flamethrowerGroup.current.position.y = position[1] + floatOffset + 1.5; // Hover 1.5 units above ground
+      } else {
+        flamethrowerGroup.current.position.y = position[1] + 1.5; // Static position above ground
+      }
       
-      // Gentle rotation around Y-axis (same speed as sword)
-      flamethrowerGroup.current.rotation.y += ROTATION_SPEED * delta;
+      // Gentle rotation around Y-axis
+      if (ITEM_ANIMATION_CONFIG.ENABLE_ROTATION) {
+        flamethrowerGroup.current.rotation.y += ITEM_ANIMATION_CONFIG.ROTATION_SPEED * delta;
+      }
+      
+      // Check for player collision (only for local player)
+      if (players && localPlayerIdentity && onFlamethrowerCollected) {
+        const localPlayer = players.get(localPlayerIdentity.toHexString());
+        if (localPlayer) {
+          const playerPos = new THREE.Vector3(
+            localPlayer.position.x,
+            localPlayer.position.y,
+            localPlayer.position.z
+          );
+          const flamethrowerPos = flamethrowerGroup.current.position;
+          const distance = playerPos.distanceTo(flamethrowerPos);
+          
+          if (distance <= COLLECTION_RADIUS) {
+            // console.log('[EnvironmentAssets] 🔥 Flamethrower collected by player!');
+            setIsCollected(true);
+            
+            // Create a copy of the flamethrower model for the player
+            const flamethrowerCopy = flamethrowerModel.clone();
+            onFlamethrowerCollected(flamethrowerCopy, flamethrowerPos.clone());
+            
+            // Hide the floating flamethrower and pillar
+            flamethrowerGroup.current.visible = false;
+            glowPillarGroup.current.visible = false;
+          }
+        }
+      }
     }
   });
 
+  if (isCollected) {
+    return null; // Don't render anything if collected
+  }
+
   return (
-    <group ref={flamethrowerGroup} />
+    <>
+      <group ref={flamethrowerGroup} />
+      <group ref={glowPillarGroup} />
+    </>
   );
 };
+
 
 export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({ 
   players, 
   localPlayerIdentity, 
   onSwordCollected,
+  onFlamethrowerCollected,
   onCollisionDataReady
 }) => {
   const [rockConfig, setRockConfig] = useState<EnvironmentConfigData | null>(null);
@@ -764,13 +920,16 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
         players={players}
         localPlayerIdentity={localPlayerIdentity}
       />
-    
-      {/* Floating Flamethrower (no glow pillar) */}
 
-      {/* If you uncomment the below line, the flamethrower will show in the scene again. */}
-      {/* <FloatingFlamethrower 
+      {/* Floating Flamethrower with Light Blue Glow Pillar */}
+      <FloatingFlamethrower 
         position={FLAMETHROWER_SPAWN_POSITION} 
-      /> */}
+        onFlamethrowerCollected={onFlamethrowerCollected}
+        players={players}
+        localPlayerIdentity={localPlayerIdentity}
+      />
+    
+
 
       {/* Second Desert Arch near the sword - tweak position and rotation for best visual */}
       <LargeAsset

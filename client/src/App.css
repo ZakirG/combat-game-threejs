@@ -52,7 +52,7 @@
 
 .combo-visible {
   opacity: 1;
-  animation: shake 0.8s infinite 0.8s, comboPulse 1.0s ease-in-out infinite 0.8s;
+  animation: comboPulse 1.0s ease-in-out infinite 0.8s;
 }
 
 .combo-hidden {
@@ -62,7 +62,7 @@
 .combo-text {
   font-family: 'HorrorTheater', serif;
   font-size: 32px;
-  animation: shake 0.8s infinite 0.8s, comboPulse 1.0s ease-in-out infinite 0.8s;
+  animation: shake 0.8s infinite 0.8s;
   
 }
 
@@ -71,9 +71,9 @@
   font-size: 20px;
 }
 
-/* .combo-name {
-  animation: comboPulse 1.0s ease-in-out infinite 0.8s;
-} */
+.combo-name {
+  animation: shake 0.8s infinite 0.8s;
+}
 
 /* Combo appear animation - scale up then down */
 @keyframes comboAppear {
