@@ -72,6 +72,7 @@ const ANIMATIONS = {
   ATTACK2: 'attack2', // Combo attack animation
   ATTACK3: 'attack3', // Third combo attack animation
   ATTACK4: 'attack4', // Fourth combo attack animation
+  NINJA_ATTACK: 'ninja-run-attack', // Special ninja run attack animation (Sprinting Forward Roll)
   CAST: 'cast',
   DAMAGE: 'damage',
   DEATH: 'death',
@@ -96,7 +97,7 @@ const CAMERA_MODES = {
 };
 
 // --- Physics Constants ---
-const GRAVITY = -50.0; // Much stronger gravity for snappier jumping
+const GRAVITY = -120.0; // Very strong gravity for dramatic falling acceleration
 const JUMP_FORCE = 20.0; // Higher upward velocity for faster, more responsive jumping
 const GROUND_LEVEL = 0.0; // Ground Y position
 const TERMINAL_VELOCITY = -80.0; // Higher maximum falling speed for faster descent
@@ -1359,7 +1360,8 @@ export const Player: React.FC<PlayerProps> = ({
          currentAnimation.startsWith('sword_') ||
          currentAnimation === ANIMATIONS.ATTACK2 ||
          currentAnimation === ANIMATIONS.ATTACK3 ||
-         currentAnimation === ANIMATIONS.ATTACK4)
+         currentAnimation === ANIMATIONS.ATTACK4 ||
+         currentAnimation === ANIMATIONS.NINJA_ATTACK)
       ) {
         const action = animations[currentAnimation];
         
@@ -1671,6 +1673,19 @@ export const Player: React.FC<PlayerProps> = ({
             let comboDescription = 'FIRST';
             let attackIsSword = false; // Track if this specific attack should be sword or melee
             
+            // Special case: If ninja run is active, use the special ninja attack animation
+            if (isNinjaRunActive) {
+              console.log(`🥷 [Ninja Attack] Using Sprinting Forward Roll during ninja run!`);
+              attackAnimation = ANIMATIONS.NINJA_ATTACK;
+              isComboAttack = false; // Special attacks don't participate in combo system
+              comboDescription = 'NINJA SPRINTING FORWARD ROLL';
+              attackIsSword = false; // Ninja attacks are always melee
+              
+              // Reset combo system when using ninja attack
+              setComboActive(false);
+              setComboStage(0);
+            } else {
+            
             // console.log(`🔍 [DEBUG] Initial state - comboStage: ${comboStage}, comboActive: ${comboActive}, timeSinceLastAttack: ${timeSinceLastAttack}, isSwordEquipped: ${isSwordEquipped}`);
             
             if (comboActive && timeSinceLastAttack <= COMBO_WINDOW) {
@@ -1716,6 +1731,8 @@ export const Player: React.FC<PlayerProps> = ({
               // Not sword equipped: all attacks are melee
               attackIsSword = false;
               comboDescription += ' MELEE';
+            }
+            
             }
             
             // console.log(`🔍 [DEBUG] After sword/melee logic - attackIsSword: ${attackIsSword}, final comboDescription: ${comboDescription}`);

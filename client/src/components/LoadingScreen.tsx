@@ -206,6 +206,20 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
       color: '#5D4037',
       fontSize: '14px',
       opacity: 0.9,
+    },
+    instructionsContainer: {
+      maxWidth: '500px',
+      width: '100%',
+      textAlign: 'center' as const,
+      padding: '10px',
+    },
+    instructionsText: {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '14px',
+      color: '#3E2723',
+      lineHeight: '1.4',
+      margin: 0,
+      fontStyle: 'italic' as const,
     }
   };
 
@@ -230,6 +244,15 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
               alt="X Statue" 
               style={styles.statueImage}
             />
+          </div>
+
+          {/* Game Instructions */}
+          <div style={styles.instructionsContainer}>
+            <div style={styles.instructionsText}>
+              Click into the game screen to capture your mouse inside of the game, press "esc" to un-capture your mouse.<br/>
+              Run with WASD, look around with the mouse, attack by clicking.<br/>
+              If you hold down shift while moving, you'll run. Keep holding it and you go faster.
+            </div>
           </div>
 
           <div style={styles.panel}>

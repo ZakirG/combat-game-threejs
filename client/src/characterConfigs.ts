@@ -41,6 +41,8 @@ export interface CharacterAnimationTable {
   attack2: string; // Combo attack animation
   attack3: string; // Third combo attack animation
   attack4: string; // Fourth combo attack animation
+  'cartwheel'?: string; // Special ninja run attack animation
+  'ninja-run-attack'?: string; // Ninja run attack using Sprinting Forward Roll
   cast: string;
   damage: string;
   death: string;
@@ -117,6 +119,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       attack2: "Flip Kick.fbx", // Combo attack animation
       attack3: "Inverted Double Kick To Kip Up.fbx", // Third combo attack animation
       attack4: "Martelo Do Chau.fbx", // Fourth combo attack animation
+      'cartwheel': "Cartwheel.fbx", // Special ninja run attack
       cast: "Elbow Punch.fbx",
       damage: "Hit To Body.fbx",
       death: "Standing React Death Backward.fbx",
@@ -140,6 +143,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         attack2: "Flip Kick.fbx", // Combo attack animation
         attack3: "Inverted Double Kick To Kip Up.fbx", // Third combo attack animation
         attack4: "Martelo Do Chau.fbx", // Fourth combo attack animation
+        'cartwheel': "Cartwheel.fbx", // Special ninja run attack
+        'ninja-run-attack': "Sprinting Forward Roll.fbx", // Ninja run attack using sprinting forward roll
         cast: "Elbow Punch.fbx",
         damage: "Hit To Body.fbx",
         death: "Standing React Death Backward.fbx",
@@ -162,6 +167,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         attack2: "Cartwheel.fbx", // Now the second attack
         attack3: "Sword And Shield Attack B.fbx", // Swapped: third combo attack animation
         attack4: "Sword And Shield Slash B.fbx", // Fourth combo attack animation
+        'ninja-run-attack': "Sprinting Forward Roll.fbx", // Ninja run attack using sprinting forward roll
         cast: "Great Sword Kick.fbx", // Use kick for casting with sword
         damage: "Hit To Body.fbx", // Keep same damage animation
         death: "Standing React Death Backward.fbx", // Keep same death animation
@@ -182,6 +188,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       attack2: 3.0, // Same speed as attack1 for combo consistency
       attack3: 2.5, // Slightly slower for dramatic third combo finisher
       attack4: 3.5, // Faster fourth attack for quick finisher
+      'cartwheel': 1.5, // Moderate speed for special ninja run attack
+      'ninja-run-attack': 2.0, // Double speed for sprinting forward roll attack
       cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
     },
     swordTimeScale: {
@@ -203,6 +211,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       attack3: 4.0, // Swapped: Speed for Sword And Shield Attack B.fbx (now third attack)
       attack4: 2.5, // Final sword combo strike
       cast: 2.5, // Sword casting speed
+      'ninja-run-attack': 2.0, // Double speed for sprinting forward roll attack
       powerup: 1.2 // Power-up animation speed when sword is equipped
     }
   },
