@@ -31,6 +31,7 @@ import { PlayerData } from '../generated';
 import { makeZombieDecision, ZOMBIE_ANIMATIONS, ZOMBIE_ATTACK_ANIMATIONS, ZombieDecision, STRIKING_DISTANCE } from './ZombieBrain';
 import { ZOMBIE_CONFIG } from '../characterConfigs';
 import { GameReadyCallbacks } from '../types/gameReady';
+import { SWORD_SPAWN_POSITION } from './EnvironmentAssets';
 
 // Configurable spawn settings
 const SPAWN_SETTINGS = {
@@ -877,6 +878,13 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
 
   // Dynamic zombie positions (can be updated during gameplay)
   const [zombiePositions, setZombiePositions] = useState<[number, number, number][]>(() => {
+    // Define fixed positions for zombies near the sword
+    const fixedSwordZombies: [number, number, number][] = [
+        [SWORD_SPAWN_POSITION[0] + 5, 0, SWORD_SPAWN_POSITION[2]],
+        [SWORD_SPAWN_POSITION[0] - 5, 0, SWORD_SPAWN_POSITION[2]],
+        [SWORD_SPAWN_POSITION[0], 0, SWORD_SPAWN_POSITION[2] + 5],
+        [SWORD_SPAWN_POSITION[0], 0, SWORD_SPAWN_POSITION[2] - 5],
+    ];
     const minDistance = minSpawnDistance || SPAWN_SETTINGS.MIN_DISTANCE_FROM_PLAYERS;
     
     // Take a snapshot of current player positions for spawn calculation
@@ -885,8 +893,10 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       y: 0, // Use ground level for spawn calculations
       z: player.position.z
     }));
+
+    const randomZombieCount = zombieCount > fixedSwordZombies.length ? zombieCount - fixedSwordZombies.length : 0;
     
-    return Array.from({ length: zombieCount }, (_, index) => {
+    const randomPositions = Array.from({ length: randomZombieCount }, (_, index) => {
       // Create a temporary players map using the snapshot for spawn calculation
       const snapshotPlayers = new Map(Array.from(players.entries()).map(([id, player], i) => [
         id, 
@@ -907,6 +917,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       
       return position;
     });
+    return [...fixedSwordZombies, ...randomPositions];
   });
 
   // Function to spawn additional zombies
