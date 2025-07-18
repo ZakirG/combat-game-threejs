@@ -20,6 +20,10 @@ interface CoinInstance {
   // Pillar fade-out
   pillarFading: boolean;
   pillarFadeStartTime: number;
+  // Progressive bouncing
+  bounceDamping: number;
+  bounceCount: number;
+  maxBounces: number;
 }
 
 interface CoinPickupConfig {
@@ -253,7 +257,7 @@ export class CoinEffectManager {
 
     // Add both coin and pillar to scene
     this.scene.add(coinMesh);
-    this.scene.add(glowPillar); // Commented out to hide pillar of light
+    // this.scene.add(glowPillar); // Commented out to hide pillar of light
 
     // Calculate flyaway direction (away from player and up)
     let flyawayVelocity = new THREE.Vector3(0, 0, 0);
@@ -288,7 +292,11 @@ export class CoinEffectManager {
       landed: false,
       // Pillar fade-out
       pillarFading: false,
-      pillarFadeStartTime: 0
+      pillarFadeStartTime: 0,
+      // Progressive bouncing
+      bounceDamping: 0.6 + Math.random() * 0.3, // Random damping between 0.6-0.9 for variety
+      bounceCount: 0,
+      maxBounces: 2 + Math.floor(Math.random() * 3) // Random 2-4 bounces
     };
 
     this.coins.push(coinInstance);
@@ -394,29 +402,44 @@ export class CoinEffectManager {
         coin.position.z += coin.velocity.z * deltaTime;
         coin.position.y += coin.velocity.y * deltaTime;
         
-        // Check if coin has landed (reached ground level or below)
-        if (coin.position.y <= coin.baseY) {
+        // Check if coin has hit the ground
+        if (coin.position.y <= coin.baseY && coin.velocity.y <= 0) {
           coin.position.y = coin.baseY;
-          coin.velocity.set(0, 0, 0); // Stop movement
-          coin.landed = true;
+          
+          // Check if we should bounce or settle
+          if (coin.bounceCount < coin.maxBounces && Math.abs(coin.velocity.y) > 0.5) {
+            // Bounce: reverse Y velocity with damping
+            coin.velocity.y = -coin.velocity.y * coin.bounceDamping;
+            coin.bounceCount++;
+            
+            // Also dampen horizontal velocity with each bounce
+            coin.velocity.x *= coin.bounceDamping;
+            coin.velocity.z *= coin.bounceDamping;
+            
+            // console.log(`[CoinEffect] Coin bounced ${coin.bounceCount}/${coin.maxBounces}, Y velocity: ${coin.velocity.y.toFixed(2)}`);
+          } else {
+            // Settle on ground: stop all movement
+            coin.velocity.set(0, 0, 0);
+            coin.landed = true;
+            // console.log(`[CoinEffect] Coin settled on ground after ${coin.bounceCount} bounces`);
+          }
         }
         
         // Update mesh position
         coin.mesh.position.copy(coin.position);
         
-        // Update pillar position to stay centered with coin (closer to ground)
-        coin.glowPillar.position.set(
-          coin.position.x,
-          coin.position.y + this.PILLAR_HEIGHT / 2 - 1.0,
-          coin.position.z
-        ); // Commented out to hide pillar of light
+        // Update pillar position to stay centered with coin (if pillar was enabled)
+        // coin.glowPillar.position.set(
+        //   coin.position.x,
+        //   coin.position.y + this.PILLAR_HEIGHT / 2 - 1.0,
+        //   coin.position.z
+        // );
       } else {
-        // Once landed, apply floating motion (up and down)
-        const floatOffset = Math.sin((elapsed / 1000) * coin.floatSpeed * Math.PI * 2) * this.FLOAT_AMPLITUDE;
-        coin.mesh.position.y = coin.baseY + floatOffset;
+        // Once fully settled, no more floating motion - coin lies flat
+        coin.mesh.position.copy(coin.position);
         
-        // Keep pillar at ground level (don't float with coin, closer to ground)
-        coin.glowPillar.position.y = coin.position.y + this.PILLAR_HEIGHT / 2 - 1.0; // Commented out to hide pillar of light
+        // Keep pillar at ground level (if pillar was enabled)
+        // coin.glowPillar.position.y = coin.position.y + this.PILLAR_HEIGHT / 2 - 1.0;
       }
     }
   }
