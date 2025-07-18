@@ -163,6 +163,127 @@ export const Player: React.FC<PlayerProps> = ({
   const [rightHandBone, setRightHandBone] = useState<THREE.Bone | null>(null);
   const swordAttachmentRef = useRef<THREE.Group | null>(null);
   
+  // Glow effect system for sword equipping
+  const [glowMesh, setGlowMesh] = useState<THREE.Mesh | null>(null);
+  const glowTimeoutRef = useRef<number | null>(null);
+  
+  // Create glow effect for character model
+  const createGlowEffect = useCallback(() => {
+    if (!model || !group.current || glowMesh) return; // Don't create if already exists
+    
+    console.log('[Player] ✨ Creating 4-layer expanding glow effect for sword equipping...');
+    
+    // Get the scene reference (same way blood effects do it)
+    const scene = group.current.parent as THREE.Scene;
+    if (!scene) {
+      console.warn('[Player] ⚠️ No scene found for glow effect');
+      return;
+    }
+    
+    // Create a group to hold all 4 glow layers
+    const glowGroup = new THREE.Group();
+    
+    // Define 4 layers with different sizes and opacity levels
+    const layers = [
+      { radius: 0.8, opacity: 0.6, name: 'innermost' },   // Innermost - least translucent
+      { radius: 1.2, opacity: 0.4, name: 'inner' },       // Inner 
+      { radius: 1.6, opacity: 0.25, name: 'outer' },      // Outer
+      { radius: 2.0, opacity: 0.15, name: 'outermost' }   // Outermost - most translucent
+    ];
+    
+    // Create each layer
+    layers.forEach((layer, index) => {
+      const glowGeometry = new THREE.SphereGeometry(layer.radius, 32, 32);
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: layer.opacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+      
+      const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
+      glowGroup.add(glowSphere);
+      
+      console.log(`[Player] ✨ Created ${layer.name} glow layer (radius: ${layer.radius}, opacity: ${layer.opacity})`);
+    });
+    
+    // Get player's current world position
+    const playerWorldPosition = new THREE.Vector3();
+    group.current.getWorldPosition(playerWorldPosition);
+    
+    // Position glow group at player's world position
+    glowGroup.position.copy(playerWorldPosition);
+    glowGroup.position.y += 1; // Slightly above ground to be more visible
+    
+    console.log('[Player] 📍 Player world position:', playerWorldPosition);
+    console.log('[Player] 📍 4-layer glow positioned at:', glowGroup.position);
+    
+    // Add start time for animation tracking
+    (glowGroup as any).startTime = performance.now();
+    (glowGroup as any).initialOpacities = layers.map(layer => layer.opacity);
+    
+    // Add glow group directly to scene
+    scene.add(glowGroup);
+    setGlowMesh(glowGroup as any); // Store as glowMesh for tracking
+    
+    console.log('[Player] ✅ 4-layer expanding glow effect created and added to scene');
+    
+    // Remove glow after exactly 1 second
+    glowTimeoutRef.current = setTimeout(() => {
+      console.log('[Player] ⏰ Removing 4-layer glow effect after 1 second');
+      removeGlowEffect();
+    }, 1000);
+    
+  }, [model, glowMesh]);
+  
+  // Remove glow effect
+  const removeGlowEffect = useCallback(() => {
+    if (glowMesh && group.current) {
+      console.log('[Player] ✨ Removing 4-layer glow effect...');
+      
+      // Get scene reference and remove glow group
+      const scene = group.current.parent as THREE.Scene;
+      if (scene) {
+        scene.remove(glowMesh);
+        console.log('[Player] ✅ Glow group removed from scene');
+      } else {
+        // Fallback: remove from parent if it exists
+        if (glowMesh.parent) {
+          glowMesh.parent.remove(glowMesh);
+          console.log('[Player] ✅ Glow group removed from parent');
+        }
+      }
+      
+      // Dispose of all geometries and materials in the group to prevent memory leaks
+      glowMesh.children.forEach((child: THREE.Mesh) => {
+        if (child.geometry) {
+          child.geometry.dispose();
+        }
+        if (child.material && 'dispose' in child.material) {
+          (child.material as THREE.Material).dispose();
+        }
+      });
+      
+      setGlowMesh(null);
+    }
+    
+    if (glowTimeoutRef.current) {
+      clearTimeout(glowTimeoutRef.current);
+      glowTimeoutRef.current = null;
+    }
+  }, [glowMesh]);
+  
+  // Cleanup glow effect on unmount
+  useEffect(() => {
+    return () => {
+      if (glowTimeoutRef.current) {
+        clearTimeout(glowTimeoutRef.current);
+      }
+    };
+  }, []);
+  
   // Power-up animation state - blocks all other animations and movement while active
   const [isPlayingPowerUp, setIsPlayingPowerUp] = useState<boolean>(false);
   const powerUpTimeoutRef = useRef<number | null>(null);
@@ -1308,6 +1429,36 @@ export const Player: React.FC<PlayerProps> = ({
         updateScreenshake(camera, delta);
       }
 
+      // Update glow effect animation if active
+      if (glowMesh && group.current) {
+        const currentTime = performance.now();
+        const startTime = (glowMesh as any).startTime || currentTime;
+        const elapsed = (currentTime - startTime) / 1000; // Convert to seconds
+        const progress = Math.min(elapsed / 1.0, 1.0); // Progress from 0 to 1 over 1 second
+        
+        // Expanding animation - scale increases over time
+        const expansionFactor = 1.0 + progress * 2.0; // Expand to 3x original size
+        glowMesh.scale.set(expansionFactor, expansionFactor, expansionFactor);
+        
+        // Fade-out animation - opacity decreases over time
+        const fadeOpacity = 1.0 - progress; // Fade from 1.0 to 0.0
+        
+        // Update each layer's opacity
+        const initialOpacities = (glowMesh as any).initialOpacities || [0.6, 0.4, 0.25, 0.15];
+        glowMesh.children.forEach((child: THREE.Mesh, index: number) => {
+          if (child.material && 'opacity' in child.material) {
+            const material = child.material as THREE.MeshBasicMaterial;
+            material.opacity = initialOpacities[index] * fadeOpacity;
+          }
+        });
+        
+        // Keep glow positioned at player's current world location
+        const playerWorldPosition = new THREE.Vector3();
+        group.current.getWorldPosition(playerWorldPosition);
+        glowMesh.position.copy(playerWorldPosition);
+        glowMesh.position.y += 1; // Keep it slightly above ground
+      }
+
       // Update latest server data ref for local player
       if (isLocalPlayer) {
           dataRef.current = playerData;
@@ -2200,6 +2351,9 @@ export const Player: React.FC<PlayerProps> = ({
     setEquippedSword(swordModel);
     swordAttachmentRef.current = swordModel;
     
+    // Trigger visual glow effect for 1 second
+    createGlowEffect();
+    
     console.log('[Player] ✅ Sword equipped and ready! Playing power-up animation...');
     console.log(`🔍 [Debug] Available animations:`, Object.keys(animations));
     console.log(`🔍 [Debug] Looking for powerup animation: ${ANIMATIONS.POWERUP}`);
@@ -2432,7 +2586,10 @@ export const Player: React.FC<PlayerProps> = ({
       swordAttachmentRef.current = null;
       console.log('[Player] ⚔️ Sword unequipped! Animation system will switch back to default animations.');
     }
-  }, [rightHandBone, equippedSword]);
+    
+    // Clean up any active glow effect
+    removeGlowEffect();
+  }, [rightHandBone, equippedSword, removeGlowEffect]);
 
   // Find right hand bone when model loads
   useEffect(() => {

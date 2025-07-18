@@ -9,67 +9,70 @@ Experience intense 3D multiplayer combat in a fully-realized arena where strateg
 
 ### ⚔️ **Combat System**
 - **Real-time PvP Combat**: Engage in fast-paced multiplayer battles
-- **Attack & Spell System**: Left-click to attack, right-click to cast spells
-- **Physics-Based Combat**: Advanced collision detection and movement physics
+- **Attack System**: Left-click to attack with combo system (up to 8-hit combos)
+- **Advanced Animation System**: Character-specific attack animations and movement
 - **Dramatic High-Altitude Spawns**: Enter the arena with cinematic falling sequences
+- **Zombie Combat**: Fight AI enemies with knockback physics and visual effects
 
 ### 👥 **Character Classes**
 Choose from unique fighters, each with distinct abilities and fighting styles:
 
-- **Grok Ani**: Balanced fighter with elegant combat techniques and spell casting
-- **Grok Rudi**: Powerful brawler with devastating punches and combat prowess
-and more!
+- **Grok Ani**: Balanced fighter with elegant combat techniques and sword compatibility
+- **Grok Rudi**: Powerful brawler with devastating punches and combat prowess  
+- **Zaqir Mufasa**: Agile fighter with unique movement animations and combat style
 
 Each character features:
 - Unique animation sets and combat moves
-- Character-specific movement speeds and abilities  
+- Character-specific movement speeds and scaling
+- Sword equipping system with enhanced animations
 - Custom visual effects and fighting styles
 - Personalized X handle integration
 
 ### 🧟 **Advanced AI Enemies**
 Battle intelligent zombie enemies with sophisticated behaviors:
 - **State-based AI**: Idle → Hunt → Scream → Attack → Chase sequences
-- **Dynamic Pathfinding**: Smart enemy movement and player tracking
-- **Adaptive Combat**: Enemies that respond to player actions and positioning
+- **Smart Decision Making**: Advanced AI brain with persistent state management
+- **Dynamic Combat**: Enemies that respond to player actions and positioning
 - **Performance-Optimized**: Efficient enemy management for smooth gameplay
+- **Knockback Physics**: Enemies react realistically to player attacks
 
-### 🎥 **Dynamic Camera System**
-- **Follow Camera**: Traditional third-person view with mouse look controls
-- **Orbital Camera**: Cinematic camera that orbits around your character
-- **Seamless Switching**: Toggle between camera modes with 'C' key
-- **Smooth Transitions**: Fluid camera movement with zoom controls
+### 🎥 **Camera System**
+- **Follow Camera**: Third-person view with mouse look controls and pointer lock
+- **Smooth Controls**: Fluid camera movement with zoom controls
+- **Camera Modes**: Toggle between different viewing angles with 'C' key
 
 ### 🌐 **Multiplayer Technology**
 - **Real-time Synchronization**: Powered by SpacetimeDB for instant updates
 - **Server Authority**: Cheat-resistant gameplay with server-side validation
 - **Client Prediction**: Responsive controls with lag compensation
 - **Seamless Join/Leave**: Drop in and out of battles effortlessly
+- **Identity System**: Persistent player identity and reconnection support
 
 ---
 
 ## 🛠️ **Tech Stack**
 
 ### **Frontend**
-- **React 18** - Modern UI framework with hooks and context
+- **React 19** - Modern UI framework with hooks and context
 - **TypeScript** - Type-safe development with full IDE support
 - **Three.js + React Three Fiber** - High-performance 3D rendering
 - **Vite** - Lightning-fast development and building
 
 ### **Backend**
-- **SpacetimeDB** - Real-time multiplayer database with Rust modules
+- **SpacetimeDB** - Real-time multiplayer database with automatic networking
 - **Rust** - High-performance server-side logic and state management
 - **WebAssembly** - Optimized cross-platform execution
 
 ### **3D Assets & Animation**
 - **FBX Model Pipeline** - Complex character models with detailed animations
-- **Animation Blending** - Smooth transitions between movement states
+- **Animation System** - Character-specific animations with time scaling
 - **Physics Integration** - Gravity, collision, and movement systems
-- **LOD Optimization** - Performance-optimized asset loading
+- **Environment Assets** - HDR lighting and 3D environment elements
 
 ### **Real-time Features**
-- **WebSocket Communication** - Ultra-low latency multiplayer
+- **SpacetimeDB Networking** - Automatic real-time multiplayer synchronization
 - **State Synchronization** - Automatic client-server data sync
-- **Input Prediction** - Responsive controls despite network latency
+- **Input Prediction** - Responsive controls with client-side prediction
 
 ---
 
@@ -81,9 +84,10 @@ Battle intelligent zombie enemies with sophisticated behaviors:
 | **Shift** | Sprint (increased movement speed) |
 | **Space** | Jump |
 | **Mouse** | Look around / Camera control |
-| **Left Click** | Attack |
-| **Right Click** | Cast Spell |
-| **C** | Toggle Camera Mode (Follow ↔ Orbital) |
+| **Left Click** | Attack (combo system available) |
+| **ESC** | Unlock mouse cursor |
+| **Tab** | Toggle Debug Panel |
+| **C** | Toggle Camera Mode |
 | **Mouse Wheel** | Zoom in/out |
 
 ---
@@ -93,7 +97,7 @@ Battle intelligent zombie enemies with sophisticated behaviors:
 ### **Prerequisites**
 - Node.js 18+ and npm
 - Rust and Cargo  
-- SpacetimeDB CLI
+- SpacetimeDB CLI (version 1.0.1)
 
 ### **One-Command Setup**
 ```bash
@@ -166,8 +170,8 @@ spacetime generate --lang typescript --out-dir ../client/src/generated
 
 ### **Combat Mechanics**
 - Modify attack patterns in `server/src/player_logic.rs`
-- Adjust damage and health in `server/src/common.rs`
-- Customize spell effects in the client components
+- Adjust movement speeds in `server/src/common.rs`
+- Customize animations in `client/src/characterConfigs.ts`
 
 ### **AI Behavior**
 - Edit zombie AI in `client/src/components/ZombieBrain.tsx`
@@ -177,7 +181,7 @@ spacetime generate --lang typescript --out-dir ../client/src/generated
 ### **Visual Effects**
 - Environment settings in `client/src/components/GameScene.tsx`
 - Lighting and shadows throughout the scene components
-- Post-processing effects via Three.js
+- Blood and coin effects in `client/src/utils/` directory
 
 ---
 
@@ -190,9 +194,11 @@ client/src/
 │   ├── Player.tsx       # Character rendering & physics
 │   ├── GameScene.tsx    # 3D world environment  
 │   ├── ZombieManager.tsx # AI enemy system
-│   └── JoinGameDialog.tsx # Character selection
+│   ├── JoinGameDialog.tsx # Character selection
+│   └── LoadingScreen.tsx # Asset loading UI
 ├── generated/           # Auto-generated SpacetimeDB types
 ├── characterConfigs.ts  # Character definitions
+├── utils/               # Blood effects, screenshake, audio
 └── App.tsx             # Main game orchestration
 ```
 
@@ -207,26 +213,27 @@ server/src/
 ### **Key Systems**
 - **Player State Management**: Server-authoritative with client prediction
 - **Real-time Sync**: SpacetimeDB handles all networking automatically
-- **Animation Pipeline**: Complex FBX loading with retargeting support
-- **AI Management**: Optimized multi-entity AI with state machines
+- **Animation Pipeline**: FBX loading with character-specific configurations
+- **AI Management**: Sophisticated zombie AI with state machines
+- **Combat System**: Combo attacks and knockback physics
 
 ---
 
-## 🎖️ **Game Modes**
+## 🎖️ **Current Game Mode**
 
-- **Free-for-All**: Battle against other players and AI enemies
-- **Survival**: Last player standing wins
-- **Team Combat**: Coordinate with allies against enemy forces
-- **Training Mode**: Practice against AI to hone your skills
+- **Multiplayer Arena**: Battle against other players and intelligent AI enemies in a shared combat arena
+- **Character Selection**: Choose from multiple unique fighters with distinct abilities
+- **High-Altitude Entry**: Dramatic spawn system with falling physics
+- **Persistent Combat**: Join and leave battles seamlessly with identity preservation
 
 ---
 
 ## 🔧 **Performance**
 
-- **Optimized Rendering**: Efficient 3D asset streaming
-- **Smart AI Loading**: Sequential zombie spawning prevents frame drops
-- **Network Efficiency**: Minimal bandwidth with delta compression
-- **Scalable Architecture**: Handles multiple concurrent players
+- **Optimized Rendering**: Efficient 3D asset loading and management
+- **Smart AI Loading**: Intelligent zombie spawning and lifecycle management  
+- **Network Efficiency**: SpacetimeDB handles optimized real-time communication
+- **Scalable Architecture**: Handles multiple concurrent players with client-side prediction
 
 ---
 
