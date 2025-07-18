@@ -775,9 +775,9 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
       {/* Second Desert Arch near the sword - tweak position and rotation for best visual */}
       <LargeAsset
         modelPath={ENVIRONMENT_CONFIG.desertArch.path}
-        position={[23, 7, 35]} // X: left/right, Y: up/down, Z: forward/back
+        position={[27, 7, 35]} // X: left/right, Y: up/down, Z: forward/back
         scale={15.0} // Adjust size (current: 15.0, try 10.0-25.0)
-        rotation={[0, Math.PI * 0.75, 0]} // Y rotation: 0=forward, 0.5=90°, 1.0=180°
+        rotation={[0, Math.PI * 0.2, 0]} // Y rotation: 0=forward, 0.5=90°, 1.0=180°
         name="Desert Arch (Near Sword)"
         onBoundingBoxReady={handleAssetBoundingBox}
       />

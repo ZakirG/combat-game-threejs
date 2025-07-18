@@ -6,6 +6,7 @@
  * Key functionality:
  * - Shows combo count when player hits 2+ zombies within 2 seconds of each other
  * - Displays "COMBO! x{count}" text above the player's name tag
+ * - Shows named combo underneath the counter for combos 2-12+ with specific names
  * - Appears when second zombie is hit, fades after 1 second
  * - Uses game-themed fonts matching the kill counter
  * - Includes shaking animation for the number
@@ -32,6 +33,29 @@ interface ComboCounterProps {
   localPlayer: PlayerData | null;
 }
 
+// Combo names dictionary
+const COMBO_NAMES: Record<number, string> = {
+  2: 'BACK TO BACK',
+  3: 'TRIPLE STRIKE',
+  4: 'AGILITY',
+  5: 'RAMPAGE',
+  6: 'NINJA AGILITY',
+  7: 'LUCKY SEVEN',
+  8: 'PRECISION ASASSIN',
+  9: 'SERIAL KILLER',
+  10: 'INSANITY STRIKE',
+  11: 'SNAKE EYES',
+  12: 'ULTRA STRIKER'
+};
+
+// Function to get combo name
+const getComboName = (count: number): string => {
+  if (count >= 13) {
+    return 'ABSOLUTE DESTRUCTION';
+  }
+  return COMBO_NAMES[count] || '';
+};
+
 export const ComboCounter: React.FC<ComboCounterProps> = ({
   comboCount,
   localPlayer
@@ -46,10 +70,10 @@ export const ComboCounter: React.FC<ComboCounterProps> = ({
       setDisplayCount(comboCount);
       setIsVisible(true);
       
-      // Hide after 2 seconds
+      // Hide after 4 seconds (increased from 2 seconds)
       const timer = setTimeout(() => {
         setIsVisible(false);
-      }, 2000);
+      }, 4000);
       
       return () => clearTimeout(timer);
     } else {
@@ -74,6 +98,8 @@ export const ComboCounter: React.FC<ComboCounterProps> = ({
     return null;
   }
 
+  const comboName = getComboName(displayCount);
+
   return (
     <Html
       position={[positionRef.current.x, positionRef.current.y, positionRef.current.z]}
@@ -90,8 +116,25 @@ export const ComboCounter: React.FC<ComboCounterProps> = ({
           whiteSpace: 'nowrap'
         }}
       >
-        <span className="combo-text">COMBO </span>
-        <span className="combo-number">x{displayCount}</span>
+        <div>
+          <span className="combo-text">COMBO </span>
+          <span className="combo-number">x{displayCount}</span>
+        </div>
+        {comboName && (
+          <div 
+            className="combo-name"
+            style={{
+              fontFamily: 'HorrorTheater, serif',
+              fontSize: '24px',
+              color: 'black',
+              fontWeight: 'bold',
+              textShadow: '2px 2px 4px rgba(255, 0, 0, 0.8)',
+              marginTop: '5px'
+            }}
+          >
+            {comboName}
+          </div>
+        )}
       </div>
     </Html>
   );
