@@ -190,7 +190,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       attack4: 3.5, // Faster fourth attack for quick finisher
       'cartwheel': 1.5, // Moderate speed for special ninja run attack
       'ninja-run-attack': 2.0, // Double speed for sprinting forward roll attack
-      cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
+      cast: 3.0, // 1.5x speed increase (2.0 * 1.5 = 3.0)
+      damage: 2.0 // Double speed for damage animation
     },
     swordTimeScale: {
       'walk-forward': 2.4, // Doubled speed for sword walk forward (1.2 * 2 = 2.4)
@@ -212,7 +213,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       attack4: 2.5, // Final sword combo strike
       cast: 2.5, // Sword casting speed
       'ninja-run-attack': 2.0, // Double speed for sprinting forward roll attack
-      powerup: 1.2 // Power-up animation speed when sword is equipped
+      powerup: 1.2, // Power-up animation speed when sword is equipped
+      damage: 2.0 // Double speed for damage animation with sword
     }
   },
   "Zaqir Mufasa": {
@@ -293,7 +295,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       attack2: 3.0, // Same speed as attack1 for combo consistency
       attack3: 2.5, // Slightly slower for dramatic third combo finisher
       attack4: 3.5, // Faster fourth attack for quick finisher
-      cast: 3.0 // 1.5x speed increase (2.0 * 1.5 = 3.0)
+      cast: 3.0, // 1.5x speed increase (2.0 * 1.5 = 3.0)
+      damage: 2.0 // Double speed for damage animation
     }
   },
   "Grok Rudi": {
@@ -378,6 +381,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       jump: 1.3,           // Double speed for faster jumping animation
       falling: 1.0,        // Normal falling speed
       landing: 0.25,       // 4x slower landing (1.0 / 4 = 0.25)
+      damage: 2.0,         // Double speed for damage animation
       death: 0.9           // Slightly slower death for dramatic effect
     }
   }

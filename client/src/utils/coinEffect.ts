@@ -22,6 +22,33 @@ interface CoinInstance {
   pillarFadeStartTime: number;
 }
 
+interface CoinPickupConfig {
+  particleCount: number;
+  size: number;
+  color: number;
+  fadeSpeed: number;
+  initialSpeed: number;
+  gravity: number;
+  duration: number;
+}
+
+const DEFAULT_PICKUP_CONFIG: CoinPickupConfig = {
+  particleCount: 25, // Much fewer particles for subtlety
+  size: 0.04, // Smaller particles
+  color: 0xFFFFFF, // Pure white
+  fadeSpeed: 1.5, // Gentle fade
+  initialSpeed: 1.5, // Slower movement
+  gravity: 3.0, // Less gravity for floating effect
+  duration: 1.5 // Shorter duration
+};
+
+interface ActivePickupEffect {
+  points: THREE.Points;
+  velocities: THREE.Vector3[];
+  startTime: number;
+  config: CoinPickupConfig;
+}
+
 export class CoinEffectManager {
   private scene: THREE.Scene;
   private coins: CoinInstance[] = [];
@@ -30,12 +57,77 @@ export class CoinEffectManager {
   private readonly FLOAT_AMPLITUDE = 0.5; // How high/low it floats
   private readonly COIN_DURATION = 3000; // 3 seconds before cleanup
   
+  // Pickup particle effects
+  private activePickupEffects: ActivePickupEffect[] = [];
+  
   // Glow pillar properties
   private readonly PILLAR_HEIGHT = 10; // Height of the magical beam
   private readonly PILLAR_RADIUS = 0.3; // Thin beam radius
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
+  }
+
+  /**
+   * Creates a subtle white particle effect when a coin is picked up
+   */
+  private createCoinPickupEffect(position: THREE.Vector3, config: Partial<CoinPickupConfig> = {}): void {
+    if (!COIN_EFFECTS_ENABLED) {
+      return;
+    }
+    
+    const finalConfig = { ...DEFAULT_PICKUP_CONFIG, ...config };
+    
+    // Create particle geometry
+    const positions = new Float32Array(finalConfig.particleCount * 3);
+    const velocities: THREE.Vector3[] = [];
+
+    // Initialize particles at the coin position with gentle upward velocities
+    for (let i = 0; i < finalConfig.particleCount; i++) {
+      // Start all particles at the coin position
+      positions[i * 3 + 0] = position.x;
+      positions[i * 3 + 1] = position.y + 0.5; // Start slightly above ground
+      positions[i * 3 + 2] = position.z;
+
+      // Create gentle, mostly upward velocities for ethereal effect
+      const angle = Math.random() * Math.PI * 2; // Random horizontal angle
+      const elevation = Math.random() * Math.PI * 0.4 + Math.PI * 0.1; // Mostly upward (18-90 degrees)
+      const speed = Math.random() * finalConfig.initialSpeed + 0.5;
+
+      velocities.push(new THREE.Vector3(
+        Math.cos(angle) * Math.cos(elevation) * speed * 0.3, // Very gentle horizontal movement
+        Math.sin(elevation) * speed, // Primarily upward movement
+        Math.sin(angle) * Math.cos(elevation) * speed * 0.3
+      ));
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    // Create subtle white material
+    const material = new THREE.PointsMaterial({
+      size: finalConfig.size,
+      color: finalConfig.color,
+      transparent: true,
+      opacity: 0.8, // Start more transparent for subtlety
+      depthWrite: false,
+      blending: THREE.AdditiveBlending, // Soft additive blending for glow effect
+      sizeAttenuation: true
+    });
+
+    // Create points object
+    const pickupEffect = new THREE.Points(geometry, material);
+    this.scene.add(pickupEffect);
+
+    // Add to active effects for animation
+    this.activePickupEffects.push({
+      points: pickupEffect,
+      velocities,
+      startTime: Date.now(),
+      config: finalConfig
+    });
+
+    console.log(`[CoinEffect] ✨ Coin pickup particle effect created with ${finalConfig.particleCount} white particles`);
   }
 
   /**
@@ -161,7 +253,7 @@ export class CoinEffectManager {
 
     // Add both coin and pillar to scene
     this.scene.add(coinMesh);
-    // this.scene.add(glowPillar); // Commented out to hide pillar of light
+    this.scene.add(glowPillar); // Commented out to hide pillar of light
 
     // Calculate flyaway direction (away from player and up)
     let flyawayVelocity = new THREE.Vector3(0, 0, 0);
@@ -204,11 +296,49 @@ export class CoinEffectManager {
   }
 
   /**
-   * Update all active coins (call this in render loop)
+   * Update all active coins and pickup effects (call this in render loop)
    */
   update(deltaTime: number): void {
     const currentTime = Date.now();
     
+    // Update pickup particle effects
+    for (let i = this.activePickupEffects.length - 1; i >= 0; i--) {
+      const effect = this.activePickupEffects[i];
+      const elapsed = (currentTime - effect.startTime) / 1000; // Convert to seconds
+
+      // Check if effect should be removed
+      if (elapsed >= effect.config.duration) {
+        this.removePickupEffect(i);
+        continue;
+      }
+
+      // Update particle positions
+      const positions = effect.points.geometry.attributes.position.array as Float32Array;
+      
+      for (let j = 0; j < effect.velocities.length; j++) {
+        const velocity = effect.velocities[j];
+        
+        // Update position based on velocity
+        positions[j * 3 + 0] += velocity.x * deltaTime;
+        positions[j * 3 + 1] += velocity.y * deltaTime;
+        positions[j * 3 + 2] += velocity.z * deltaTime;
+
+        // Apply gentle gravity
+        velocity.y -= effect.config.gravity * deltaTime;
+        
+        // Apply gentle air resistance for floating effect
+        velocity.multiplyScalar(0.995);
+      }
+
+      // Update opacity (gentle fade out over time)
+      const fadeProgress = elapsed / effect.config.duration;
+      (effect.points.material as THREE.PointsMaterial).opacity = Math.max(0, 0.8 * (1 - fadeProgress * effect.config.fadeSpeed));
+
+      // Mark geometry as needing update
+      effect.points.geometry.attributes.position.needsUpdate = true;
+    }
+    
+    // Update coins (existing code)
     for (let i = this.coins.length - 1; i >= 0; i--) {
       const coin = this.coins[i];
       const elapsed = currentTime - coin.startTime;
@@ -275,20 +405,32 @@ export class CoinEffectManager {
         coin.mesh.position.copy(coin.position);
         
         // Update pillar position to stay centered with coin (closer to ground)
-        // coin.glowPillar.position.set(
-        //   coin.position.x,
-        //   coin.position.y + this.PILLAR_HEIGHT / 2 - 1.0,
-        //   coin.position.z
-        // ); // Commented out to hide pillar of light
+        coin.glowPillar.position.set(
+          coin.position.x,
+          coin.position.y + this.PILLAR_HEIGHT / 2 - 1.0,
+          coin.position.z
+        ); // Commented out to hide pillar of light
       } else {
         // Once landed, apply floating motion (up and down)
         const floatOffset = Math.sin((elapsed / 1000) * coin.floatSpeed * Math.PI * 2) * this.FLOAT_AMPLITUDE;
         coin.mesh.position.y = coin.baseY + floatOffset;
         
         // Keep pillar at ground level (don't float with coin, closer to ground)
-        // coin.glowPillar.position.y = coin.position.y + this.PILLAR_HEIGHT / 2 - 1.0; // Commented out to hide pillar of light
+        coin.glowPillar.position.y = coin.position.y + this.PILLAR_HEIGHT / 2 - 1.0; // Commented out to hide pillar of light
       }
     }
+  }
+
+  /**
+   * Removes a pickup effect from the scene and active list
+   */
+  private removePickupEffect(index: number): void {
+    const effect = this.activePickupEffects[index];
+    this.scene.remove(effect.points);
+    effect.points.geometry.dispose();
+    (effect.points.material as THREE.Material).dispose();
+    this.activePickupEffects.splice(index, 1);
+    // console.log(`[CoinEffect] ✨ Pickup effect cleaned up (${this.activePickupEffects.length} remaining)`);
   }
 
   /**
@@ -305,11 +447,14 @@ export class CoinEffectManager {
           coin.pillarFading = true;
           coin.pillarFadeStartTime = Date.now();
           
+          // Create particle effect at coin position when collected
+          this.createCoinPickupEffect(coin.position.clone());
+          
           // Remove coin mesh immediately
           this.scene.remove(coin.mesh);
           
           collectedCount++;
-          // console.log(`[CoinEffect] Coin collected at distance ${distance.toFixed(2)}, pillar fading out`);
+          console.log(`[CoinEffect] ✨ Coin collected at distance ${distance.toFixed(2)}, pickup particles spawned`);
         }
       }
     }
@@ -318,7 +463,7 @@ export class CoinEffectManager {
   }
 
   /**
-   * Clean up all coins
+   * Clean up all coins and pickup effects
    */
   cleanup(): void {
     this.coins.forEach(coin => {
@@ -326,7 +471,13 @@ export class CoinEffectManager {
       this.scene.remove(coin.glowPillar);
     });
     this.coins = [];
-    // console.log('[CoinEffect] All coins and glow pillars cleaned up');
+    
+    // Clean up pickup effects
+    while (this.activePickupEffects.length > 0) {
+      this.removePickupEffect(0);
+    }
+    
+    // console.log('[CoinEffect] All coins, glow pillars, and pickup effects cleaned up');
   }
 
   /**
@@ -334,6 +485,13 @@ export class CoinEffectManager {
    */
   getActiveCoinsCount(): number {
     return this.coins.length;
+  }
+
+  /**
+   * Get the number of active pickup effects
+   */
+  getActivePickupEffectsCount(): number {
+    return this.activePickupEffects.length;
   }
 }
 

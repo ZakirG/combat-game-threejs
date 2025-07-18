@@ -2823,9 +2823,9 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Hit animation trigger effect
   useEffect(() => {
-    if (shouldTriggerHitAnimation && isLocalPlayer && animations['hit-to-body']) {
+    if (shouldTriggerHitAnimation && isLocalPlayer && animations['damage']) {
       console.log('[Player] 🤕 Triggering hit animation - Hit To Body');
-      playAnimation('hit-to-body', 0.1);
+      playAnimation('damage', 0.1);
     }
   }, [shouldTriggerHitAnimation, isLocalPlayer, animations, playAnimation]);
 

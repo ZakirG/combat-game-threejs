@@ -667,12 +667,10 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
       {isLoading && (
         <div style={{
           position: 'absolute',
-          top: '30%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
+          top: '10px',
+          right: '10px',
           zIndex: 20,
           color: '#FFFFFF',
-          textAlign: 'right',
           textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)'
         }}>
           <div style={{
