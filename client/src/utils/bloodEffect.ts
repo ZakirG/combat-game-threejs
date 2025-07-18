@@ -18,6 +18,36 @@ export const BLOOD_EFFECTS_ENABLED = true;
 
 import * as THREE from 'three';
 
+// Function to create a circular texture for blood particles
+function createCircularTexture(): THREE.Texture {
+  const canvas = document.createElement('canvas');
+  const size = 64; // Texture resolution
+  canvas.width = size;
+  canvas.height = size;
+  
+  const context = canvas.getContext('2d')!;
+  
+  // Create a circular gradient for smooth edges
+  const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  gradient.addColorStop(0, 'rgba(255, 255, 255, 1)'); // Solid white center
+  gradient.addColorStop(0.8, 'rgba(255, 255, 255, 1)'); // Solid white most of the way
+  gradient.addColorStop(1, 'rgba(255, 255, 255, 0)'); // Transparent edges
+  
+  // Fill the circle
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, size, size);
+  
+  // Create and configure the texture
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  
+  console.log('[BloodEffect] 🔴 Created circular texture for spherical blood particles');
+  return texture;
+}
+
+// Create the circular texture once and reuse it
+const circularTexture = createCircularTexture();
+
 interface BloodSpurtConfig {
   particleCount: number;
   size: number;
@@ -99,15 +129,17 @@ class BloodEffectManager {
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-      // Create material for blood particles with specific color
+      // Create material for blood particles with specific color and circular texture
       const material = new THREE.PointsMaterial({
         size: finalConfig.size,
         color: colorConfig.color, // Use specific color for this particle system
+        map: circularTexture, // Apply circular texture to make particles look like spheres
         transparent: true,
         opacity: 1.0,
         depthWrite: false,
         blending: THREE.NormalBlending,
-        sizeAttenuation: true
+        sizeAttenuation: true,
+        alphaTest: 0.1 // Helps with transparent edges
       });
 
       // Create points object
