@@ -35,7 +35,7 @@ export const ITEM_ANIMATION_CONFIG = {
 export const SWORD_SPAWN_POSITION: [number, number, number] = [25, 0, 35];
 
 // Flamethrower spawn position 
-export const FLAMETHROWER_SPAWN_POSITION: [number, number, number] = [-25, 0, 35];
+export const FLAMETHROWER_SPAWN_POSITION: [number, number, number] = [-89, 0, -20];
 
 // Cybertruck spawn position 
 export const CYBERTRUCK_SPAWN_POSITION: [number, number, number] = [-1, -1.0, -140]; // Lowered further
@@ -90,8 +90,8 @@ const ENVIRONMENT_CONFIG = {
   egyptianHouse: {
     path: '/models/environments/desert-house-9/highpoly_egyptian_house_009.fbx',
     textureFolder: '/models/environments/desert-house-9/',
-    scale: 5.0, // Made much bigger (5x larger)
-    position: [-10.0, 0.0, -20.0] as [number, number, number], // Positioned away from spawn
+    scale: 4.5, // Made much bigger (5x larger)
+    position: [-60.0, -1.0, -20.0] as [number, number, number], // Positioned away from spawn
     rotation: [0, Math.PI * 0.25, 0] as [number, number, number] // 45-degree rotation for visual interest
   }
 };
@@ -379,39 +379,101 @@ const FBXAsset: React.FC<FBXAssetProps> = ({ modelPath, position, scale, rotatio
   // Load external textures if texture folder is provided
   const loadTextures = useCallback(async (textureFolder: string) => {
     const textureLoader = new THREE.TextureLoader();
-    const textures: Record<string, THREE.Texture> = {};
+    const textureSets: Record<string, Record<string, THREE.Texture>> = {
+      stone: {},
+      wood: {},
+      rope: {}
+    };
     
     try {
-      // Egyptian house specific texture files based on actual file names
-      // Using stone wall textures as primary since it's likely the main material
+      // Load ALL texture sets for the Egyptian house
       const texturePromises = [
-        // Primary stone wall textures
+        // Stone wall textures
         textureLoader.loadAsync(`${textureFolder}T_stone_wall_bc.png`)
           .then(tex => { 
-            textures.diffuse = tex;
-            console.log(`[${name}] ✅ Loaded stone wall diffuse texture`);
+            configureTexture(tex);
+            textureSets.stone.diffuse = tex;
+            console.log(`[desert house] ✅ Loaded stone wall diffuse`);
           })
-          .catch(() => console.warn(`[${name}] Stone wall diffuse texture not found`)),
+          .catch(() => console.warn(`[desert house] Stone wall diffuse not found`)),
         textureLoader.loadAsync(`${textureFolder}T_stone_wall_n.png`)
           .then(tex => { 
-            textures.normal = tex;
-            console.log(`[${name}] ✅ Loaded stone wall normal texture`);
+            configureTexture(tex, false);
+            textureSets.stone.normal = tex;
+            console.log(`[desert house] ✅ Loaded stone wall normal`);
           })
-          .catch(() => console.warn(`[${name}] Stone wall normal texture not found`)),
+          .catch(() => console.warn(`[desert house] Stone wall normal not found`)),
         textureLoader.loadAsync(`${textureFolder}T_stone_wall_r.png`)
           .then(tex => { 
-            textures.roughness = tex;
-            console.log(`[${name}] ✅ Loaded stone wall roughness texture`);
+            configureTexture(tex, false);
+            textureSets.stone.roughness = tex;
+            console.log(`[desert house] ✅ Loaded stone wall roughness`);
           })
-          .catch(() => console.warn(`[${name}] Stone wall roughness texture not found`))
+          .catch(() => console.warn(`[desert house] Stone wall roughness not found`)),
+        
+        // Wood textures
+        textureLoader.loadAsync(`${textureFolder}T_wood_raw_bc.png`)
+          .then(tex => { 
+            configureTexture(tex);
+            textureSets.wood.diffuse = tex;
+            console.log(`[desert house] ✅ Loaded wood diffuse`);
+          })
+          .catch(() => console.warn(`[desert house] Wood diffuse not found`)),
+        textureLoader.loadAsync(`${textureFolder}T_wood_raw_n_strong.png`)
+          .then(tex => { 
+            configureTexture(tex, false);
+            textureSets.wood.normal = tex;
+            console.log(`[desert house] ✅ Loaded wood normal`);
+          })
+          .catch(() => console.warn(`[desert house] Wood normal not found`)),
+        textureLoader.loadAsync(`${textureFolder}T_wood_raw_r.png`)
+          .then(tex => { 
+            configureTexture(tex, false);
+            textureSets.wood.roughness = tex;
+            console.log(`[desert house] ✅ Loaded wood roughness`);
+          })
+          .catch(() => console.warn(`[desert house] Wood roughness not found`)),
+        
+        // Rope textures
+        textureLoader.loadAsync(`${textureFolder}T_rope_BaseColor.png`)
+          .then(tex => { 
+            configureTexture(tex);
+            textureSets.rope.diffuse = tex;
+            console.log(`[desert house] ✅ Loaded rope diffuse`);
+          })
+          .catch(() => console.warn(`[desert house] Rope diffuse not found`)),
+        textureLoader.loadAsync(`${textureFolder}T_rope_NormalMap.png`)
+          .then(tex => { 
+            configureTexture(tex, false);
+            textureSets.rope.normal = tex;
+            console.log(`[desert house] ✅ Loaded rope normal`);
+          })
+          .catch(() => console.warn(`[desert house] Rope normal not found`)),
+        textureLoader.loadAsync(`${textureFolder}T_rope_Roughness.png`)
+          .then(tex => { 
+            configureTexture(tex, false);
+            textureSets.rope.roughness = tex;
+            console.log(`[desert house] ✅ Loaded rope roughness`);
+          })
+          .catch(() => console.warn(`[desert house] Rope roughness not found`)),
+        textureLoader.loadAsync(`${textureFolder}T_rope_AmbientOcclusion.png`)
+          .then(tex => { 
+            configureTexture(tex, false);
+            textureSets.rope.ao = tex;
+            console.log(`[desert house] ✅ Loaded rope AO`);
+          })
+          .catch(() => console.warn(`[desert house] Rope AO not found`))
       ];
       
       await Promise.allSettled(texturePromises);
       
-      console.log(`[${name}] 🎨 Loaded ${Object.keys(textures).length} stone wall textures for Egyptian house`);
-      return Object.keys(textures).length > 0 ? textures : null;
+      const totalLoaded = Object.values(textureSets).reduce((total, set) => 
+        total + Object.keys(set).length, 0);
+      
+      console.log(`[desert house] 🎨 Loaded ${totalLoaded} textures total (stone: ${Object.keys(textureSets.stone).length}, wood: ${Object.keys(textureSets.wood).length}, rope: ${Object.keys(textureSets.rope).length})`);
+      return totalLoaded > 0 ? textureSets : null;
     } catch (error) {
-      console.error(`[${name}] ❌ Failed to load textures:`, error);
+      console.error(`[desert house] ❌ Failed to load textures:`, error);
       return null;
     }
   }, [name]);
@@ -440,25 +502,112 @@ const FBXAsset: React.FC<FBXAssetProps> = ({ modelPath, position, scale, rotatio
             // Apply textures if available
             if (child.material && externalTextures) {
               const materials = Array.isArray(child.material) ? child.material : [child.material];
-              const newMaterials = materials.map((material: any) => {
+              console.log(`[desert house] 🔍 DEBUG: Found ${materials.length} materials on this mesh`);
+              
+              const newMaterials = materials.map((material: any, index: number) => {
+                // DEBUG: Log all material properties to understand the structure
+                console.log(`[desert house] 🔍 Material ${index}:`, {
+                  name: material.name,
+                  type: material.type,
+                  hasMap: !!material.map,
+                  mapName: material.map?.name,
+                  color: material.color?.getHexString?.(),
+                  userData: material.userData
+                });
+                
+                // Determine which texture set to use based on material index for now
+                let textureSet = externalTextures.stone; // Default to stone
+                let materialType = 'stone';
+                
+                // Try material name matching first
+                const materialName = material.name?.toLowerCase() || '';
+                if (materialName.includes('wood') || materialName.includes('timber') || materialName.includes('beam') || 
+                    materialName.includes('t_wood') || materialName.includes('raw')) {
+                  textureSet = externalTextures.wood;
+                  materialType = 'wood';
+                } else if (materialName.includes('rope') || materialName.includes('string') || materialName.includes('cord') || 
+                          materialName.includes('t_rope')) {
+                  textureSet = externalTextures.rope;
+                  materialType = 'rope';
+                } else if (index === 1 && externalTextures.wood && Object.keys(externalTextures.wood).length > 0) {
+                  // Try assigning wood to second material if available
+                  textureSet = externalTextures.wood;
+                  materialType = 'wood (by index)';
+                } else if (index === 2 && externalTextures.rope && Object.keys(externalTextures.rope).length > 0) {
+                  // Try assigning rope to third material if available
+                  textureSet = externalTextures.rope;
+                  materialType = 'rope (by index)';
+                }
+                
+                console.log(`[desert house] 🎨 Applying ${materialType} textures to material "${material.name || 'unnamed'}" (index ${index})`);
+                console.log(`[desert house] 🎨 Texture set has:`, Object.keys(textureSet));
+                
                 // Convert to StandardMaterial for better PBR rendering
                 if (material.type === 'MeshPhongMaterial' || material.type === 'MeshBasicMaterial' || material.type === 'MeshLambertMaterial') {
+                  console.log(`[desert house] 🔄 Converting ${material.type} to MeshStandardMaterial for material "${material.name}"`);
+                  
                   const newMaterial = new THREE.MeshStandardMaterial({
-                    map: externalTextures.diffuse || material.map,
-                    normalMap: externalTextures.normal,
-                    roughnessMap: externalTextures.roughness,
-                    color: material.color || new THREE.Color(1, 1, 1),
+                    map: textureSet.diffuse || null, // Force our texture, don't fallback to embedded
+                    normalMap: textureSet.normal || null,
+                    roughnessMap: textureSet.roughness || null,
+                    aoMap: textureSet.ao || null,
+                    color: new THREE.Color(1, 1, 1), // Force white color to not tint textures
                     transparent: material.transparent || false,
                     opacity: material.opacity !== undefined ? material.opacity : 1.0,
-                    roughness: 0.7,
+                    roughness: 0.8,
                     metalness: 0.1,
                   });
+                  
+                  // Force texture updates
+                  if (newMaterial.map) {
+                    newMaterial.map.needsUpdate = true;
+                    console.log(`[desert house] ✅ Applied diffuse texture to ${material.name}`);
+                  }
+                  if (newMaterial.normalMap) {
+                    newMaterial.normalMap.needsUpdate = true;
+                    console.log(`[desert house] ✅ Applied normal map to ${material.name}`);
+                  }
+                  if (newMaterial.roughnessMap) {
+                    newMaterial.roughnessMap.needsUpdate = true;
+                    console.log(`[desert house] ✅ Applied roughness map to ${material.name}`);
+                  }
+                  
+                  newMaterial.needsUpdate = true;
                   return newMaterial;
                 } else {
-                  // Already StandardMaterial, just apply external textures
-                  if (externalTextures.diffuse) material.map = externalTextures.diffuse;
-                  if (externalTextures.normal) material.normalMap = externalTextures.normal;
-                  if (externalTextures.roughness) material.roughnessMap = externalTextures.roughness;
+                  // Already StandardMaterial, aggressively override textures
+                  console.log(`[desert house] 🔄 Updating existing StandardMaterial for "${material.name}"`);
+                  
+                  // Force clear existing textures first
+                  material.map = null;
+                  material.normalMap = null;
+                  material.roughnessMap = null;
+                  material.aoMap = null;
+                  
+                  // Apply our textures
+                  if (textureSet.diffuse) {
+                    material.map = textureSet.diffuse;
+                    material.map.needsUpdate = true;
+                    console.log(`[desert house] ✅ Applied diffuse texture to existing ${material.name}`);
+                  }
+                  if (textureSet.normal) {
+                    material.normalMap = textureSet.normal;
+                    material.normalMap.needsUpdate = true;
+                    console.log(`[desert house] ✅ Applied normal map to existing ${material.name}`);
+                  }
+                  if (textureSet.roughness) {
+                    material.roughnessMap = textureSet.roughness;
+                    material.roughnessMap.needsUpdate = true;
+                    console.log(`[desert house] ✅ Applied roughness map to existing ${material.name}`);
+                  }
+                  if (textureSet.ao) {
+                    material.aoMap = textureSet.ao;
+                    material.aoMap.needsUpdate = true;
+                    console.log(`[desert house] ✅ Applied AO map to existing ${material.name}`);
+                  }
+                  
+                  // Force white color and update
+                  material.color.setRGB(1, 1, 1);
                   material.needsUpdate = true;
                   return material;
                 }
@@ -1226,6 +1375,17 @@ const FloatingCybertruck: React.FC<FloatingCybertruckProps> = ({
   );
 };
 
+const configureTexture = (tex: THREE.Texture, isColorMap: boolean = true) => {
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(1, 1); // Default repeat – adjust if needed
+  if (isColorMap) {
+    tex.encoding = THREE.sRGBEncoding;
+  }
+  tex.anisotropy = 8;
+  tex.needsUpdate = true;
+};
+
 
 export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({ 
   players, 
@@ -1384,8 +1544,8 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
       {/* Second Desert Arch near the sword - tweak position and rotation for best visual */}
       <LargeAsset
         modelPath={ENVIRONMENT_CONFIG.desertArch.path}
-        position={[27, 7, 35]} // X: left/right, Y: up/down, Z: forward/back
-        scale={15.0} // Adjust size (current: 15.0, try 10.0-25.0)
+        position={[27, 13, 35]} // X: left/right, Y: up/down, Z: forward/back
+        scale={45.0} // Adjust size (current: 15.0, try 10.0-25.0)
         rotation={[0, Math.PI * 0.2, 0]} // Y rotation: 0=forward, 0.5=90°, 1.0=180°
         name="Desert Arch (Near Sword)"
         onBoundingBoxReady={handleAssetBoundingBox}

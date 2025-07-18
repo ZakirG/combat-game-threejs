@@ -138,7 +138,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         'run-left': "Standing Run Left.fbx",
         'run-right': "Standing Run Right.fbx",
         'ninja-run': "Ninja Run.fbx", // High-speed sprint animation
-        jump: "Crouch Torch Walk Back.fbx", // Using available animation as placeholder
+        jump: "Jump.fbx", // Using available animation as placeholder
         attack1: "Mma Kick.fbx",
         attack2: "Flip Kick.fbx", // Combo attack animation
         attack3: "Inverted Double Kick To Kip Up.fbx", // Third combo attack animation
@@ -162,7 +162,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         'run-left': "Great Sword Run Left.fbx",
         'run-right': "Great Sword Run Right.fbx",
         'ninja-run': "Ninja Run.fbx", // High-speed sprint animation (same for sword)
-        jump: "Sword And Shield Jump.fbx",
+        jump: "Jump.fbx", // Sword And Shield Jump.fbx
         attack1: "Sword And Shield Attack.fbx", // Swapped: now the first attack
         attack2: "Cartwheel.fbx", // Now the second attack
         attack3: "Sword And Shield Attack B.fbx", // Swapped: third combo attack animation
