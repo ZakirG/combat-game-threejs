@@ -111,4 +111,4 @@ When the character moves diagonally, `targetVisualYaw` is calculated with `Math.
 
 This creates a discrepancy. The player model visually turns to face its movement direction, but the camera continues to calculate its position based on the original mouse-driven rotation. This seems to be the source of the perceived jitter or de-sync. While this was intended for diagonal ground movement, some edge case during the initial fall might be triggering it, or the underlying issue becomes more apparent then.
 
-The fix will involve ensuring that the logical rotation used by the camera (`localRotationRef`) is also smoothly updated to match the target visual rotation, creating a unified source of truth for where the player is "facing". 
+The fix will involve ensuring that the logical rotation used by the camera (`localRotationRef`) is also smoothly updated to match the target visual rotation, creating a unified source of truth for where the player is "facing".

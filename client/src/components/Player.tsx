@@ -2153,6 +2153,14 @@ export const Player: React.FC<PlayerProps> = ({
           // Interpolate the group's quaternion towards the target
           group.current.quaternion.slerp(targetVisualQuat, Math.min(1, dt * 10)); 
 
+          // FIX: Sync logical rotation ref with the slerped visual quaternion.
+          // This ensures the camera position calculation uses the same rotation as the visible model, eliminating jitter.
+          // IMPORTANT: Only sync when there's actual visual rotation change to avoid feedback loops during falling
+          const hasMovementInput = currentInput.forward || currentInput.backward || currentInput.left || currentInput.right;
+          if (hasMovementInput) {
+            localRotationRef.current.setFromQuaternion(group.current.quaternion, 'YXZ');
+          }
+
           // --- DEBUG: Draw/Update Directional Arrow (Conditional) ---
           const scene = group.current?.parent; // Get scene reference
           if (isDebugArrowVisible && scene) { // Only proceed if prop is true and scene exists
@@ -2238,12 +2246,15 @@ export const Player: React.FC<PlayerProps> = ({
             playerPosition.z - Math.cos(playerRotationY) * currentDistance 
           );
 
-          // Use faster camera movement during falling to keep up perfectly
-          const cameraDamping = isFalling ? 35 : 12; // Super fast tracking when falling for tight follow
-          
-
-          
-          camera.position.lerp(targetPosition, Math.min(1, dt * cameraDamping));
+          // HACK: During falling, skip lerp entirely for perfectly smooth camera movement
+          if (isFalling) {
+            // Direct position assignment for zero jitter during fall
+            camera.position.copy(targetPosition);
+          } else {
+            // Normal lerp for regular gameplay
+            const cameraDamping = 12;
+            camera.position.lerp(targetPosition, Math.min(1, dt * cameraDamping));
+          }
 
           // Make camera look at a point slightly above the player's base
           // During falling, look directly at the character center for better view of animation
@@ -2270,9 +2281,15 @@ export const Player: React.FC<PlayerProps> = ({
           // Set camera position based on orbital calculations
           const targetPosition = new THREE.Vector3(orbitX, orbitY, orbitZ);
           
-          // Use faster camera movement during falling for both modes
-          const cameraDamping = isFalling ? 30 : 8; // Much faster tracking when falling
-          camera.position.lerp(targetPosition, Math.min(1, dt * cameraDamping));
+          // HACK: During falling, skip lerp entirely for perfectly smooth camera movement
+          if (isFalling) {
+            // Direct position assignment for zero jitter during fall
+            camera.position.copy(targetPosition);
+          } else {
+            // Normal lerp for regular gameplay
+            const cameraDamping = 8;
+            camera.position.lerp(targetPosition, Math.min(1, dt * cameraDamping));
+          }
           
           // Look at player - focused on character center during falling
           const lookHeight = isFalling ? 1.0 : 1.5; // Center focus when falling
