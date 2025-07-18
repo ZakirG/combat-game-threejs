@@ -18,11 +18,15 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useLoader, useFrame } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import * as THREE from 'three';
 import { Box } from '@react-three/drei';
 
 // Sword spawn position - single source of truth
 export const SWORD_SPAWN_POSITION: [number, number, number] = [25, 0, 35];
+
+// Flamethrower spawn position
+export const FLAMETHROWER_SPAWN_POSITION: [number, number, number] = [35, 0, 25];
 
 interface EnvironmentAssetsProps {
   // Player data for sword collision detection
@@ -556,6 +560,90 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({
   );
 };
 
+// Floating Flamethrower Component (No glow pillar)
+interface FloatingFlamethrowerProps {
+  position: [number, number, number];
+}
+
+const FloatingFlamethrower: React.FC<FloatingFlamethrowerProps> = ({ position }) => {
+  const flamethrowerGroup = useRef<THREE.Group>(null!);
+  const [flamethrowerModel, setFlamethrowerModel] = useState<THREE.Group | null>(null);
+  const [startTime] = useState(Date.now());
+  
+  // Animation properties (no glow pillar)
+  const FLOAT_AMPLITUDE = 0.2;
+  const FLOAT_SPEED = 0.3;
+  const ROTATION_SPEED = 0.2; // Same rotation speed as sword
+
+  // Load flamethrower model
+  useEffect(() => {
+    const loader = new FBXLoader();
+    
+    loader.load(
+      '/models/items/flamethrower mod.fbx',
+      (fbx) => {
+        const loadedModel = fbx.clone();
+        
+        // Scale the flamethrower much smaller
+        loadedModel.scale.setScalar(0.005);
+        
+        // Orient flamethrower (adjust rotation as needed for proper orientation)
+        loadedModel.rotation.set(0, 0, 0); // Start with default rotation, can adjust later
+        
+        // Enable shadows
+        loadedModel.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        if (flamethrowerGroup.current) {
+          flamethrowerGroup.current.add(loadedModel);
+        }
+        
+        setFlamethrowerModel(loadedModel);
+        console.log('[EnvironmentAssets] ✨ Floating flamethrower loaded successfully');
+      },
+      undefined,
+      (error) => {
+        console.error('[EnvironmentAssets] ❌ Error loading floating flamethrower:', error);
+      }
+    );
+
+    return () => {
+      if (flamethrowerModel && flamethrowerGroup.current) {
+        flamethrowerGroup.current.remove(flamethrowerModel);
+      }
+    };
+  }, []);
+
+  // Set initial positions
+  useEffect(() => {
+    if (flamethrowerGroup.current) {
+      flamethrowerGroup.current.position.set(...position);
+    }
+  }, [position]);
+
+  // Animation loop (same rotation behavior as sword)
+  useFrame((state, delta) => {
+    const elapsed = (Date.now() - startTime) / 1000;
+    
+    if (flamethrowerGroup.current && flamethrowerModel) {
+      // Floating up and down motion
+      const floatOffset = Math.sin(elapsed * FLOAT_SPEED * Math.PI * 2) * FLOAT_AMPLITUDE;
+      flamethrowerGroup.current.position.y = position[1] + floatOffset + 1.5; // Hover 1.5 units above ground
+      
+      // Gentle rotation around Y-axis (same speed as sword)
+      flamethrowerGroup.current.rotation.y += ROTATION_SPEED * delta;
+    }
+  });
+
+  return (
+    <group ref={flamethrowerGroup} />
+  );
+};
+
 export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({ 
   players, 
   localPlayerIdentity, 
@@ -676,6 +764,13 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
         players={players}
         localPlayerIdentity={localPlayerIdentity}
       />
+    
+      {/* Floating Flamethrower (no glow pillar) */}
+
+      {/* If you uncomment the below line, the flamethrower will show in the scene again. */}
+      {/* <FloatingFlamethrower 
+        position={FLAMETHROWER_SPAWN_POSITION} 
+      /> */}
 
       {/* Second Desert Arch near the sword - tweak position and rotation for best visual */}
       <LargeAsset

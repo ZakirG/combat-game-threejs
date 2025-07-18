@@ -43,6 +43,7 @@ import { ZombieManager } from './ZombieManager';
 import { ControlsPanel } from './ControlsPanel';
 import { EnvironmentAssets } from './EnvironmentAssets';
 import { GameReadyCallbacks } from '../types/gameReady';
+import { ComboCounter } from './ComboCounter';
 
 interface GameSceneProps {
   players: ReadonlyMap<string, PlayerData>; // Receive the map
@@ -55,6 +56,8 @@ interface GameSceneProps {
   gameReadyCallbacks?: GameReadyCallbacks; // Callbacks for GameReady events
   gameReady?: boolean; // Whether the game is fully ready
   onKillCountChange?: (killCount: number) => void; // Callback for kill count changes
+  onZombieHit?: () => void; // Callback for zombie hits (for combo counter)
+  comboCount?: number; // Current combo count for display
 }
 
 // Textured Floor Component
@@ -106,7 +109,9 @@ export const GameScene: React.FC<GameSceneProps> = ({
   showControlsPanel = false,
   gameReadyCallbacks, // Destructure GameReady callbacks
   gameReady = false, // Destructure gameReady state
-  onKillCountChange // Destructure kill count callback
+  onKillCountChange, // Destructure kill count callback
+  onZombieHit, // Destructure zombie hit callback
+  comboCount = 0 // Destructure combo count
 }) => {
   // Ref for the main directional light
   const directionalLightRef = useRef<THREE.DirectionalLight>(null!);
@@ -126,6 +131,13 @@ export const GameScene: React.FC<GameSceneProps> = ({
         camera={{ position: [0, 5010, 20], fov: 60 }} 
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }} 
         shadows // Enable shadows
+        gl={{ 
+          antialias: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.0,
+          preserveDrawingBuffer: false,
+          powerPreference: "high-performance"
+        }}
       >
       {/* Remove solid color background */}
       {/* <color attach="background" args={['#add8e6']} /> */}
@@ -201,6 +213,19 @@ export const GameScene: React.FC<GameSceneProps> = ({
         );
       })}
 
+      {/* Render Combo Counter above local player */}
+      {(() => {
+        const localPlayer = Array.from(players.values()).find(player =>
+          localPlayerIdentity?.toHexString() === player.identity.toHexString()
+        );
+        return localPlayer ? (
+          <ComboCounter 
+            comboCount={comboCount}
+            localPlayer={localPlayer}
+          />
+        ) : null;
+      })()}
+
       {/* Render Optimized Zombie Manager */}
       <ZombieManager 
         zombieCount={50}
@@ -209,6 +234,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
         minSpawnDistance={40} // Minimum 20 units from any player (20 feet to prevent close spawning)
         gameReadyCallbacks={gameReadyCallbacks} // Pass GameReady callbacks
         onKillCountChange={onKillCountChange} // Pass kill count callback
+        onZombieHit={onZombieHit} // Pass zombie hit callback
       />
 
       {/* Remove OrbitControls as we're using our own camera controls */}

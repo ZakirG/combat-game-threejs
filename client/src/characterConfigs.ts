@@ -484,7 +484,7 @@ export function getAnimationTimeScaleLegacy(characterClass: string, animationNam
 
 // Export available character classes for UI components in desired order
 export const AVAILABLE_CHARACTERS: Array<keyof typeof CHARACTER_CONFIGS> = [
-  "Grok Ani",
-  "Zaqir Mufasa",
-  "Grok Rudi"
+  "Grok Ani"
+  // "Zaqir Mufasa",
+  // "Grok Rudi"
 ]; 

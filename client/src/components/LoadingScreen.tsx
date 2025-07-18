@@ -211,15 +211,18 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
       maxWidth: '500px',
       width: '100%',
       textAlign: 'center' as const,
-      padding: '10px',
+      padding: '20px',
+      backgroundColor: 'rgba(139, 69, 19, 0.15)',
+      border: '1px solid rgba(139, 69, 19, 0.3)',
+      borderRadius: '8px',
     },
     instructionsText: {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '14px',
-      color: '#3E2723',
+      fontSize: '16px',
+      color: '#5D4037',
       lineHeight: '1.4',
       margin: 0,
-      fontStyle: 'italic' as const,
+      opacity: 0.9,
     }
   };
 
@@ -247,13 +250,14 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
           </div>
 
           {/* Game Instructions */}
-          <div style={styles.instructionsContainer}>
+          {/* <div style={styles.instructionsContainer}>
             <div style={styles.instructionsText}>
-              Click into the game screen to capture your mouse inside of the game, press "esc" to un-capture your mouse.<br/>
+              Click into the game screen to capture your mouse inside of the game.<br/>
+              Press "esc" to un-capture your mouse.<br/>
               Run with WASD, look around with the mouse, attack by clicking.<br/>
               If you hold down shift while moving, you'll run. Keep holding it and you go faster.
             </div>
-          </div>
+          </div> */}
 
           <div style={styles.panel}>
             <div style={styles.loadingText}>Loading{dots}</div>

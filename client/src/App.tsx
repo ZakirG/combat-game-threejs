@@ -93,6 +93,10 @@ function App() {
   // --- Coin Counter State ---
   const [totalCoinCount, setTotalCoinCount] = useState<number>(0);
 
+  // --- Combo Counter State ---
+  const [comboCount, setComboCount] = useState<number>(0);
+  const [lastHitTime, setLastHitTime] = useState<number>(0);
+
   // --- Ref for current input state ---
   const currentInputRef = useRef<InputState>({
     forward: false, backward: false, left: false, right: false,
@@ -115,6 +119,36 @@ function App() {
   const handleCoinCollected = useCallback((coinCount: number) => {
     setTotalCoinCount(prev => prev + coinCount);
   }, []);
+  
+  // --- Combo Counter Logic ---
+  const handleZombieHit = useCallback(() => {
+    const currentTime = Date.now();
+    
+    setLastHitTime(prevLastHitTime => {
+      const timeSinceLastHit = currentTime - prevLastHitTime;
+      
+      // If less than 2 seconds since last hit, continue combo
+      if (timeSinceLastHit <= 2000 && prevLastHitTime > 0) {
+        setComboCount(prev => prev + 1);
+      } else {
+        // Start new combo
+        setComboCount(1);
+      }
+      
+      return currentTime;
+    });
+  }, []);
+
+  // Reset combo count after 2 seconds of no hits
+  useEffect(() => {
+    if (lastHitTime === 0) return; // Don't start timer if no hits yet
+    
+    const timeoutId = setTimeout(() => {
+      setComboCount(0);
+    }, 2000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [lastHitTime]);
   
   // --- GameReady Callbacks ---
   const gameReadyCallbacks: GameReadyCallbacks = {
@@ -672,6 +706,8 @@ function App() {
             gameReadyCallbacks={gameReadyCallbacks} // Pass callbacks to GameScene
             gameReady={gameFullyReady} // Pass gameReady state to control ControlsPanel timing
             onKillCountChange={handleKillCountChange} // Pass kill count callback
+            onZombieHit={handleZombieHit} // Pass zombie hit callback
+            comboCount={comboCount} // Pass combo count for display
           />
           {localPlayer && <PlayerUI playerData={localPlayer} />}
           {/* Kill Counter - always show when game is active */}

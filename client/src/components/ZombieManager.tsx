@@ -606,6 +606,7 @@ interface ZombieManagerProps {
   minSpawnDistance?: number; // Minimum distance from players for zombie spawning
   gameReadyCallbacks?: GameReadyCallbacks; // Callbacks for GameReady events
   onKillCountChange?: (killCount: number) => void; // Callback for kill count changes
+  onZombieHit?: () => void; // Callback for zombie hits (for combo counter)
 }
 
 // Main ZombieManager component
@@ -615,7 +616,8 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   isDebugVisible = false,
   minSpawnDistance = SPAWN_SETTINGS.MIN_DISTANCE_FROM_PLAYERS,
   gameReadyCallbacks,
-  onKillCountChange
+  onKillCountChange,
+  onZombieHit
 }) => {
   const [resources, setResources] = useState<ZombieResources>({
     model: null,
@@ -950,6 +952,11 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
   const handleZombieKilled = useCallback((zombieId: string) => {
     // // // console.log(`[ZombieManager] Zombie ${zombieId} killed! Updating kill counter`);
     
+    // Notify combo counter of zombie hit
+    if (onZombieHit) {
+      onZombieHit();
+    }
+    
     // Update total kill count (never resets)
     setTotalKillCount(prev => {
       const newTotalKills = prev + 1;
@@ -988,7 +995,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       
       return newKillCount;
     });
-  }, [spawnNewZombies, onKillCountChange]);
+  }, [spawnNewZombies, onKillCountChange, onZombieHit]);
 
   // Handle zombie registration for attack detection
   const handleZombieRegister = useCallback((zombieId: string, positionRef: React.MutableRefObject<THREE.Vector3>, triggerDeath: (direction: THREE.Vector3) => void) => {

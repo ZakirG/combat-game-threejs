@@ -152,18 +152,18 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
         </div>
         <div style={styles.inputGroup}>
           <div style={styles.characterCarousel}>
-          <div style={styles.fighterLabel}>CHOOSE YOUR FIGHTER</div>
+          {/* <div style={styles.fighterLabel}>CHOOSE YOUR FIGHTER</div> */}
             {/* Character info removed - now shown in 3D preview */}
             
             {/* Navigation and preview containers */}
             <div style={styles.characterNavigationContainer}>
-              <button 
+              {/* <button 
                 type="button" 
                 onClick={handlePreviousCharacter}
                 style={styles.carouselArrow}
               >
                 ‹
-              </button>
+              </button> */}
               
               {/* 3D Model Preview Container */}
               <div style={styles.character3DContainer}>
@@ -172,13 +172,13 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
                 />
               </div>
               
-              <button 
+              {/* <button 
                 type="button" 
                 onClick={handleNextCharacter}
                 style={styles.carouselArrow}
               >
                 ›
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
