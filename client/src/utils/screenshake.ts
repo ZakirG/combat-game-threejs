@@ -56,7 +56,7 @@ export function triggerScreenshake(camera: THREE.Camera, config?: Partial<Screen
   isShaking = true;
   shakeStartTime = Date.now();
   
-  console.log(`[Screenshake] Triggered with intensity: ${shakeConfig.intensity}, duration: ${shakeConfig.duration}ms`);
+  // console.log(`[Screenshake] Triggered with intensity: ${shakeConfig.intensity}, duration: ${shakeConfig.duration}ms`);
 }
 
 /**

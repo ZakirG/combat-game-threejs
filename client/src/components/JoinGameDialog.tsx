@@ -278,6 +278,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   title: {
     fontFamily: 'KnightsQuest, serif',
     fontSize: '38px',
+    marginTop: '0px',
     fontWeight: 'bold',
     marginBottom: '0px',
     color: '#2F1B14',

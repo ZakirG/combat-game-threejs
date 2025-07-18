@@ -28,7 +28,7 @@ export function playSound(soundPath: string, volume: number = 1.0): void {
     if (playPromise !== undefined) {
       playPromise
         .then(() => {
-          console.log(`[Audio] 🔊 Playing sound: ${soundPath} at volume ${audio.volume.toFixed(2)}`);
+          // console.log(`[Audio] 🔊 Playing sound: ${soundPath} at volume ${audio.volume.toFixed(2)}`);
         })
         .catch(error => {
           console.warn(`[Audio] ⚠️ Failed to play sound: ${soundPath}`, error);
@@ -52,7 +52,7 @@ export function playBloodSpurtSound(): void {
  */
 export function setBloodSpurtVolume(newVolume: number): void {
   AUDIO_VOLUMES.BLOOD_SPURT = Math.min(1.0, Math.max(0.0, newVolume));
-  console.log(`[Audio] 🔊 Blood spurt volume set to: ${AUDIO_VOLUMES.BLOOD_SPURT}`);
+  // console.log(`[Audio] 🔊 Blood spurt volume set to: ${AUDIO_VOLUMES.BLOOD_SPURT}`);
 }
 
 /**
@@ -61,5 +61,5 @@ export function setBloodSpurtVolume(newVolume: number): void {
  */
 export function setMasterVolume(newVolume: number): void {
   AUDIO_VOLUMES.MASTER = Math.min(1.0, Math.max(0.0, newVolume));
-  console.log(`[Audio] 🔊 Master volume set to: ${AUDIO_VOLUMES.MASTER}`);
+  // console.log(`[Audio] 🔊 Master volume set to: ${AUDIO_VOLUMES.MASTER}`);
 } 

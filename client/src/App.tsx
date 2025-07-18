@@ -150,10 +150,10 @@ function App() {
   // --- Moved Table Callbacks/Subscription Functions Up ---
   const registerTableCallbacks = useCallback(() => {
     if (!conn) return;
-    console.log("Registering table callbacks...");
+    // console.log("Registering table callbacks...");
 
     conn.db.player.onInsert((_ctx: EventContext, player: PlayerData) => {
-        console.log("Player inserted (callback):", player.identity.toHexString());
+        // console.log("Player inserted (callback):", player.identity.toHexString());
         setPlayers((prev: ReadonlyMap<string, PlayerData>) => new Map(prev).set(player.identity.toHexString(), player));
         if (identity && player.identity.toHexString() === identity.toHexString()) {
             setLocalPlayer(player);
@@ -173,7 +173,7 @@ function App() {
     });
 
     conn.db.player.onDelete((_ctx: EventContext, player: PlayerData) => {
-        console.log("Player deleted (callback):", player.identity.toHexString());
+        // console.log("Player deleted (callback):", player.identity.toHexString());
         setPlayers((prev: ReadonlyMap<string, PlayerData>) => {
             const newMap = new Map(prev);
             newMap.delete(player.identity.toHexString());
@@ -184,11 +184,11 @@ function App() {
             setStatusMessage("Local player deleted!");
         }
     });
-    console.log("Table callbacks registered.");
+    // console.log("Table callbacks registered.");
   }, [identity]); // Keep identity dependency
 
   const onSubscriptionApplied = useCallback(() => {
-     console.log("Subscription applied successfully.");
+     // console.log("Subscription applied successfully.");
      setPlayers((prev: ReadonlyMap<string, PlayerData>) => {
          if (prev.size === 0 && conn) {
              const currentPlayers = new Map<string, PlayerData>();
@@ -211,7 +211,7 @@ function App() {
 
   const subscribeToTables = useCallback(() => {
     if (!conn) return;
-    console.log("Subscribing to tables...");
+    // console.log("Subscribing to tables...");
     const subscription = conn.subscriptionBuilder();
     subscription.subscribe("SELECT * FROM player");
     subscription.onApplied(onSubscriptionApplied);
@@ -223,7 +223,7 @@ function App() {
       const button = (event.target as HTMLElement).closest('.interactive-button');
       if (button) {
           event.preventDefault();
-          console.log(`[CLIENT] Button click detected: ${button.getAttribute('data-action')}`);
+          // console.log(`[CLIENT] Button click detected: ${button.getAttribute('data-action')}`);
           // Generic button handler without specific attack functionality
       }
   }, []);
@@ -238,18 +238,18 @@ function App() {
   const handleSpecialKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.code === 'Tab') {
       event.preventDefault(); // Prevent default tab behavior
-      console.log(`🎹 SPECIAL KEY: Tab -> Toggle Debug Panel`);
+      // console.log(`🎹 SPECIAL KEY: Tab -> Toggle Debug Panel`);
       setIsDebugPanelExpanded((prev: boolean) => {
-        console.log(`🎹 ✅ Debug panel toggled: ${prev} -> ${!prev}`);
+        // console.log(`🎹 ✅ Debug panel toggled: ${prev} -> ${!prev}`);
         return !prev;
       });
     } else if (event.code === 'Escape') {
-      console.log(`🎹 SPECIAL KEY: Escape -> Unlock mouse pointer`);
+      // console.log(`🎹 SPECIAL KEY: Escape -> Unlock mouse pointer`);
       if (document.pointerLockElement) {
         document.exitPointerLock();
-        console.log(`🎹 ✅ Pointer lock released`);
+        // console.log(`🎹 ✅ Pointer lock released`);
       } else {
-        console.log(`🎹 ⚠️ Pointer lock was not active`);
+        // console.log(`🎹 ⚠️ Pointer lock was not active`);
       }
     }
   }, []);
@@ -257,31 +257,22 @@ function App() {
   // Prevent right-click context menu
   const handleContextMenu = useCallback((event: MouseEvent) => {
     event.preventDefault();
-    console.log(`🖱️ RIGHT-CLICK CONTEXT MENU PREVENTED`);
+    // console.log(`🖱️ RIGHT-CLICK CONTEXT MENU PREVENTED`);
   }, []);
 
   const determineAnimation = useCallback((input: InputState): string => {
-    console.log(`🎬 ANIMATION DETERMINATION: Input state:`, {
-      attack: input.attack,
-      castSpell: input.castSpell,
-      jump: input.jump,
-      forward: input.forward,
-      backward: input.backward,
-      left: input.left,
-      right: input.right,
-      sprint: input.sprint
-    });
+    
     
     if (input.attack) {
-      console.log(`🎬 ✅ Animation result: 'attack1' (attack input active)`);
+      // console.log(`🎬 ✅ Animation result: 'attack1' (attack input active)`);
       return 'attack1';
     }
     if (input.castSpell) {
-      console.log(`🎬 ✅ Animation result: 'cast' (castSpell input active)`);
+      // console.log(`🎬 ✅ Animation result: 'cast' (castSpell input active)`);
       return 'cast';
     }
     if (input.jump) {
-      console.log(`🎬 ✅ Animation result: 'jump' (jump input active)`);
+      // console.log(`🎬 ✅ Animation result: 'jump' (jump input active)`);
       return 'jump';
     }
     
@@ -290,7 +281,7 @@ function App() {
     const isMoving = forward || backward || left || right;
     
     if (!isMoving) {
-      console.log(`🎬 ✅ Animation result: 'idle' (no movement input)`);
+      // console.log(`🎬 ✅ Animation result: 'idle' (no movement input)`);
       return 'idle';
     }
     
@@ -324,7 +315,7 @@ function App() {
     // Generate final animation name
     const animationName = `${moveType}-${direction}`;
     
-    console.log(`🎬 ✅ Animation result: '${animationName}' (movement: ${moveType}, direction: ${direction})`);
+    // console.log(`🎬 ✅ Animation result: '${animationName}' (movement: ${moveType}, direction: ${direction})`);
     return animationName;
   }, []);
 
@@ -357,13 +348,7 @@ function App() {
     }
 
     if (changed || currentInputState.sequence !== lastSentInputState.current.sequence) {
-        console.log(`📡 SENDING INPUT TO SERVER:`, {
-          animation: currentAnimation,
-          position: { x: currentPosition.x.toFixed(2), y: currentPosition.y.toFixed(2), z: currentPosition.z.toFixed(2) },
-          rotation: { x: currentRotation.x.toFixed(3), y: currentRotation.y.toFixed(3), z: currentRotation.z.toFixed(3) },
-          inputState: currentInputState,
-          sequence: currentInputState.sequence
-        });
+       
         conn.reducers.updatePlayerInput(currentInputState, currentPosition, currentRotation, currentAnimation);
         lastSentInputState.current = { ...currentInputState };
     }
@@ -390,15 +375,15 @@ function App() {
       // Then handle regular input keys
       const action = keyMap[event.code];
       if (action) {
-          console.log(`🎹 KEY DOWN: ${event.code} -> ${action} (was: ${currentInputRef.current[action]})`);
+          // console.log(`🎹 KEY DOWN: ${event.code} -> ${action} (was: ${currentInputRef.current[action]})`);
           if (!currentInputRef.current[action]) { 
              currentInputRef.current[action] = true;
-             console.log(`🎹 ✅ ${action} activated`);
+             // console.log(`🎹 ✅ ${action} activated`);
           }
       } else {
           // Log unmapped keys for debugging (but skip special keys we already handled)
           if (!['Tab', 'Escape'].includes(event.code)) {
-            console.log(`🎹 ❓ UNMAPPED KEY DOWN: ${event.code}`);
+            // console.log(`🎹 ❓ UNMAPPED KEY DOWN: ${event.code}`);
           }
       }
   }, [handleSpecialKeyDown]);
@@ -406,49 +391,49 @@ function App() {
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
       const action = keyMap[event.code];
       if (action) {
-          console.log(`🎹 KEY UP: ${event.code} -> ${action} (was: ${currentInputRef.current[action]})`);
+          // console.log(`🎹 KEY UP: ${event.code} -> ${action} (was: ${currentInputRef.current[action]})`);
           if (currentInputRef.current[action]) { 
               currentInputRef.current[action] = false;
-              console.log(`🎹 ❌ ${action} deactivated`);
+              // console.log(`🎹 ❌ ${action} deactivated`);
           }
       } else {
           // Log unmapped keys for debugging
-          console.log(`🎹 ❓ UNMAPPED KEY UP: ${event.code}`);
+          // console.log(`🎹 ❓ UNMAPPED KEY UP: ${event.code}`);
       }
   }, []);
 
   const handleMouseDown = useCallback((event: MouseEvent) => {
-      console.log(`🖱️ MOUSE DOWN: Button ${event.button} (${event.button === 0 ? 'LEFT' : event.button === 1 ? 'MIDDLE' : event.button === 2 ? 'RIGHT' : 'OTHER'})`);
+      // console.log(`🖱️ MOUSE DOWN: Button ${event.button} (${event.button === 0 ? 'LEFT' : event.button === 1 ? 'MIDDLE' : event.button === 2 ? 'RIGHT' : 'OTHER'})`);
       
       if (event.button === 0) { // Left click
-           console.log(`🖱️ LEFT CLICK: attack (was: ${currentInputRef.current.attack})`);
+           // console.log(`🖱️ LEFT CLICK: attack (was: ${currentInputRef.current.attack})`);
            if (!currentInputRef.current.attack) {
                currentInputRef.current.attack = true;
-               console.log(`🖱️ ✅ attack activated`);
+               // console.log(`🖱️ ✅ attack activated`);
            }
       } else if (event.button === 2) { // Right click
-           console.log(`🖱️ RIGHT CLICK: castSpell (was: ${currentInputRef.current.castSpell})`);
+           // console.log(`🖱️ RIGHT CLICK: castSpell (was: ${currentInputRef.current.castSpell})`);
            if (!currentInputRef.current.castSpell) {
                currentInputRef.current.castSpell = true;
-               console.log(`🖱️ ✅ castSpell activated`);
+               // console.log(`🖱️ ✅ castSpell activated`);
            }
       }
   }, []);
 
   const handleMouseUp = useCallback((event: MouseEvent) => {
-      console.log(`🖱️ MOUSE UP: Button ${event.button} (${event.button === 0 ? 'LEFT' : event.button === 1 ? 'MIDDLE' : event.button === 2 ? 'RIGHT' : 'OTHER'})`);
+      // console.log(`🖱️ MOUSE UP: Button ${event.button} (${event.button === 0 ? 'LEFT' : event.button === 1 ? 'MIDDLE' : event.button === 2 ? 'RIGHT' : 'OTHER'})`);
       
       if (event.button === 0) { // Left click
-           console.log(`🖱️ LEFT RELEASE: attack (was: ${currentInputRef.current.attack})`);
+           // console.log(`🖱️ LEFT RELEASE: attack (was: ${currentInputRef.current.attack})`);
            if (currentInputRef.current.attack) {
                currentInputRef.current.attack = false;
-               console.log(`🖱️ ❌ attack deactivated`);
+               // console.log(`🖱️ ❌ attack deactivated`);
            }
       } else if (event.button === 2) { // Right click
-           console.log(`🖱️ RIGHT RELEASE: castSpell (was: ${currentInputRef.current.castSpell})`);
+           // console.log(`🖱️ RIGHT RELEASE: castSpell (was: ${currentInputRef.current.castSpell})`);
            if (currentInputRef.current.castSpell) {
                currentInputRef.current.castSpell = false;
-               console.log(`🖱️ ❌ castSpell deactivated`);
+               // console.log(`🖱️ ❌ castSpell deactivated`);
            }
       }
   }, []);
@@ -461,7 +446,7 @@ function App() {
       
       // Log significant mouse movements for debugging (threshold to avoid spam)
       if (Math.abs(event.movementX) > 5 || Math.abs(event.movementY) > 5) {
-        console.log(`🖱️ MOUSE MOVE: dx=${event.movementX}, dy=${event.movementY} (sensitivity: ${sensitivity})`);
+        // console.log(`🖱️ MOUSE MOVE: dx=${event.movementX}, dy=${event.movementY} (sensitivity: ${sensitivity})`);
       }
       
       // Update the Euler rotation with mouse movement
@@ -478,12 +463,12 @@ function App() {
       
       // Log rotation changes for significant movements
       if (Math.abs(event.movementX) > 10 || Math.abs(event.movementY) > 10) {
-        console.log(`🖱️ ROTATION UPDATE: Y ${oldRotationY.toFixed(3)} -> ${playerRotationRef.current.y.toFixed(3)}, X ${oldRotationX.toFixed(3)} -> ${playerRotationRef.current.x.toFixed(3)}`);
+        // console.log(`🖱️ ROTATION UPDATE: Y ${oldRotationY.toFixed(3)} -> ${playerRotationRef.current.y.toFixed(3)}, X ${oldRotationX.toFixed(3)} -> ${playerRotationRef.current.x.toFixed(3)}`);
       }
     } else {
       // Log when trying to move mouse without pointer lock
       if (Math.abs(event.movementX) > 0 || Math.abs(event.movementY) > 0) {
-        console.log(`🖱️ ⚠️ MOUSE MOVE WITHOUT POINTER LOCK: dx=${event.movementX}, dy=${event.movementY}`);
+        // console.log(`🖱️ ⚠️ MOUSE MOVE WITHOUT POINTER LOCK: dx=${event.movementX}, dy=${event.movementY}`);
       }
     }
   }, []);
@@ -491,7 +476,7 @@ function App() {
   // --- Listener Setup/Removal Functions ---
   const handlePointerLockChange = useCallback(() => {
     setIsPointerLocked(document.pointerLockElement === document.body);
-    console.log("Pointer Lock Changed: ", document.pointerLockElement === document.body);
+    // console.log("Pointer Lock Changed: ", document.pointerLockElement === document.body);
   }, []);
 
   const setupInputListeners = useCallback(() => {
@@ -502,7 +487,7 @@ function App() {
       window.addEventListener('mousemove', handleMouseMove); // Add mouse move listener
       window.addEventListener('contextmenu', handleContextMenu); // Prevent right-click menu
       document.addEventListener('pointerlockchange', handlePointerLockChange); // Listen for lock changes
-      console.log("🎮 Input listeners added: keyboard, mouse, context menu, pointer lock");
+      // console.log("🎮 Input listeners added: keyboard, mouse, context menu, pointer lock");
   }, [handleKeyDown, handleKeyUp, handleMouseDown, handleMouseUp, handleMouseMove, handleContextMenu, handlePointerLockChange]);
 
   const removeInputListeners = useCallback(() => {
@@ -513,17 +498,17 @@ function App() {
       window.removeEventListener('mousemove', handleMouseMove); // Remove mouse move listener
       window.removeEventListener('contextmenu', handleContextMenu); // Remove context menu listener
       document.removeEventListener('pointerlockchange', handlePointerLockChange); // Remove listener
-      console.log("🎮 Input listeners removed: keyboard, mouse, context menu, pointer lock");
+      // console.log("🎮 Input listeners removed: keyboard, mouse, context menu, pointer lock");
   }, [handleKeyDown, handleKeyUp, handleMouseDown, handleMouseUp, handleMouseMove, handleContextMenu, handlePointerLockChange]);
 
   const setupDelegatedListeners = useCallback(() => {
       document.body.addEventListener('click', handleDelegatedClick, true);
-      console.log("Delegated listener added to body.");
+      // console.log("Delegated listener added to body.");
   }, [handleDelegatedClick]);
 
   const removeDelegatedListeners = useCallback(() => {
       document.body.removeEventListener('click', handleDelegatedClick, true);
-      console.log("Delegated listener removed from body.");
+      // console.log("Delegated listener removed from body.");
   }, [handleDelegatedClick]);
 
   // --- Game Loop Effect ---
@@ -542,13 +527,13 @@ function App() {
       };
 
       if (connected && !animationFrameIdRef.current) {
-          console.log("[CLIENT] Starting game loop.");
+          // console.log("[CLIENT] Starting game loop.");
           animationFrameIdRef.current = requestAnimationFrame(gameLoop);
       }
 
       return () => {
           if (animationFrameIdRef.current) {
-              console.log("[CLIENT] Stopping game loop.");
+              // console.log("[CLIENT] Stopping game loop.");
               cancelAnimationFrame(animationFrameIdRef.current);
               animationFrameIdRef.current = null;
           }
@@ -557,9 +542,9 @@ function App() {
 
   // --- Connection Effect Hook ---
   useEffect(() => {
-    console.log("Running Connection Effect Hook...");
+    // console.log("Running Connection Effect Hook...");
     if (conn) {
-        console.log("Connection already established, skipping setup.");
+        // console.log("Connection already established, skipping setup.");
          if (connected) {
              setupInputListeners();
              setupDelegatedListeners();
@@ -570,10 +555,10 @@ function App() {
     const dbHost = "localhost:5555";
     const dbName = "vibe-multiplayer";
 
-    console.log(`Connecting to SpacetimeDB at ${dbHost}, database: ${dbName}...`);
+    // console.log(`Connecting to SpacetimeDB at ${dbHost}, database: ${dbName}...`);
 
     const onConnect = (connection: DbConnection, id: Identity, _token: string) => {
-      console.log("Connected!");
+      // console.log("Connected!");
       conn = connection;
       setIdentity(id);
       setConnected(true);
@@ -587,7 +572,7 @@ function App() {
 
     const onDisconnect = (_ctx: ErrorContext, reason?: Error | null) => {
       const reasonStr = reason ? reason.message : "No reason given";
-      console.log("onDisconnect triggered:", reasonStr);
+      // console.log("onDisconnect triggered:", reasonStr);
       setStatusMessage(`Disconnected: ${reasonStr}`);
       conn = null;
       setIdentity(null);
@@ -604,7 +589,7 @@ function App() {
       .build();
 
     return () => {
-      console.log("Cleaning up connection effect - removing listeners.");
+      // console.log("Cleaning up connection effect - removing listeners.");
       removeInputListeners();
       removeDelegatedListeners();
     };
@@ -616,14 +601,14 @@ function App() {
         console.error("Cannot join game, not connected.");
         return;
     }
-    console.log(`Registering as ${username} (${characterClass}) with X handle: ${xHandle || 'none'}...`);
+    // console.log(`Registering as ${username} (${characterClass}) with X handle: ${xHandle || 'none'}...`);
     
     // Hide join dialog first to start cleanup
     setShowJoinDialog(false);
     
     // Add delay to allow WebGL context cleanup before starting game
     setTimeout(() => {
-      console.log('[WebGL Cleanup] Delay complete, starting game initialization...');
+      // console.log('[WebGL Cleanup] Delay complete, starting game initialization...');
       
       // Reset GameReady state and show loading screen
       setGameReadyState({

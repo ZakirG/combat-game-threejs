@@ -14,4 +14,4 @@
  */
 
 // Cleaned up main.ts
-console.log("--- main.ts executing (should be minimal if using App.tsx) ---"); 
+// console.log("--- main.ts executing (should be minimal if using App.tsx) ---"); 

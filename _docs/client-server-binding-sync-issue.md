@@ -61,7 +61,7 @@ conn.reducers.registerPlayer(username, characterClass, xHandle || null);
 ### 2. Key Discovery
 Added debug logging to track available reducers:
 ```typescript
-console.log(`[DEBUG] Available reducers:`, Object.keys(conn.reducers || {}));
+// console.log(`[DEBUG] Available reducers:`, Object.keys(conn.reducers || {}));
 // Output: ['connection', 'setCallReducerFlags']  ← Missing registerPlayer!
 ```
 
@@ -109,7 +109,7 @@ conn.reducers.registerPlayer(username, characterClass, xHandle || undefined);
 ```typescript
 try {
     const result = conn.reducers.registerPlayer(username, characterClass, xHandle || undefined);
-    console.log(`[DEBUG] registerPlayer call result:`, result);
+    // console.log(`[DEBUG] registerPlayer call result:`, result);
     setHasJoinedGame(true);
 } catch (error) {
     console.error(`[DEBUG] registerPlayer call failed:`, error);

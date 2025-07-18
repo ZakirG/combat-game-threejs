@@ -46,7 +46,7 @@ export class CoinEffectManager {
       const loader = new GLTFLoader();
       const gltf = await loader.loadAsync('/models/items/grok-coin.glb');
       this.coinModel = gltf.scene.clone();
-      console.log('[CoinEffect] Coin model loaded successfully');
+      // console.log('[CoinEffect] Coin model loaded successfully');
     } catch (error) {
       console.warn('[CoinEffect] Could not load coin model, using fallback geometry:', error.message);
       // Create a simple flat coin geometry as fallback
@@ -56,7 +56,7 @@ export class CoinEffectManager {
       
       this.coinModel = new THREE.Group();
       this.coinModel.add(coinMesh);
-      console.log('[CoinEffect] Using fallback coin geometry');
+      // console.log('[CoinEffect] Using fallback coin geometry');
     }
   }
 
@@ -200,7 +200,7 @@ export class CoinEffectManager {
     };
 
     this.coins.push(coinInstance);
-    console.log(`[CoinEffect] Coin created at position (${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)})`);
+    // console.log(`[CoinEffect] Coin created at position (${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)})`);
   }
 
   /**
@@ -223,7 +223,7 @@ export class CoinEffectManager {
             // Fade complete, remove pillar and coin from array
             this.scene.remove(coin.glowPillar);
             this.coins.splice(i, 1);
-            console.log('[CoinEffect] Pillar fade complete, fully removed');
+            // console.log('[CoinEffect] Pillar fade complete, fully removed');
             continue;
           } else {
             // Update pillar opacity during fade
@@ -309,7 +309,7 @@ export class CoinEffectManager {
           this.scene.remove(coin.mesh);
           
           collectedCount++;
-          console.log(`[CoinEffect] Coin collected at distance ${distance.toFixed(2)}, pillar fading out`);
+          // console.log(`[CoinEffect] Coin collected at distance ${distance.toFixed(2)}, pillar fading out`);
         }
       }
     }
@@ -326,7 +326,7 @@ export class CoinEffectManager {
       this.scene.remove(coin.glowPillar);
     });
     this.coins = [];
-    console.log('[CoinEffect] All coins and glow pillars cleaned up');
+    // console.log('[CoinEffect] All coins and glow pillars cleaned up');
   }
 
   /**

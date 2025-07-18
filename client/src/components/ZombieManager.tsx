@@ -361,7 +361,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
   const triggerDeath = useCallback((knockbackDirection: THREE.Vector3) => {
     if (isDead || isDeathSequenceStarted) return; // Prevent multiple deaths
     
-    // console.log(`[${zombieId}] 💀 Death triggered with knockback direction:`, knockbackDirection);
+    // // console.log(`[${zombieId}] 💀 Death triggered with knockback direction:`, knockbackDirection);
     
     setIsDeathSequenceStarted(true);
     setIsDead(true);
@@ -379,7 +379,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
       normalizedDirection.z * KNOCKBACK_CONFIG.FORCE
     );
     
-    // console.log(`[${zombieId}] 🚀 Applied knockback velocity: (${knockbackVelocity.current.x.toFixed(2)}, ${knockbackVelocity.current.y.toFixed(2)}, ${knockbackVelocity.current.z.toFixed(2)})`);
+    // // console.log(`[${zombieId}] 🚀 Applied knockback velocity: (${knockbackVelocity.current.x.toFixed(2)}, ${knockbackVelocity.current.y.toFixed(2)}, ${knockbackVelocity.current.z.toFixed(2)})`);
     
     // Play death animation
     if (animations[ZOMBIE_ANIMATIONS.DEATH]) {
@@ -531,7 +531,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
         
         // Complete cleanup after fade - notify scene cleanup
         if (fadeProgress >= 1.0 && onZombieDeath) {
-          // console.log(`[${zombieId}] Cleanup complete, removing from scene`);
+          // // console.log(`[${zombieId}] Cleanup complete, removing from scene`);
           onZombieDeath(zombieId);
           return; // Skip further updates
         }
@@ -906,7 +906,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     setZombiePositions(prev => [...prev, ...newPositions]);
     setNextZombieId(prev => prev + count);
     
-    // // console.log(`[ZombieManager] 🆕 Spawned ${count} new zombies! Total positions: ${zombiePositions.length + count}`);
+    // // // console.log(`[ZombieManager] 🆕 Spawned ${count} new zombies! Total positions: ${zombiePositions.length + count}`);
   }, [players, minSpawnDistance, generateSafeZombiePosition, zombiePositions.length]);
 
   // Handle zombie loading completion
@@ -931,7 +931,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
           setCurrentLoadingIndex(newCount);
         }, LOADING_DELAY);
       } else {
-        // // console.log(`[ZombieManager] All ${zombieCount} zombies loaded and ready!`);
+        // // // console.log(`[ZombieManager] All ${zombieCount} zombies loaded and ready!`);
       }
       
       return newCount;
@@ -940,13 +940,13 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
 
   // Handle zombie death (scene cleanup)
   const handleZombieDeath = useCallback((zombieId: string) => {
-    // // console.log(`[ZombieManager] Zombie ${zombieId} cleanup complete, removing from scene`);
+    // // // console.log(`[ZombieManager] Zombie ${zombieId} cleanup complete, removing from scene`);
     setDeadZombies(prev => new Set(prev).add(zombieId));
   }, []);
   
   // Handle zombie killed (immediate kill counter update)
   const handleZombieKilled = useCallback((zombieId: string) => {
-    // // console.log(`[ZombieManager] Zombie ${zombieId} killed! Updating kill counter`);
+    // // // console.log(`[ZombieManager] Zombie ${zombieId} killed! Updating kill counter`);
     
     // Update total kill count (never resets)
     setTotalKillCount(prev => {
@@ -963,10 +963,10 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     // Track kills for respawn trigger (resets every 3 kills)
     setKillCount(prev => {
       const newKillCount = prev + 1;
-      // // console.log(`[ZombieManager] 💀 Respawn kill count: ${newKillCount}`);
+      // // // console.log(`[ZombieManager] 💀 Respawn kill count: ${newKillCount}`);
       
       if (newKillCount % 3 === 0) {
-                 // // console.log(`[ZombieManager] 🎯 RESPAWN TRIGGER! Killed ${newKillCount} zombies, spawning 3 more...`);
+                 // // // console.log(`[ZombieManager] 🎯 RESPAWN TRIGGER! Killed ${newKillCount} zombies, spawning 3 more...`);
          
          // Emit progress update for respawn event
          if (gameReadyCallbacks) {
@@ -1015,37 +1015,37 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     // Get forward direction from player rotation - FLIPPED Z-axis from -1 to 1 to fix direction
     const forwardDirection = new THREE.Vector3(0, 0, 1).applyEuler(playerRotation);
     
-    // // console.log(`[ZombieManager] 🗡️ ATTACK CHECK STARTED`);
-    // // console.log(`[ZombieManager] 📍 Player pos: (${playerPosition.x.toFixed(2)}, ${playerPosition.y.toFixed(2)}, ${playerPosition.z.toFixed(2)})`);
-    // // console.log(`[ZombieManager] 📐 Player rotation: (${playerRotation.x.toFixed(3)}, ${playerRotation.y.toFixed(3)}, ${playerRotation.z.toFixed(3)})`);
-    // // console.log(`[ZombieManager] ➡️ Forward direction: (${forwardDirection.x.toFixed(3)}, ${forwardDirection.y.toFixed(3)}, ${forwardDirection.z.toFixed(3)})`);
-    // // console.log(`[ZombieManager] 📏 Attack range: ${effectiveAttackRange} units`);
-    // // console.log(`[ZombieManager] 🎯 Facing leniency: ${KNOCKBACK_CONFIG.FACING_LENIENCY} (lower = more lenient)`);
-    // // console.log(`[ZombieManager] 🧟 Checking ${zombieInstancesRef.current.size} zombies...`);
-    // // console.log(`[ZombieManager] ⚔️ Max kills per attack: ${maxKillsAtATime} (${isSwordAttack ? 'SWORD' : 'MELEE'} attack)`);
+    // // // console.log(`[ZombieManager] 🗡️ ATTACK CHECK STARTED`);
+    // // // console.log(`[ZombieManager] 📍 Player pos: (${playerPosition.x.toFixed(2)}, ${playerPosition.y.toFixed(2)}, ${playerPosition.z.toFixed(2)})`);
+    // // // console.log(`[ZombieManager] 📐 Player rotation: (${playerRotation.x.toFixed(3)}, ${playerRotation.y.toFixed(3)}, ${playerRotation.z.toFixed(3)})`);
+    // // // console.log(`[ZombieManager] ➡️ Forward direction: (${forwardDirection.x.toFixed(3)}, ${forwardDirection.y.toFixed(3)}, ${forwardDirection.z.toFixed(3)})`);
+    // // // console.log(`[ZombieManager] 📏 Attack range: ${effectiveAttackRange} units`);
+    // // // console.log(`[ZombieManager] 🎯 Facing leniency: ${KNOCKBACK_CONFIG.FACING_LENIENCY} (lower = more lenient)`);
+    // // // console.log(`[ZombieManager] 🧟 Checking ${zombieInstancesRef.current.size} zombies...`);
+    // // // console.log(`[ZombieManager] ⚔️ Max kills per attack: ${maxKillsAtATime} (${isSwordAttack ? 'SWORD' : 'MELEE'} attack)`);
     
     // First pass: Find all eligible zombies within range and facing requirements
     for (const [zombieId, zombieData] of zombieInstancesRef.current) {
       const zombiePos = zombieData.positionRef.current;
       const distance = playerPosition.distanceTo(zombiePos);
       
-      // // console.log(`[ZombieManager] 🔍 Checking ${zombieId}:`);
-      // // console.log(`[ZombieManager]   📍 Zombie pos: (${zombiePos.x.toFixed(2)}, ${zombiePos.y.toFixed(2)}, ${zombiePos.z.toFixed(2)})`);
-      // // console.log(`[ZombieManager]   📏 Distance: ${distance.toFixed(2)} units`);
+      // // // console.log(`[ZombieManager] 🔍 Checking ${zombieId}:`);
+      // // // console.log(`[ZombieManager]   📍 Zombie pos: (${zombiePos.x.toFixed(2)}, ${zombiePos.y.toFixed(2)}, ${zombiePos.z.toFixed(2)})`);
+      // // // console.log(`[ZombieManager]   📏 Distance: ${distance.toFixed(2)} units`);
       
       // Check if zombie is within attack range
       if (distance <= effectiveAttackRange) {
-        // // console.log(`[ZombieManager]   ✅ DISTANCE OK: ${distance.toFixed(2)} <= ${effectiveAttackRange}`);
+        // // // console.log(`[ZombieManager]   ✅ DISTANCE OK: ${distance.toFixed(2)} <= ${effectiveAttackRange}`);
         
         // Check if player is roughly facing the zombie
         const directionToZombie = new THREE.Vector3().subVectors(zombiePos, playerPosition).normalize();
         const dot = forwardDirection.dot(directionToZombie);
         
-        // // console.log(`[ZombieManager]   🎯 Dot product: ${dot.toFixed(3)} (need > ${KNOCKBACK_CONFIG.FACING_LENIENCY})`);
+        // // // console.log(`[ZombieManager]   🎯 Dot product: ${dot.toFixed(3)} (need > ${KNOCKBACK_CONFIG.FACING_LENIENCY})`);
         
         // If dot product > a lenient value, player is facing zombie
         if (dot > KNOCKBACK_CONFIG.FACING_LENIENCY) {
-          // console.log(`[ZombieManager]   ✅ FACING OK: ${dot.toFixed(3)} > ${KNOCKBACK_CONFIG.FACING_LENIENCY}`);
+          // // console.log(`[ZombieManager]   ✅ FACING OK: ${dot.toFixed(3)} > ${KNOCKBACK_CONFIG.FACING_LENIENCY}`);
           
           candidateZombies.push({ 
             zombieId, 
@@ -1054,10 +1054,10 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
             zombieData 
           });
         } else {
-          // console.log(`[ZombieManager]   ❌ FACING FAILED: ${dot.toFixed(3)} <= ${KNOCKBACK_CONFIG.FACING_LENIENCY} (player not facing zombie)`);
+          // // console.log(`[ZombieManager]   ❌ FACING FAILED: ${dot.toFixed(3)} <= ${KNOCKBACK_CONFIG.FACING_LENIENCY} (player not facing zombie)`);
         }
       } else {
-        // console.log(`[ZombieManager]   ❌ DISTANCE FAILED: ${distance.toFixed(2)} > ${effectiveAttackRange} (too far away)`);
+        // // console.log(`[ZombieManager]   ❌ DISTANCE FAILED: ${distance.toFixed(2)} > ${effectiveAttackRange} (too far away)`);
       }
     }
     
@@ -1065,13 +1065,13 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
     candidateZombies.sort((a, b) => a.distance - b.distance);
     const zombiesToKill = candidateZombies.slice(0, maxKillsAtATime);
     
-    // console.log(`[ZombieManager] 🎯 Found ${candidateZombies.length} eligible zombies, killing ${zombiesToKill.length} closest ones (${isSwordAttack ? 'SWORD' : 'MELEE'} attack)`);
+    // // console.log(`[ZombieManager] 🎯 Found ${candidateZombies.length} eligible zombies, killing ${zombiesToKill.length} closest ones (${isSwordAttack ? 'SWORD' : 'MELEE'} attack)`);
     
     const hitZombies: Array<{ zombieId: string; position: THREE.Vector3; distance: number }> = [];
     
     // Kill the selected zombies
     for (const zombie of zombiesToKill) {
-      // console.log(`[ZombieManager] 💀 ZOMBIE KILLED! ${zombie.zombieId} hit at distance ${zombie.distance.toFixed(2)} (${isSwordAttack ? 'SWORD' : 'MELEE'} attack)`);
+      // // console.log(`[ZombieManager] 💀 ZOMBIE KILLED! ${zombie.zombieId} hit at distance ${zombie.distance.toFixed(2)} (${isSwordAttack ? 'SWORD' : 'MELEE'} attack)`);
       
       hitZombies.push({ 
         zombieId: zombie.zombieId, 
@@ -1084,7 +1084,7 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       zombie.zombieData.triggerDeath(directionToZombie);
     }
     
-    // console.log(`[ZombieManager] 🗡️ ATTACK CHECK COMPLETE: Hit ${hitZombies.length} zombies (${isSwordAttack ? 'SWORD' : 'MELEE'} attack)`);
+    // // console.log(`[ZombieManager] 🗡️ ATTACK CHECK COMPLETE: Hit ${hitZombies.length} zombies (${isSwordAttack ? 'SWORD' : 'MELEE'} attack)`);
     return hitZombies;
   }, []);
 

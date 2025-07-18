@@ -173,7 +173,7 @@ export const Player: React.FC<PlayerProps> = ({
   const createGlowEffect = useCallback(() => {
     if (!model || !group.current || glowMesh) return; // Don't create if already exists
     
-    console.log('[Player] ✨ Creating 4-layer expanding glow effect for sword equipping...');
+    // console.log('[Player] ✨ Creating 4-layer expanding glow effect for sword equipping...');
     
     // Get the scene reference (same way blood effects do it)
     const scene = group.current.parent as THREE.Scene;
@@ -208,7 +208,7 @@ export const Player: React.FC<PlayerProps> = ({
       const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
       glowGroup.add(glowSphere);
       
-      console.log(`[Player] ✨ Created ${layer.name} glow layer (radius: ${layer.radius}, opacity: ${layer.opacity})`);
+      // console.log(`[Player] ✨ Created ${layer.name} glow layer (radius: ${layer.radius}, opacity: ${layer.opacity})`);
     });
     
     // Get player's current world position
@@ -219,8 +219,8 @@ export const Player: React.FC<PlayerProps> = ({
     glowGroup.position.copy(playerWorldPosition);
     glowGroup.position.y += 1; // Slightly above ground to be more visible
     
-    console.log('[Player] 📍 Player world position:', playerWorldPosition);
-    console.log('[Player] 📍 4-layer glow positioned at:', glowGroup.position);
+    // console.log('[Player] 📍 Player world position:', playerWorldPosition);
+    // console.log('[Player] 📍 4-layer glow positioned at:', glowGroup.position);
     
     // Add start time for animation tracking
     (glowGroup as any).startTime = performance.now();
@@ -230,11 +230,11 @@ export const Player: React.FC<PlayerProps> = ({
     scene.add(glowGroup);
     setGlowMesh(glowGroup as any); // Store as glowMesh for tracking
     
-    console.log('[Player] ✅ 4-layer expanding glow effect created and added to scene');
+    // console.log('[Player] ✅ 4-layer expanding glow effect created and added to scene');
     
     // Remove glow after exactly 1 second
     glowTimeoutRef.current = setTimeout(() => {
-      console.log('[Player] ⏰ Removing 4-layer glow effect after 1 second');
+      // console.log('[Player] ⏰ Removing 4-layer glow effect after 1 second');
       removeGlowEffect();
     }, 1000);
     
@@ -243,18 +243,18 @@ export const Player: React.FC<PlayerProps> = ({
   // Remove glow effect
   const removeGlowEffect = useCallback(() => {
     if (glowMesh && group.current) {
-      console.log('[Player] ✨ Removing 4-layer glow effect...');
+      // console.log('[Player] ✨ Removing 4-layer glow effect...');
       
       // Get scene reference and remove glow group
       const scene = group.current.parent as THREE.Scene;
       if (scene) {
         scene.remove(glowMesh);
-        console.log('[Player] ✅ Glow group removed from scene');
+        // console.log('[Player] ✅ Glow group removed from scene');
       } else {
         // Fallback: remove from parent if it exists
         if (glowMesh.parent) {
           glowMesh.parent.remove(glowMesh);
-          console.log('[Player] ✅ Glow group removed from parent');
+          // console.log('[Player] ✅ Glow group removed from parent');
         }
       }
       
@@ -368,7 +368,7 @@ export const Player: React.FC<PlayerProps> = ({
 
   // --- Client-Side Movement Calculation (Matches Server Logic *before* Sign Flip) ---
   const calculateClientMovement = useCallback((currentPos: THREE.Vector3, currentRot: THREE.Euler, inputState: InputState, delta: number): THREE.Vector3 => {
-    // console.log(`[Move Calc] cameraMode: ${cameraMode}`); // Suppressed log
+    // // console.log(`[Move Calc] cameraMode: ${cameraMode}`); // Suppressed log
     
     // Skip if no movement input
     if (!inputState.forward && !inputState.backward && !inputState.left && !inputState.right) {
@@ -478,53 +478,44 @@ export const Player: React.FC<PlayerProps> = ({
           }
         });
         
-        console.log(`%c[Debug] ★ Model structure for ${characterClass}:`, "color: #00bfff");
-        console.log(`%c[Debug]   - SkinnedMesh objects: ${skinnedMeshes.length}`, "color: #00bfff");
-        console.log(`%c[Debug]   - Regular Mesh objects: ${regularMeshes.length}`, "color: #00bfff");
-        console.log(`%c[Debug]   - Bone objects: ${bones.length}`, "color: #00bfff");
-        console.log(`%c[Debug]   - All objects (first 20):`, "color: #00bfff", allObjects.slice(0, 20));
+        // console.log(`%c[Debug] ★ Model structure for ${characterClass}:`, "color: #00bfff");
+        // console.log(`%c[Debug]   - SkinnedMesh objects: ${skinnedMeshes.length}`, "color: #00bfff");
+        // console.log(`%c[Debug]   - Regular Mesh objects: ${regularMeshes.length}`, "color: #00bfff");
+        // console.log(`%c[Debug]   - Bone objects: ${bones.length}`, "color: #00bfff");
+        // console.log(`%c[Debug]   - All objects (first 20):`, "color: #00bfff", allObjects.slice(0, 20));
         
         skinnedMeshes.forEach((sm, idx) => {
-          console.log(`%c[Debug]   [${idx}] SkinnedMesh="${sm.name}" bones=${sm.skeleton?.bones.length}` , "color: #00bfff");
+          // console.log(`%c[Debug]   [${idx}] SkinnedMesh="${sm.name}" bones=${sm.skeleton?.bones.length}` , "color: #00bfff");
           if (sm.skeleton?.bones) {
-            console.log(`%c[Debug]     First 10 bone names:`, "color: #00bfff", sm.skeleton.bones.slice(0, 10).map(b => b.name));
+            // console.log(`%c[Debug]     First 10 bone names:`, "color: #00bfff", sm.skeleton.bones.slice(0, 10).map(b => b.name));
           }
         });
         
         if (skinnedMeshes.length === 0) {
-          console.log(`%c[Debug] ⚠️ NO SKINNED MESHES FOUND! This model is static geometry and cannot be animated.`, "color: #ff0000");
-          console.log(`%c[Debug] ⚠️ You need to re-export from Mixamo with "With Skin" option enabled.`, "color: #ff0000");
+          // console.log(`%c[Debug] ⚠️ NO SKINNED MESHES FOUND! This model is static geometry and cannot be animated.`, "color: #ff0000");
+          // console.log(`%c[Debug] ⚠️ You need to re-export from Mixamo with "With Skin" option enabled.`, "color: #ff0000");
         }
 
         // Process materials for better lighting and shadows
-        console.log(`[Player Model Effect ${playerData.username}] Processing materials for ${characterClass} model`);
+        // console.log(`[Player Model Effect ${playerData.username}] Processing materials for ${characterClass} model`);
         
         fbx.traverse((child) => {
           if (child instanceof THREE.Mesh) {
-            console.log(`[Player Model Effect ${playerData.username}] Found mesh: ${child.name || 'Unnamed'}`);
-            console.log(`[Player Model Effect ${playerData.username}] Material type:`, child.material?.type);
-            console.log(`[Player Model Effect ${playerData.username}] Material:`, child.material);
+            // console.log(`[Player Model Effect ${playerData.username}] Found mesh: ${child.name || 'Unnamed'}`);
+            // console.log(`[Player Model Effect ${playerData.username}] Material type:`, child.material?.type);
+            // console.log(`[Player Model Effect ${playerData.username}] Material:`, child.material);
             
             // Check if material exists and debug its properties
             if (child.material) {
               const materials = Array.isArray(child.material) ? child.material : [child.material];
-              console.log(`[Player Model Effect ${playerData.username}] Found ${materials.length} material(s) for mesh`);
+              // console.log(`[Player Model Effect ${playerData.username}] Found ${materials.length} material(s) for mesh`);
               
               // Process each material
               const newMaterials = materials.map((material: any, index: number) => {
-                console.log(`[Player Model Effect ${playerData.username}] Processing material ${index}:`, {
-                  type: material.type,
-                  map: !!material.map,
-                  color: material.color?.getHexString(),
-                  emissive: material.emissive?.getHexString(),
-                  visible: material.visible,
-                  transparent: material.transparent,
-                  opacity: material.opacity
-                });
                 
                 // Convert MeshPhongMaterial to MeshStandardMaterial for better PBR lighting
                 if (material.type === 'MeshPhongMaterial' || material.type === 'MeshBasicMaterial' || material.type === 'MeshLambertMaterial') {
-                  console.log(`[Player Model Effect ${playerData.username}] Converting ${material.type} to MeshStandardMaterial for material ${index}`);
+                  // console.log(`[Player Model Effect ${playerData.username}] Converting ${material.type} to MeshStandardMaterial for material ${index}`);
                   
                   const newMaterial = new THREE.MeshStandardMaterial({
                     map: material.map,
@@ -547,7 +538,7 @@ export const Player: React.FC<PlayerProps> = ({
                   
                   // Fix any color issues
                   if (material.color && material.color.r === 0 && material.color.g === 0 && material.color.b === 0) {
-                    console.log(`[Player Model Effect ${playerData.username}] Material ${index} color is black, setting to white`);
+                    // console.log(`[Player Model Effect ${playerData.username}] Material ${index} color is black, setting to white`);
                     material.color.setRGB(1, 1, 1);
                   }
                   
@@ -569,7 +560,7 @@ export const Player: React.FC<PlayerProps> = ({
                 child.material.needsUpdate = true;
               }
               
-              console.log(`[Player Model Effect ${playerData.username}] Configured ${newMaterials.length} material(s) for mesh: ${child.name || 'Unnamed'}`);
+              // console.log(`[Player Model Effect ${playerData.username}] Configured ${newMaterials.length} material(s) for mesh: ${child.name || 'Unnamed'}`);
             } else {
               console.warn(`[Player Model Effect ${playerData.username}] No material found for mesh: ${child.name || 'Unnamed'}`);
               
@@ -584,7 +575,7 @@ export const Player: React.FC<PlayerProps> = ({
               child.castShadow = true;
               child.receiveShadow = true;
               
-              console.log(`[Player Model Effect ${playerData.username}] Applied default material to mesh: ${child.name || 'Unnamed'}`);
+              // console.log(`[Player Model Effect ${playerData.username}] Applied default material to mesh: ${child.name || 'Unnamed'}`);
             }
           }
         });
@@ -605,20 +596,20 @@ export const Player: React.FC<PlayerProps> = ({
           
           // --- Remove embedded lights safely --- 
           try { 
-            console.log(`[Player Model Effect ${playerData.username}] Traversing loaded FBX to find embedded lights...`);
+            // console.log(`[Player Model Effect ${playerData.username}] Traversing loaded FBX to find embedded lights...`);
             const lightsToRemove: THREE.Light[] = [];
             
             // First pass: collect all lights
             fbx.traverse((child) => {
               if (child && child instanceof THREE.Light) { 
-                console.log(`[Player Model Effect ${playerData.username}] --- FOUND EMBEDDED LIGHT --- Name: ${child.name || 'Unnamed'}, Type: ${child.type}`);
+                // console.log(`[Player Model Effect ${playerData.username}] --- FOUND EMBEDDED LIGHT --- Name: ${child.name || 'Unnamed'}, Type: ${child.type}`);
                 lightsToRemove.push(child);
               }
             });
             
             // Second pass: remove all collected lights
             lightsToRemove.forEach(light => {
-              console.log(`[Player Model Effect ${playerData.username}] Removing light: ${light.name || 'Unnamed'}`);
+              // console.log(`[Player Model Effect ${playerData.username}] Removing light: ${light.name || 'Unnamed'}`);
               light.removeFromParent();
             });
           } catch (traverseError) {
@@ -639,7 +630,7 @@ export const Player: React.FC<PlayerProps> = ({
           localRotationRef.current.set(0, playerData.rotation.y, 0, 'YXZ');
           // Reset spawn time when model loads and player position is set
           spawnTime.current = Date.now();
-          console.log(`[CRITICAL] Player spawn INITIALIZED for ${playerData.username} - Server Y=${playerData.position.y.toFixed(1)}, Forced Local Y=${SPAWN_ALTITUDE}`);
+          // console.log(`[CRITICAL] Player spawn INITIALIZED for ${playerData.username} - Server Y=${playerData.position.y.toFixed(1)}, Forced Local Y=${SPAWN_ALTITUDE}`);
           
           // Check if server is sending wrong position
           if (playerData.position.y < SPAWN_ALTITUDE - 100) {
@@ -672,7 +663,7 @@ export const Player: React.FC<PlayerProps> = ({
   // New useEffect to load animations when mixer is ready
   useEffect(() => {
     if (mixer && model && !animationsLoadedRef.current) {
-      console.log("Mixer and model are ready, loading animations...");
+      // console.log("Mixer and model are ready, loading animations...");
       animationsLoadedRef.current = true;
       loadAnimations(mixer);
     }
@@ -682,39 +673,39 @@ export const Player: React.FC<PlayerProps> = ({
   useEffect(() => {
     if (gameReady && isModelVisible && !physicsEnabled) {
       setPhysicsEnabled(true);
-      console.log(`⚡ [PHYSICS] Physics ENABLED for ${playerData.username} - GameReady complete! Starting dramatic fall from Y=${localPositionRef.current.y.toFixed(1)}`);
+      // console.log(`⚡ [PHYSICS] Physics ENABLED for ${playerData.username} - GameReady complete! Starting dramatic fall from Y=${localPositionRef.current.y.toFixed(1)}`);
     }
   }, [gameReady, isModelVisible, physicsEnabled, playerData.username]);
 
   // Debug: Track when animations state actually updates
   useEffect(() => {
     if (Object.keys(animations).length > 0) {
-      console.log(`🎭 [Animation State] Animations state updated! Available: ${Object.keys(animations).length}`);
-      console.log(`🗡️ [Animation State] Sword animations available:`, Object.keys(animations).filter(key => key.startsWith('sword_')));
+      // console.log(`🎭 [Animation State] Animations state updated! Available: ${Object.keys(animations).length}`);
+      // console.log(`🗡️ [Animation State] Sword animations available:`, Object.keys(animations).filter(key => key.startsWith('sword_')));
       
       // Check specifically for powerup animation
       const powerupAnim = `sword_${ANIMATIONS.POWERUP}`;
       if (animations[powerupAnim]) {
-        console.log(`⚡ [Animation State] Power-up animation '${powerupAnim}' is now available!`);
+        // console.log(`⚡ [Animation State] Power-up animation '${powerupAnim}' is now available!`);
       }
     } else {
-      console.log(`🎭 [Animation State] Animations state cleared (length: 0)`);
+      // console.log(`🎭 [Animation State] Animations state cleared (length: 0)`);
     }
   }, [animations]);
 
   // Debug: Track power-up state changes
   useEffect(() => {
-    console.log(`⚡ [PowerUp State] isPlayingPowerUp changed to: ${isPlayingPowerUp}`);
+    // console.log(`⚡ [PowerUp State] isPlayingPowerUp changed to: ${isPlayingPowerUp}`);
   }, [isPlayingPowerUp]);
 
   // Debug: Track movement freeze state changes
   useEffect(() => {
-    console.log(`🧊 [Movement State] isMovementFrozen changed to: ${isMovementFrozen}`);
+    // console.log(`🧊 [Movement State] isMovementFrozen changed to: ${isMovementFrozen}`);
   }, [isMovementFrozen]);
 
   // Debug: Track power-up ref for race condition protection
   useEffect(() => {
-    console.log(`🛡️ [Race Protection Ref] isPlayingPowerUpRef is now: ${isPlayingPowerUpRef.current}`);
+    // console.log(`🛡️ [Race Protection Ref] isPlayingPowerUpRef is now: ${isPlayingPowerUpRef.current}`);
   }, [isPlayingPowerUp]); // Track when state changes to see if ref is in sync
 
   // Function to load animations using character configuration
@@ -724,7 +715,7 @@ export const Player: React.FC<PlayerProps> = ({
       return;
     }
     
-    console.log(`Loading animations for ${characterClass}...`);
+    // console.log(`Loading animations for ${characterClass}...`);
     
     // Load both default and sword animations if they exist
     const config = getCharacterConfig(characterClass);
@@ -744,30 +735,30 @@ export const Player: React.FC<PlayerProps> = ({
     
     // Load sword animations if they exist
     if (config.animations?.sword) {
-      console.log(`🗡️ [Debug] Loading sword animations for ${characterClass}:`, config.animations.sword);
+      // console.log(`🗡️ [Debug] Loading sword animations for ${characterClass}:`, config.animations.sword);
       Object.entries(config.animations.sword).forEach(([key, filename]) => {
         const swordKey = `sword_${key}`;
         const animPath = getAnimationPath(characterClass, key, true);
         animationPaths[swordKey] = animPath;
-        console.log(`🗡️ [Debug] Sword animation mapping: ${key} → ${swordKey} → ${animPath}`);
+        // console.log(`🗡️ [Debug] Sword animation mapping: ${key} → ${swordKey} → ${animPath}`);
       });
     } else {
-      console.log(`🗡️ [Debug] No sword animations found for ${characterClass}`);
+      // console.log(`🗡️ [Debug] No sword animations found for ${characterClass}`);
     }
     
-    console.log('Animation paths (all variations):', animationPaths);
-    console.log(`🔍 [Debug] Looking for powerup in paths:`, animationPaths[`sword_${ANIMATIONS.POWERUP}`]);
+    // console.log('Animation paths (all variations):', animationPaths);
+    // console.log(`🔍 [Debug] Looking for powerup in paths:`, animationPaths[`sword_${ANIMATIONS.POWERUP}`]);
     
     const loader = new FBXLoader();
     const newAnimations: Record<string, THREE.AnimationAction> = {};
     let loadedCount = 0;
     const totalCount = Object.keys(animationPaths).length;
     
-    console.log(`Will load ${totalCount} animations`);
+    // console.log(`Will load ${totalCount} animations`);
     
     // Load each animation
     Object.entries(animationPaths).forEach(([name, path]) => {
-      console.log(`Loading animation "${name}" from ${path}`);
+      // console.log(`Loading animation "${name}" from ${path}`);
       
       // First check if the file exists
       fetch(path)
@@ -779,7 +770,7 @@ export const Player: React.FC<PlayerProps> = ({
             return;
           }
           
-          console.log(`✅ Animation file found: ${path}`);
+          // console.log(`✅ Animation file found: ${path}`);
           // File exists, proceed with loading
           loadAnimationFile(name, path, mixerInstance);
         })
@@ -796,7 +787,7 @@ export const Player: React.FC<PlayerProps> = ({
       if (loadedCount === totalCount) {
         const successCount = Object.keys(newAnimations).length;
         if (successCount === totalCount) {
-          console.log(`✅ All ${totalCount} animations loaded successfully.`);
+          // console.log(`✅ All ${totalCount} animations loaded successfully.`);
         } else {
            console.warn(`⚠️ Loaded ${successCount}/${totalCount} animations. Some might be missing.`);
         }
@@ -805,9 +796,9 @@ export const Player: React.FC<PlayerProps> = ({
         setAnimations(newAnimations);
         
         // Debug: log all available animations
-        console.log("Available animations: ", Object.keys(newAnimations).join(", "));
-        console.log(`🎉 [Animation Loading] All animations loaded! Total: ${Object.keys(newAnimations).length}`);
-        console.log(`🗡️ [Animation Loading] Sword animations:`, Object.keys(newAnimations).filter(key => key.startsWith('sword_')).join(", "));
+        // console.log("Available animations: ", Object.keys(newAnimations).join(", "));
+        // console.log(`🎉 [Animation Loading] All animations loaded! Total: ${Object.keys(newAnimations).length}`);
+        // console.log(`🗡️ [Animation Loading] Sword animations:`, Object.keys(newAnimations).filter(key => key.startsWith('sword_')).join(", "));
         
         // Emit progress for animations loading completion
         if (isLocalPlayer && gameReadyCallbacks) {
@@ -819,7 +810,7 @@ export const Player: React.FC<PlayerProps> = ({
           // Use setTimeout to ensure state update has propagated and mixer is ready
           setTimeout(() => {
              if (animationsLoadedRef.current) { // Check if still relevant
-                 console.log('Playing initial falling animation for high altitude spawn');
+                 // console.log('Playing initial falling animation for high altitude spawn');
                  // Use the local newAnimations reference to be sure it's available
                  const fallingAction = newAnimations['falling'];
                  fallingAction.reset()
@@ -834,11 +825,11 @@ export const Player: React.FC<PlayerProps> = ({
                    model.visible = true;
                    setIsModelVisible(true);
                    // Physics will be enabled when gameReady becomes true
-                   console.log(`🎬 [CRITICAL] Model NOW VISIBLE for ${playerData.username} at Y=${localPositionRef.current.y.toFixed(1)} - waiting for game ready to enable physics`);
+                   // console.log(`🎬 [CRITICAL] Model NOW VISIBLE for ${playerData.username} at Y=${localPositionRef.current.y.toFixed(1)} - waiting for game ready to enable physics`);
                    
                    // Ensure we're in falling animation state for server animation override protection
                    if (localPositionRef.current.y > 20) {
-                     console.log(`🔄 [FALLING] Ensuring falling animation is active for high altitude spawn`);
+                     // console.log(`🔄 [FALLING] Ensuring falling animation is active for high altitude spawn`);
                      setCurrentAnimation(ANIMATIONS.FALLING);
                    }
                    
@@ -849,7 +840,7 @@ export const Player: React.FC<PlayerProps> = ({
                      velocityY.current = 0; // Reset velocity for clean falling start
                      isOnGround.current = false; // Ensure falling state
                      
-                     console.log(`🚀 [CharacterReady] Character ready at Y=${SPAWN_ALTITUDE}, velocityY=${velocityY.current}, onGround=${isOnGround.current}`);
+                     // console.log(`🚀 [CharacterReady] Character ready at Y=${SPAWN_ALTITUDE}, velocityY=${velocityY.current}, onGround=${isOnGround.current}`);
                      
                      gameReadyCallbacks.onCharacterProgress(100, 'Character is falling and ready!');
                      gameReadyCallbacks.onCharacterReady();
@@ -861,7 +852,7 @@ export const Player: React.FC<PlayerProps> = ({
           // Fallback to idle if falling animation is not available
           setTimeout(() => {
              if (animationsLoadedRef.current) {
-                 console.log('Falling animation not found, playing initial idle animation as fallback');
+                 // console.log('Falling animation not found, playing initial idle animation as fallback');
                  const idleAction = newAnimations['idle'];
                  idleAction.reset()
                            .setEffectiveTimeScale(1)
@@ -874,7 +865,7 @@ export const Player: React.FC<PlayerProps> = ({
                    model.visible = true;
                    setIsModelVisible(true);
                    // Physics will be enabled when gameReady becomes true  
-                   console.log(`[Player] Model now visible for ${playerData.username} with idle animation playing (fallback) - waiting for game ready`);
+                   // console.log(`[Player] Model now visible for ${playerData.username} with idle animation playing (fallback) - waiting for game ready`);
                    
                    // Emit character ready event for local player (fallback case)
                    if (isLocalPlayer && gameReadyCallbacks) {
@@ -883,7 +874,7 @@ export const Player: React.FC<PlayerProps> = ({
                      velocityY.current = 0; // Reset velocity for clean falling start
                      isOnGround.current = false; // Ensure falling state
                      
-                     console.log(`🚀 [CharacterReady-Fallback] Character ready at Y=${SPAWN_ALTITUDE}, velocityY=${velocityY.current}, onGround=${isOnGround.current}`);
+                     // console.log(`🚀 [CharacterReady-Fallback] Character ready at Y=${SPAWN_ALTITUDE}, velocityY=${velocityY.current}, onGround=${isOnGround.current}`);
                      
                      gameReadyCallbacks.onCharacterProgress(100, 'Character is ready (idle fallback)!');
                      gameReadyCallbacks.onCharacterReady();
@@ -919,14 +910,14 @@ export const Player: React.FC<PlayerProps> = ({
             const clip = animFbx.animations[0];
 
             // DEBUG: List the first few track names so we can compare them to the bone names above.
-            console.log("%c[Debug] Track names in clip (first 20):", "color: #ff9900", clip.tracks.slice(0, 20).map(t => t.name));
+            // console.log("%c[Debug] Track names in clip (first 20):", "color: #ff9900", clip.tracks.slice(0, 20).map(t => t.name));
             
             // Try to find hierarchy and parent bone
             let rootBoneName = '';
             animFbx.traverse((obj) => {
               if (obj.type === 'Bone' && !rootBoneName && obj.parent && obj.parent.type === 'Object3D') {
                 rootBoneName = obj.name;
-                // console.log(`Found potential root bone for anim ${name}: ${rootBoneName}`);
+                // // console.log(`Found potential root bone for anim ${name}: ${rootBoneName}`);
               }
             });
             
@@ -957,14 +948,14 @@ export const Player: React.FC<PlayerProps> = ({
             
             if (shouldLoop && !isPowerup) {
               action.setLoop(THREE.LoopRepeat, Infinity);
-              console.log(`🔄 [Loop Debug] Set ${name} to LOOP (infinite)`);
+              // console.log(`🔄 [Loop Debug] Set ${name} to LOOP (infinite)`);
             } else {
               action.setLoop(THREE.LoopOnce, 1);
               action.clampWhenFinished = true;
-              console.log(`🔄 [Loop Debug] Set ${name} to ONCE (single)`);
+              // console.log(`🔄 [Loop Debug] Set ${name} to ONCE (single)`);
             }
             
-            console.log(`✅ Animation "${name}" processed and ready.`);
+            // console.log(`✅ Animation "${name}" processed and ready.`);
           } catch (e) {
             console.error(`Error processing animation ${name}:`, e);
           }
@@ -974,7 +965,7 @@ export const Player: React.FC<PlayerProps> = ({
         (progress) => {
           // Optional: Log animation loading progress for larger files
           // if (progress.total > 1000000) { // Only for large files
-          //   console.log(`Loading ${name}: ${Math.round(progress.loaded / progress.total * 100)}%`);
+          //   // console.log(`Loading ${name}: ${Math.round(progress.loaded / progress.total * 100)}%`);
           // }
         },
         (error: any) => {
@@ -987,14 +978,14 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Improve root motion removal function
   const makeAnimationInPlace = (clip: THREE.AnimationClip) => {
-    console.log(`🛠️ Making animation "${clip.name}" in-place`);
+    // console.log(`🛠️ Making animation "${clip.name}" in-place`);
     
     const tracks = clip.tracks;
     const positionTracks = tracks.filter(track => track.name.endsWith('.position'));
     const rotationTracks = tracks.filter(track => track.name.endsWith('.rotation'));
     
     if (positionTracks.length === 0) {
-      console.log(`⚠️ No position tracks found in "${clip.name}"`);
+      // console.log(`⚠️ No position tracks found in "${clip.name}"`);
     } else {
       // Find root track (try common names)
       let rootPositionTrack = positionTracks.find(track => 
@@ -1003,7 +994,7 @@ export const Player: React.FC<PlayerProps> = ({
         track.name.toLowerCase().includes('armature')
       ) || positionTracks[0];
       
-      console.log(`Using root position track: ${rootPositionTrack?.name}`);
+      // console.log(`Using root position track: ${rootPositionTrack?.name}`);
       
       // Remove X/Z translation from root (keep Y for jumps)
       if (rootPositionTrack instanceof THREE.VectorKeyframeTrack) {
@@ -1046,18 +1037,18 @@ export const Player: React.FC<PlayerProps> = ({
       return clip;
     }
     
-    // console.log(`Retargeting animation "${clip.name}" from ${sourceModelPath}`);
+    // // console.log(`Retargeting animation "${clip.name}" from ${sourceModelPath}`);
     
     // Get source file basename (without extension)
     const sourceFileName = sourceModelPath.split('/').pop()?.split('.')[0] || '';
     const targetFileName = characterConfig.modelPath.split('/').pop()?.split('.')[0] || '';
     
     if (sourceFileName === targetFileName) {
-      // console.log(`Source and target models are the same (${sourceFileName}), no retargeting needed`);
+      // // console.log(`Source and target models are the same (${sourceFileName}), no retargeting needed`);
       return clip;
     }
     
-    // console.log(`Retargeting from "${sourceFileName}" to "${targetFileName}"`);
+    // // console.log(`Retargeting from "${sourceFileName}" to "${targetFileName}"`);
     
     // Create a new animation clip
     const newTracks: THREE.KeyframeTrack[] = [];
@@ -1091,7 +1082,7 @@ export const Player: React.FC<PlayerProps> = ({
       
       // Only create new track if the name needs to change
       if (newTrackName !== track.name) {
-        // console.log(`Remapping track: ${track.name} → ${newTrackName}`);
+        // // console.log(`Remapping track: ${track.name} → ${newTrackName}`);
         
         // Create a new track with same data but new name
         let newTrack: THREE.KeyframeTrack;
@@ -1134,10 +1125,10 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Update playAnimation to have better logging and sword support
   const playAnimation = useCallback((name: string, crossfadeDuration = 0.3) => {
-    console.log(`🎬 playAnimation called with: ${name} (sword equipped: ${isSwordEquipped})`);
+    // console.log(`🎬 playAnimation called with: ${name} (sword equipped: ${isSwordEquipped})`);
     
     if (!mixer) {
-      console.log(`❌ playAnimation: No mixer available`);
+      // console.log(`❌ playAnimation: No mixer available`);
       return;
     }
     
@@ -1150,37 +1141,37 @@ export const Player: React.FC<PlayerProps> = ({
       if (animations[swordAnimationName]) {
         actualAnimationName = swordAnimationName;
         timeScaleIsSword = true;
-        console.log(`⚔️ Using sword animation: ${swordAnimationName}`);
+        // console.log(`⚔️ Using sword animation: ${swordAnimationName}`);
       } else {
-        console.log(`⚠️ Sword animation ${swordAnimationName} not found, falling back to default: ${name}`);
+        // console.log(`⚠️ Sword animation ${swordAnimationName} not found, falling back to default: ${name}`);
       }
     }
     
     if (!animations[actualAnimationName]) {
       console.warn(`⚠️ Animation not found: ${actualAnimationName}`);
-      console.log("Available animations:", Object.keys(animations).join(", "));
+      // console.log("Available animations:", Object.keys(animations).join(", "));
       // Fallback to idle if requested animation is missing
       if (name !== ANIMATIONS.IDLE && animations[ANIMATIONS.IDLE]) {
-        console.log(`🔄 Falling back to ${ANIMATIONS.IDLE}`);
+        // console.log(`🔄 Falling back to ${ANIMATIONS.IDLE}`);
         actualAnimationName = ANIMATIONS.IDLE;
         timeScaleIsSword = false;
       } else {
-         console.log(`❌ Cannot play requested or fallback idle`);
+         // console.log(`❌ Cannot play requested or fallback idle`);
          return; // Cannot play requested or fallback idle
       }
     }
     
-    console.log(`🎯 Playing animation: ${actualAnimationName} (crossfade: ${crossfadeDuration}s)`);
+    // console.log(`🎯 Playing animation: ${actualAnimationName} (crossfade: ${crossfadeDuration}s)`);
     
     const targetAction = animations[actualAnimationName];
     const currentAction = animations[currentAnimation];
     
     if (currentAction && currentAction !== targetAction) {
-      console.log(`🔄 Fading out previous animation: ${currentAnimation}`);
+      // console.log(`🔄 Fading out previous animation: ${currentAnimation}`);
       currentAction.fadeOut(crossfadeDuration);
     }
     
-    console.log(`▶️ Starting animation: ${actualAnimationName}`);
+    // console.log(`▶️ Starting animation: ${actualAnimationName}`);
     
     // Get character-specific animation time scale with sword awareness
     const timeScale = getAnimationTimeScale(characterClass, name, timeScaleIsSword);
@@ -1197,7 +1188,7 @@ export const Player: React.FC<PlayerProps> = ({
   // --- NEW Effect: Explicitly set shadow props when model is loaded ---
   useEffect(() => {
     if (model && group.current) {
-      console.log(`[Player Shadow Effect ${playerData.username}] Model loaded, traversing group to set shadow props on meshes.`);
+      // console.log(`[Player Shadow Effect ${playerData.username}] Model loaded, traversing group to set shadow props on meshes.`);
       group.current.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           // Explicitly set both cast and receive, although cast is the primary goal here
@@ -1329,7 +1320,7 @@ export const Player: React.FC<PlayerProps> = ({
         const onFinished = (event: any) => {
           // Only act if the finished action is the one we are tracking
           if (event.action === action) {
-             console.log(`Animation finished: ${currentAnimation}. Checking for movement input before transitioning.`);
+             // console.log(`Animation finished: ${currentAnimation}. Checking for movement input before transitioning.`);
              
              // Check if player is currently moving to determine appropriate animation
              if (isLocalPlayer && currentInput) {
@@ -1363,11 +1354,11 @@ export const Player: React.FC<PlayerProps> = ({
                  const moveType = sprint ? 'run' : 'walk';
                  const movementAnimation = `${moveType}-${direction}`;
                  
-                 console.log(`Player is moving after attack, transitioning to: ${movementAnimation}`);
+                 // console.log(`Player is moving after attack, transitioning to: ${movementAnimation}`);
                  playAnimation(movementAnimation, 0.1);
                } else {
                  // Player is not moving, transition to idle
-                 console.log(`Player is not moving after attack, transitioning to idle`);
+                 // console.log(`Player is not moving after attack, transitioning to idle`);
                  playAnimation(ANIMATIONS.IDLE, 0.1);
                }
              } else {
@@ -1434,14 +1425,14 @@ export const Player: React.FC<PlayerProps> = ({
       // Initialize blood effect manager if not already done
       if (!bloodEffectManagerRef.current && group.current?.parent) {
         bloodEffectManagerRef.current = new BloodEffectManager(group.current.parent as THREE.Scene);
-        console.log(`[Player] 🩸 Blood effect manager initialized`);
+        // console.log(`[Player] 🩸 Blood effect manager initialized`);
       }
 
       // Initialize coin effect manager if not already done
       if (!coinEffectManagerRef.current && group.current?.parent) {
         coinEffectManagerRef.current = new CoinEffectManager(group.current.parent as THREE.Scene);
         coinEffectManagerRef.current.loadCoinModel().catch(console.error);
-        console.log(`[Player] 🪙 Coin effect manager initialized`);
+        // console.log(`[Player] 🪙 Coin effect manager initialized`);
       }
 
       // Update blood effects
@@ -1524,7 +1515,7 @@ export const Player: React.FC<PlayerProps> = ({
             localPositionRef.current.x = predictedPosition.x;
             localPositionRef.current.z = predictedPosition.z;
           } else {
-            console.log(`🧊 [Movement Frozen] Skipping movement calculation during power-up`);
+            // console.log(`🧊 [Movement Frozen] Skipping movement calculation during power-up`);
             
             // Enforce frozen position (preserve Y for physics, but lock X/Z)
             if (frozenPositionRef.current) {
@@ -1535,7 +1526,7 @@ export const Player: React.FC<PlayerProps> = ({
               
               // Debug log only if position was actually changing
               if (Math.abs(prevX - frozenPositionRef.current.x) > 0.01 || Math.abs(prevZ - frozenPositionRef.current.z) > 0.01) {
-                console.log(`🧊 [Position Enforced] Reset from (${prevX.toFixed(2)}, ${prevZ.toFixed(2)}) to frozen position (${frozenPositionRef.current.x.toFixed(2)}, ${frozenPositionRef.current.z.toFixed(2)})`);
+                // console.log(`🧊 [Position Enforced] Reset from (${prevX.toFixed(2)}, ${prevZ.toFixed(2)}) to frozen position (${frozenPositionRef.current.x.toFixed(2)}, ${frozenPositionRef.current.z.toFixed(2)})`);
               }
               // Don't lock Y - allow gravity/physics to continue
             }
@@ -1571,7 +1562,7 @@ export const Player: React.FC<PlayerProps> = ({
             let comboDescription = 'FIRST';
             let attackIsSword = false; // Track if this specific attack should be sword or melee
             
-            console.log(`🔍 [DEBUG] Initial state - comboStage: ${comboStage}, comboActive: ${comboActive}, timeSinceLastAttack: ${timeSinceLastAttack}, isSwordEquipped: ${isSwordEquipped}`);
+            // console.log(`🔍 [DEBUG] Initial state - comboStage: ${comboStage}, comboActive: ${comboActive}, timeSinceLastAttack: ${timeSinceLastAttack}, isSwordEquipped: ${isSwordEquipped}`);
             
             if (comboActive && timeSinceLastAttack <= COMBO_WINDOW) {
               isComboAttack = true;
@@ -1599,7 +1590,7 @@ export const Player: React.FC<PlayerProps> = ({
               }
             }
             
-            console.log(`🔍 [DEBUG] After combo logic - attackAnimation: ${attackAnimation}, isComboAttack: ${isComboAttack}, comboDescription: ${comboDescription}`);
+            // console.log(`🔍 [DEBUG] After combo logic - attackAnimation: ${attackAnimation}, isComboAttack: ${isComboAttack}, comboDescription: ${comboDescription}`);
             
             // For sword-equipped characters, alternate between sword and melee attacks
             if (isSwordEquipped) {
@@ -1618,13 +1609,13 @@ export const Player: React.FC<PlayerProps> = ({
               comboDescription += ' MELEE';
             }
             
-            console.log(`🔍 [DEBUG] After sword/melee logic - attackIsSword: ${attackIsSword}, final comboDescription: ${comboDescription}`);
+            // console.log(`🔍 [DEBUG] After sword/melee logic - attackIsSword: ${attackIsSword}, final comboDescription: ${comboDescription}`);
             
-            console.log(`[Player] ⚔️ ${comboDescription} Attack triggered - Combo Stage: ${comboStage}, Attack is Sword: ${attackIsSword}, Sword Equipped: ${isSwordEquipped}, Time since last: ${timeSinceLastAttack}ms`);
+            // console.log(`[Player] ⚔️ ${comboDescription} Attack triggered - Combo Stage: ${comboStage}, Attack is Sword: ${attackIsSword}, Sword Equipped: ${isSwordEquipped}, Time since last: ${timeSinceLastAttack}ms`);
             
             // If already attacking, restart the attack sequence
             if (isAttacking) {
-              console.log(`[Player] 🔄 Restarting attack sequence while already attacking`);
+              // console.log(`[Player] 🔄 Restarting attack sequence while already attacking`);
             }
             
             setIsAttacking(true);
@@ -1642,63 +1633,63 @@ export const Player: React.FC<PlayerProps> = ({
             (window as any).currentPlayerAttackIsSword = attackIsSword;
             
             // Update combo state for next attack (8-hit combo system)
-            console.log(`🔍 [DEBUG] Before combo update - comboStage: ${comboStage}, comboActive: ${comboActive}`);
+            // console.log(`🔍 [DEBUG] Before combo update - comboStage: ${comboStage}, comboActive: ${comboActive}`);
             
             if (comboStage === 0 || timeSinceLastAttack > COMBO_WINDOW) {
               // First attack or combo window expired - start new combo chain
               setComboActive(true);
               setComboStage(1); // Next attack will be stage 1
-              console.log(`[Player] 👊 First attack, combo window opened for stage 1`);
+              // console.log(`[Player] 👊 First attack, combo window opened for stage 1`);
             } else if (comboStage === 1) {
               setComboStage(2);
-              console.log(`[Player] 🥊 Stage 1 → Stage 2`);
+              // console.log(`[Player] 🥊 Stage 1 → Stage 2`);
             } else if (comboStage === 2) {
               setComboStage(3);
-              console.log(`[Player] 💥 Stage 2 → Stage 3`);
+              // console.log(`[Player] 💥 Stage 2 → Stage 3`);
             } else if (comboStage === 3) {
               setComboStage(4);
-              console.log(`[Player] 🔥 Stage 3 → Stage 4`);
+              // console.log(`[Player] 🔥 Stage 3 → Stage 4`);
             } else if (comboStage === 4) {
               setComboStage(5);
-              console.log(`[Player] ⚡ Stage 4 → Stage 5`);
+              // console.log(`[Player] ⚡ Stage 4 → Stage 5`);
             } else if (comboStage === 5) {
               setComboStage(6);
-              console.log(`[Player] 🌟 Stage 5 → Stage 6`);
+              // console.log(`[Player] 🌟 Stage 5 → Stage 6`);
             } else if (comboStage === 6) {
               setComboStage(7);
-              console.log(`[Player] 💫 Stage 6 → Stage 7`);
+              // console.log(`[Player] 💫 Stage 6 → Stage 7`);
             } else if (comboStage === 7) {
               // Eighth attack - reset combo chain
               setComboActive(false);
               setComboStage(0);
-              console.log(`[Player] 🎆 STAGE 7 COMPLETE! 8-HIT ULTIMATE COMBO FINISHED!`);
+              // console.log(`[Player] 🎆 STAGE 7 COMPLETE! 8-HIT ULTIMATE COMBO FINISHED!`);
             }
             
-            console.log(`🔍 [DEBUG] After combo update - new comboStage will be: ${comboStage === 0 || timeSinceLastAttack > COMBO_WINDOW ? 1 : comboStage < 7 ? comboStage + 1 : 0}`);
+            // console.log(`🔍 [DEBUG] After combo update - new comboStage will be: ${comboStage === 0 || timeSinceLastAttack > COMBO_WINDOW ? 1 : comboStage < 7 ? comboStage + 1 : 0}`);
             
             // Clear any existing attack timeout to restart sequence
             if (attackTimeoutRef.current) {
               clearTimeout(attackTimeoutRef.current);
-              console.log(`[Player] ⏰ Cleared previous attack timeout`);
+              // console.log(`[Player] ⏰ Cleared previous attack timeout`);
             }
             
             // Play appropriate attack animation (restart animation)
             // Handle sword vs melee animation selection manually for alternating combos
-            console.log(`🔍 [DEBUG] Animation selection - isSwordEquipped: ${isSwordEquipped}, attackIsSword: ${attackIsSword}, attackAnimation: ${attackAnimation}`);
-            console.log(`🔍 [DEBUG] Available animations: ${Object.keys(animations).join(', ')}`);
+            // console.log(`🔍 [DEBUG] Animation selection - isSwordEquipped: ${isSwordEquipped}, attackIsSword: ${attackIsSword}, attackAnimation: ${attackAnimation}`);
+            // console.log(`🔍 [DEBUG] Available animations: ${Object.keys(animations).join(', ')}`);
             
             if (isSwordEquipped) {
               if (attackIsSword) {
                 // Play sword animation
                 const swordAnimationName = `sword_${attackAnimation}`;
-                console.log(`⚔️ [SWORD PATH] Attempting to play SWORD animation: ${swordAnimationName}`);
-                console.log(`🔍 [DEBUG] Sword animation exists: ${!!animations[swordAnimationName]}`);
+                // console.log(`⚔️ [SWORD PATH] Attempting to play SWORD animation: ${swordAnimationName}`);
+                // console.log(`🔍 [DEBUG] Sword animation exists: ${!!animations[swordAnimationName]}`);
                 
                 if (animations[swordAnimationName]) {
                   const targetAction = animations[swordAnimationName];
                   const currentAction = animations[currentAnimation];
                   
-                  console.log(`🔍 [DEBUG] Playing sword animation ${swordAnimationName}, current: ${currentAnimation}`);
+                  // console.log(`🔍 [DEBUG] Playing sword animation ${swordAnimationName}, current: ${currentAnimation}`);
                   
                   if (currentAction && currentAction !== targetAction) {
                     currentAction.fadeOut(0.1);
@@ -1706,7 +1697,7 @@ export const Player: React.FC<PlayerProps> = ({
                   
                   // Get sword time scale
                   const timeScale = getAnimationTimeScale(characterClass, attackAnimation, true);
-                  console.log(`🔍 [DEBUG] Sword timeScale: ${timeScale}`);
+                  // console.log(`🔍 [DEBUG] Sword timeScale: ${timeScale}`);
                   
                   targetAction.reset()
                               .setEffectiveTimeScale(timeScale)
@@ -1715,7 +1706,7 @@ export const Player: React.FC<PlayerProps> = ({
                               .play();
                               
                   setCurrentAnimation(swordAnimationName);
-                  console.log(`✅ [SWORD] Successfully playing ${swordAnimationName}`);
+                  // console.log(`✅ [SWORD] Successfully playing ${swordAnimationName}`);
                 } else {
                   console.warn(`⚠️ Sword animation ${swordAnimationName} not found, falling back to melee`);
                   // Fallback to melee animation
@@ -1734,23 +1725,23 @@ export const Player: React.FC<PlayerProps> = ({
               } else {
                 // Play melee animation even though sword is equipped
                 const meleeAnimationName = attackAnimation;
-                console.log(`🥊 [MELEE PATH] Attempting to play MELEE animation: ${meleeAnimationName} (sword equipped but melee attack)`);
-                console.log(`🔍 [DEBUG] Melee animation exists: ${!!animations[meleeAnimationName]}`);
+                // console.log(`🥊 [MELEE PATH] Attempting to play MELEE animation: ${meleeAnimationName} (sword equipped but melee attack)`);
+                // console.log(`🔍 [DEBUG] Melee animation exists: ${!!animations[meleeAnimationName]}`);
                 
                 if (animations[meleeAnimationName]) {
                   const targetAction = animations[meleeAnimationName];
                   const currentAction = animations[currentAnimation];
                   
-                  console.log(`🔍 [DEBUG] Playing melee animation ${meleeAnimationName}, current: ${currentAnimation}`);
+                  // console.log(`🔍 [DEBUG] Playing melee animation ${meleeAnimationName}, current: ${currentAnimation}`);
                   
                   if (currentAction && currentAction !== targetAction) {
                     currentAction.fadeOut(0.1);
-                    console.log(`🔍 [DEBUG] Fading out current animation: ${currentAnimation}`);
+                    // console.log(`🔍 [DEBUG] Fading out current animation: ${currentAnimation}`);
                   }
                   
                   // Get melee time scale (not sword time scale)
                   const timeScale = getAnimationTimeScale(characterClass, attackAnimation, false);
-                  console.log(`🔍 [DEBUG] Melee timeScale: ${timeScale}`);
+                  // console.log(`🔍 [DEBUG] Melee timeScale: ${timeScale}`);
                   
                   targetAction.reset()
                               .setEffectiveTimeScale(timeScale)
@@ -1759,15 +1750,15 @@ export const Player: React.FC<PlayerProps> = ({
                               .play();
                               
                   setCurrentAnimation(meleeAnimationName);
-                  console.log(`✅ [MELEE] Successfully playing ${meleeAnimationName}`);
+                  // console.log(`✅ [MELEE] Successfully playing ${meleeAnimationName}`);
                 } else {
                   console.warn(`⚠️ Melee animation ${meleeAnimationName} not found`);
-                  console.log(`🔍 [DEBUG] Available keys: ${Object.keys(animations)}`);
+                  // console.log(`🔍 [DEBUG] Available keys: ${Object.keys(animations)}`);
                 }
               }
             } else {
               // No sword equipped: use normal playAnimation (all melee)
-              console.log(`🥊 [NO SWORD] Playing normal MELEE animation: ${attackAnimation} (no sword equipped)`);
+              // console.log(`🥊 [NO SWORD] Playing normal MELEE animation: ${attackAnimation} (no sword equipped)`);
               playAnimation(attackAnimation, 0.1); // Quick crossfade for responsiveness
             }
             
@@ -1782,7 +1773,7 @@ export const Player: React.FC<PlayerProps> = ({
                 );
                 
                 if (hitZombies.length > 0) {
-                  console.log(`[Player] ⚔️ Attack successful! Hit ${hitZombies.length} zombie(s) with ${attackIsSword ? 'SWORD' : 'MELEE'} attack`);
+                  // console.log(`[Player] ⚔️ Attack successful! Hit ${hitZombies.length} zombie(s) with ${attackIsSword ? 'SWORD' : 'MELEE'} attack`);
                   
                   // Play blood spurt sound effect
                   playBloodSpurtSound();
@@ -1797,7 +1788,7 @@ export const Player: React.FC<PlayerProps> = ({
                     shakeIntensity = SCREENSHAKE_PRESETS.LIGHT; // Ultimate finisher
                   }
                   triggerHitScreenshake(camera, shakeIntensity);
-                  console.log(`[Player] 📳 Screenshake triggered - ${comboDescription} attack intensity`);
+                  // console.log(`[Player] 📳 Screenshake triggered - ${comboDescription} attack intensity`);
                   
                   // Trigger blood spurt effects for each hit zombie
                   if (bloodEffectManagerRef.current) {
@@ -1809,7 +1800,7 @@ export const Player: React.FC<PlayerProps> = ({
                           zombie.position.z
                         );
                         bloodEffectManagerRef.current!.createBloodSpurt(bloodPosition);
-                        console.log(`[Player] 🩸 Blood spurt created at zombie position`);
+                        // console.log(`[Player] 🩸 Blood spurt created at zombie position`);
                       }
                     });
                   }
@@ -1825,7 +1816,7 @@ export const Player: React.FC<PlayerProps> = ({
                           zombie.position.z
                         );
                         coinEffectManagerRef.current!.createCoin(coinPosition, playerPosition);
-                        console.log(`[Player] 🪙 Coin created at zombie position with flyaway physics`);
+                        // console.log(`[Player] 🪙 Coin created at zombie position with flyaway physics`);
                       }
                     });
                   }
@@ -1846,7 +1837,7 @@ export const Player: React.FC<PlayerProps> = ({
               };
               (window as any).currentPlayerAttackIsSword = false; // Legacy support
               attackTimeoutRef.current = null;
-              console.log(`[Player] 🏁 Attack animation completed`);
+              // console.log(`[Player] 🏁 Attack animation completed`);
               
               // Clear combo after timeout if no next attack is made
               if (comboStage > 0) {
@@ -1855,7 +1846,7 @@ export const Player: React.FC<PlayerProps> = ({
                   if (timeNow - lastAttackTime >= COMBO_WINDOW) {
                     setComboActive(false);
                     setComboStage(0);
-                    console.log(`[Player] ⏱️ 8-hit combo window expired, reset to normal attacks`);
+                    // console.log(`[Player] ⏱️ 8-hit combo window expired, reset to normal attacks`);
                   }
                 }, COMBO_WINDOW);
               }
@@ -1872,7 +1863,7 @@ export const Player: React.FC<PlayerProps> = ({
             
             // Debug physics when falling from high altitude
             if (localPositionRef.current.y > 120) {
-              console.log(`🌊 [Physics] Y=${localPositionRef.current.y.toFixed(1)}, velocityY=${velocityY.current.toFixed(2)}, dt=${dt.toFixed(4)}, onGround=${isOnGround.current}, physicsEnabled=${physicsEnabled}`);
+              // console.log(`🌊 [Physics] Y=${localPositionRef.current.y.toFixed(1)}, velocityY=${velocityY.current.toFixed(2)}, dt=${dt.toFixed(4)}, onGround=${isOnGround.current}, physicsEnabled=${physicsEnabled}`);
             }
           }
           
@@ -1893,18 +1884,18 @@ export const Player: React.FC<PlayerProps> = ({
             
             // If just landed from falling, play landing animation and trigger screenshake
             if (wasInAir && currentAnimation === ANIMATIONS.FALLING) {
-              console.log(`🎯 [LANDING] ${playerData.username} hit the ground after falling from Y=${fallHeight.toFixed(1)} - playing landing animation`);
+              // console.log(`🎯 [LANDING] ${playerData.username} hit the ground after falling from Y=${fallHeight.toFixed(1)} - playing landing animation`);
               playAnimation(ANIMATIONS.LANDING, 0.3);
               
               // Trigger landing screenshake for dramatic impact
               triggerLandingScreenshake(camera, SCREENSHAKE_PRESETS.HEAVY);
-              console.log(`[Player] 📳 Landing screenshake triggered after falling from Y=${fallHeight.toFixed(1)}`);
+              // console.log(`[Player] 📳 Landing screenshake triggered after falling from Y=${fallHeight.toFixed(1)}`);
               
               // After landing animation, transition to idle
               setTimeout(() => {
                 if (isOnGround.current && !currentInput?.forward && !currentInput?.backward && 
                     !currentInput?.left && !currentInput?.right) {
-                  console.log(`🏃 [IDLE] ${playerData.username} transitioning from landing to idle`);
+                  // console.log(`🏃 [IDLE] ${playerData.username} transitioning from landing to idle`);
                   playAnimation(ANIMATIONS.IDLE, 0.3);
                 }
               }, 1000); // Landing animation duration
@@ -1948,7 +1939,7 @@ export const Player: React.FC<PlayerProps> = ({
             }
             // During falling, skip reconciliation entirely to allow physics to work
           } else if (isMovementFrozen) {
-            console.log(`🧊 [Movement Frozen] Skipping server reconciliation during power-up`);
+            // console.log(`🧊 [Movement Frozen] Skipping server reconciliation during power-up`);
           } else {
             // During initial spawn period before physics is enabled - no reconciliation needed
             // FORCE character to stay at spawn altitude until physics is enabled
@@ -1967,9 +1958,9 @@ export const Player: React.FC<PlayerProps> = ({
           if (rotationError > ROTATION_RECONCILE_THRESHOLD && !isStillFalling) {
               currentQuat.slerp(reconcileTargetQuat, RECONCILE_LERP_FACTOR);
               localRotationRef.current.setFromQuaternion(currentQuat, 'YXZ');
-              console.log(`🔄 [Rotation Reconcile] Applied rotation reconciliation - error: ${rotationError.toFixed(3)}`);
+              // console.log(`🔄 [Rotation Reconcile] Applied rotation reconciliation - error: ${rotationError.toFixed(3)}`);
           } else if (isStillFalling) {
-              console.log(`🚫 [Rotation Reconcile] Skipping rotation reconciliation during falling - Y=${localPositionRef.current.y.toFixed(1)}`);
+              // console.log(`🚫 [Rotation Reconcile] Skipping rotation reconciliation during falling - Y=${localPositionRef.current.y.toFixed(1)}`);
           }
 
           // 3. Apply potentially reconciled predicted position AND reconciled local rotation directly to the model group
@@ -1982,7 +1973,7 @@ export const Player: React.FC<PlayerProps> = ({
           if (onPositionChange && physicsEnabled && isModelVisible && !isHighAltitudeFalling && !isMovementFrozen) {
             onPositionChange(localPositionRef.current);
           } else if (isMovementFrozen) {
-            console.log(`🧊 [Movement Frozen] Skipping position sync to server during power-up`);
+            // console.log(`🧊 [Movement Frozen] Skipping position sync to server during power-up`);
           }
           // --- Visual Rotation Logic --- 
           let targetVisualYaw = localRotationRef.current.y; // Default: Face camera/mouse direction
@@ -2078,12 +2069,12 @@ export const Player: React.FC<PlayerProps> = ({
               );
               debugArrowRef.current.userData.isDebugArrow = true; // Mark for potential future identification
               scene.add(debugArrowRef.current);
-              console.log("[Debug Arrow] Created arrow."); // Log creation
+              // console.log("[Debug Arrow] Created arrow."); // Log creation
             }
           } else {
             // Remove arrow if it exists and shouldn't be visible
             if (debugArrowRef.current && debugArrowRef.current.parent) {
-               console.log("[Debug Arrow] Removing arrow (prop is false or no scene)."); // Log removal
+               // console.log("[Debug Arrow] Removing arrow (prop is false or no scene)."); // Log removal
                debugArrowRef.current.parent.remove(debugArrowRef.current);
                debugArrowRef.current = null;
             }
@@ -2093,7 +2084,7 @@ export const Player: React.FC<PlayerProps> = ({
         } else { // Not the local player anymore or initially
           // If this instance stops being the local player OR debug visibility is off, ensure arrow is removed
           if (debugArrowRef.current && debugArrowRef.current.parent) {
-               console.log("[Debug Arrow] Removing arrow (not local player)."); // Log removal
+               // console.log("[Debug Arrow] Removing arrow (not local player)."); // Log removal
                debugArrowRef.current.parent.remove(debugArrowRef.current);
                debugArrowRef.current = null;
           }
@@ -2194,7 +2185,7 @@ export const Player: React.FC<PlayerProps> = ({
     {
       // Only update animations if mixer and animations exist
       if (!mixer || Object.keys(animations).length === 0) {
-        console.log(`🔄 Animation trigger skipped: mixer=${!!mixer}, animations=${Object.keys(animations).length}`);
+        // console.log(`🔄 Animation trigger skipped: mixer=${!!mixer}, animations=${Object.keys(animations).length}`);
         return;
       }
 
@@ -2206,17 +2197,17 @@ export const Player: React.FC<PlayerProps> = ({
       // Check BOTH state and ref for immediate protection against race conditions
       const isCurrentlyInPowerUp = isPlayingPowerUp || isPlayingPowerUpRef.current;
       
-      console.log(`🎯 [Anim Check] Received ServerAnim: ${serverAnim}, Current LocalAnim: ${currentAnimation}, High Alt Falling: ${isHighAltitudeFalling}, Is Attacking: ${isAttacking}, Is Playing PowerUp: ${isPlayingPowerUp}, PowerUp Ref: ${isPlayingPowerUpRef.current}, Is Available: ${!!animations[serverAnim]}`);
+      // console.log(`🎯 [Anim Check] Received ServerAnim: ${serverAnim}, Current LocalAnim: ${currentAnimation}, High Alt Falling: ${isHighAltitudeFalling}, Is Attacking: ${isAttacking}, Is Playing PowerUp: ${isPlayingPowerUp}, PowerUp Ref: ${isPlayingPowerUpRef.current}, Is Available: ${!!animations[serverAnim]}`);
 
       // Play animation if it's different and available, but not during high altitude falling, local attacks, or power-up
       if (isHighAltitudeFalling) {
-        console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during high altitude falling at Y=${localPositionRef.current.y.toFixed(1)} (LOCAL PLAYER ONLY)`);
+        // console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during high altitude falling at Y=${localPositionRef.current.y.toFixed(1)} (LOCAL PLAYER ONLY)`);
       } else if (isLocalPlayer && isAttacking) {
-        console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during local attack animation (LOCAL PLAYER ONLY)`);
+        // console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during local attack animation (LOCAL PLAYER ONLY)`);
       } else if (isLocalPlayer && isCurrentlyInPowerUp) {
-        console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during sword power-up animation (LOCAL PLAYER ONLY) - State: ${isPlayingPowerUp}, Ref: ${isPlayingPowerUpRef.current}`);
+        // console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during sword power-up animation (LOCAL PLAYER ONLY) - State: ${isPlayingPowerUp}, Ref: ${isPlayingPowerUpRef.current}`);
       } else if (serverAnim && serverAnim !== currentAnimation && animations[serverAnim]) {
-         console.log(`🎬 [Anim Play] Server requested animation change to: ${serverAnim}`);
+         // console.log(`🎬 [Anim Play] Server requested animation change to: ${serverAnim}`);
         try {
           playAnimation(serverAnim, 0.2);
         } catch (error) {
@@ -2237,15 +2228,15 @@ export const Player: React.FC<PlayerProps> = ({
     return () => {
       if (bloodEffectManagerRef.current) {
         bloodEffectManagerRef.current.cleanup();
-        console.log(`[Player] 🧹 Blood effect manager cleaned up on unmount`);
+        // console.log(`[Player] 🧹 Blood effect manager cleaned up on unmount`);
       }
       if (coinEffectManagerRef.current) {
         coinEffectManagerRef.current.cleanup();
-        console.log(`[Player] 🧹 Coin effect manager cleaned up on unmount`);
+        // console.log(`[Player] 🧹 Coin effect manager cleaned up on unmount`);
       }
       if (powerUpTimeoutRef.current) {
         clearTimeout(powerUpTimeoutRef.current);
-        console.log(`[Player] 🧹 Power-up timeout cleared on unmount`);
+        // console.log(`[Player] 🧹 Power-up timeout cleared on unmount`);
       }
     };
   }, []);
@@ -2259,7 +2250,7 @@ export const Player: React.FC<PlayerProps> = ({
       setIsMovementFrozen(false);
       isPlayingPowerUpRef.current = false; // Clear race condition protection
       frozenPositionRef.current = null; // Clear frozen position
-      console.log(`[Player] 🧹 Power-up timeout cleared and movement unfrozen due to sword unequip`);
+      // console.log(`[Player] 🧹 Power-up timeout cleared and movement unfrozen due to sword unequip`);
     }
   }, [equippedSword]);
 
@@ -2267,15 +2258,15 @@ export const Player: React.FC<PlayerProps> = ({
   const findRightHandBone = useCallback((model: THREE.Group): THREE.Bone | null => {
     let foundBone: THREE.Bone | null = null;
     
-    console.log(`[Player] 🔍 Starting bone search for ${characterClass}...`);
+    // console.log(`[Player] 🔍 Starting bone search for ${characterClass}...`);
     
     model.traverse((child) => {
       if (child instanceof THREE.SkinnedMesh && child.skeleton) {
         const bones = child.skeleton.bones;
-        console.log(`[Player] 🦴 Found skeleton with ${bones.length} bones`);
+        // console.log(`[Player] 🦴 Found skeleton with ${bones.length} bones`);
         
         // Debug: List all bone names first
-        console.log(`[Player] 🦴 All available bones:`, bones.map(b => b.name));
+        // console.log(`[Player] 🦴 All available bones:`, bones.map(b => b.name));
         
         // Search for right hand bone - prioritize actual hand bones over forearm
         const rightHandPatterns = [
@@ -2288,7 +2279,7 @@ export const Player: React.FC<PlayerProps> = ({
           'mixamorig:rightwrist', 'mixamorig:right_wrist', 'mixamorig:wrist_r'
         ];
         
-        console.log(`[Player] 🔍 Searching with hand-priority patterns:`, rightHandPatterns);
+        // console.log(`[Player] 🔍 Searching with hand-priority patterns:`, rightHandPatterns);
         
         for (const bone of bones) {
           const boneName = bone.name.toLowerCase().replace(/[\s_\-\.]/g, '');
@@ -2296,7 +2287,7 @@ export const Player: React.FC<PlayerProps> = ({
           for (const pattern of rightHandPatterns) {
             const patternClean = pattern.toLowerCase().replace(/[\s_\-\.]/g, '');
             if (boneName.includes(patternClean) || boneName === patternClean) {
-              console.log(`[Player] ✋ Found right hand bone: "${bone.name}" (matched pattern: ${pattern})`);
+              // console.log(`[Player] ✋ Found right hand bone: "${bone.name}" (matched pattern: ${pattern})`);
               foundBone = bone;
               return; // Stop traversing once found
             }
@@ -2305,7 +2296,7 @@ export const Player: React.FC<PlayerProps> = ({
         
         // Only try forearm as last resort if no hand/wrist found
         if (!foundBone) {
-          console.log(`[Player] 🔍 No hand/wrist found, trying forearm as fallback...`);
+          // console.log(`[Player] 🔍 No hand/wrist found, trying forearm as fallback...`);
           const forearmPatterns = [
             'rightforearm', 'right_forearm', 'forearm_r', 'forearmr', 'r_forearm',
             'mixamorig:rightforearm', 'mixamorig:right_forearm', 'mixamorig:forearm_r'
@@ -2317,7 +2308,7 @@ export const Player: React.FC<PlayerProps> = ({
             for (const pattern of forearmPatterns) {
               const patternClean = pattern.toLowerCase().replace(/[\s_\-\.]/g, '');
               if (boneName.includes(patternClean) || boneName === patternClean) {
-                console.log(`[Player] ✋ Found forearm bone as fallback: "${bone.name}"`);
+                // console.log(`[Player] ✋ Found forearm bone as fallback: "${bone.name}"`);
                 foundBone = bone;
                 break;
               }
@@ -2331,7 +2322,7 @@ export const Player: React.FC<PlayerProps> = ({
     if (!foundBone) {
       console.warn(`[Player] ⚠️ No suitable hand/wrist/forearm bone found in skeleton for ${characterClass}`);
     } else {
-      console.log(`[Player] ✅ Final selected bone: "${foundBone.name}"`);
+      // console.log(`[Player] ✅ Final selected bone: "${foundBone.name}"`);
     }
     
     return foundBone;
@@ -2341,27 +2332,27 @@ export const Player: React.FC<PlayerProps> = ({
   const equipSword = useCallback((swordModel: THREE.Group, swordPosition: THREE.Vector3) => {
     if (!model || !rightHandBone) {
       console.warn('[Player] ⚔️ Cannot equip sword: missing model or right hand bone');
-      console.log('[Player] 🔍 Debug - model exists:', !!model);
-      console.log('[Player] 🔍 Debug - rightHandBone exists:', !!rightHandBone);
+      // console.log('[Player] 🔍 Debug - model exists:', !!model);
+      // console.log('[Player] 🔍 Debug - rightHandBone exists:', !!rightHandBone);
       return;
     }
     
     // Prevent multiple attachments
     if (equippedSword) {
-      console.log('[Player] ⚔️ Sword already equipped, skipping...');
+      // console.log('[Player] ⚔️ Sword already equipped, skipping...');
       return;
     }
     
-    console.log('[Player] ⚔️ Equipping sword to right hand bone:', rightHandBone.name);
-    console.log('[Player] 🔍 Debug - Bone world position:', rightHandBone.getWorldPosition(new THREE.Vector3()));
+    // console.log('[Player] ⚔️ Equipping sword to right hand bone:', rightHandBone.name);
+    // console.log('[Player] 🔍 Debug - Bone world position:', rightHandBone.getWorldPosition(new THREE.Vector3()));
     
         // Calculate scale relative to character for proper sword sizing
     const characterScale = gameplayConfig.scale;
     const swordScale = 1 / characterScale; // Scale relative to character size
-    console.log('[Player] 📏 Character scale:', characterScale, 'Sword scale multiplier:', swordScale);
+    // console.log('[Player] 📏 Character scale:', characterScale, 'Sword scale multiplier:', swordScale);
     
     // Move the original sword model to the hand bone
-    console.log('[Player] 🗡️ Attaching sword to hand bone...');
+    // console.log('[Player] 🗡️ Attaching sword to hand bone...');
     if (swordModel.parent) {
       swordModel.parent.remove(swordModel); // Remove from its current parent
     }
@@ -2371,8 +2362,8 @@ export const Player: React.FC<PlayerProps> = ({
     swordModel.position.set(0, 25, 3); // Position forward and up from hand bone (hilt at hand level)
     swordModel.rotation.set(Math.PI / 2, 0, 0); // Orient sword pointing forward from hand
     
-    console.log(`🗡️ [Debug] Sword equipped with scale: ${3.0 * swordScale}, final scale: ${swordModel.scale.x}`);
-    console.log(`🗡️ [Debug] Character scale: ${characterScale}, swordScale multiplier: ${swordScale}`);
+    // console.log(`🗡️ [Debug] Sword equipped with scale: ${3.0 * swordScale}, final scale: ${swordModel.scale.x}`);
+    // console.log(`🗡️ [Debug] Character scale: ${characterScale}, swordScale multiplier: ${swordScale}`);
     
     // Restore sword's natural materials (remove red debug color)
     swordModel.traverse((child) => {
@@ -2385,7 +2376,7 @@ export const Player: React.FC<PlayerProps> = ({
     });
     
     rightHandBone.add(swordModel);
-    console.log('[Player] ✅ Sword attached to hand bone with natural materials');
+    // console.log('[Player] ✅ Sword attached to hand bone with natural materials');
     
     // Store reference
     setEquippedSword(swordModel);
@@ -2394,17 +2385,17 @@ export const Player: React.FC<PlayerProps> = ({
     // Trigger visual glow effect for 1 second
     createGlowEffect();
     
-    console.log('[Player] ✅ Sword equipped and ready! Playing power-up animation...');
-    console.log(`🔍 [Debug] Available animations:`, Object.keys(animations));
-    console.log(`🔍 [Debug] Looking for powerup animation: ${ANIMATIONS.POWERUP}`);
-    console.log(`🔍 [Debug] isAttacking state: ${isAttacking}`);
-    console.log(`🔍 [Debug] equippedSword state: ${!!equippedSword}`);
-    console.log(`🔍 [Debug] swordModel provided: ${!!swordModel}`);
-    console.log(`🔍 [Debug] swordPosition: (${swordPosition.x.toFixed(2)}, ${swordPosition.y.toFixed(2)}, ${swordPosition.z.toFixed(2)})`);
+    // console.log('[Player] ✅ Sword equipped and ready! Playing power-up animation...');
+    // console.log(`🔍 [Debug] Available animations:`, Object.keys(animations));
+    // console.log(`🔍 [Debug] Looking for powerup animation: ${ANIMATIONS.POWERUP}`);
+    // console.log(`🔍 [Debug] isAttacking state: ${isAttacking}`);
+    // console.log(`🔍 [Debug] equippedSword state: ${!!equippedSword}`);
+    // console.log(`🔍 [Debug] swordModel provided: ${!!swordModel}`);
+    // console.log(`🔍 [Debug] swordPosition: (${swordPosition.x.toFixed(2)}, ${swordPosition.y.toFixed(2)}, ${swordPosition.z.toFixed(2)})`);
     
     // IMMEDIATE race condition protection - set ref synchronously
     isPlayingPowerUpRef.current = true;
-    console.log(`🛡️ [Race Protection] Set isPlayingPowerUpRef to true immediately`);
+    // console.log(`🛡️ [Race Protection] Set isPlayingPowerUpRef to true immediately`);
     
     // Move player to sword position immediately and freeze there (X/Z only, keep player on ground)
     const swordGroundPosition = new THREE.Vector3(
@@ -2417,30 +2408,30 @@ export const Player: React.FC<PlayerProps> = ({
     // Don't change Y - let player stay at current ground level
     
     frozenPositionRef.current = swordGroundPosition.clone();
-    console.log(`🧊 [Sword Position] Moved player to sword X/Z location (${swordGroundPosition.x.toFixed(2)}, ${swordGroundPosition.z.toFixed(2)}) and froze, keeping ground Y=${localPositionRef.current.y.toFixed(2)}`);
+    // console.log(`🧊 [Sword Position] Moved player to sword X/Z location (${swordGroundPosition.x.toFixed(2)}, ${swordGroundPosition.z.toFixed(2)}) and froze, keeping ground Y=${localPositionRef.current.y.toFixed(2)}`);
     
     // Use a short delay to ensure state has updated and try playing power-up animation
     setTimeout(() => {
-      console.log(`🔍 [Debug] Delayed check - Available animations:`, Object.keys(animations));
-      console.log(`🔍 [Debug] Delayed check - isAttacking: ${isAttacking}`);
-      console.log(`🔍 [Debug] Delayed check - equippedSword: ${!!equippedSword}`);
+      // console.log(`🔍 [Debug] Delayed check - Available animations:`, Object.keys(animations));
+      // console.log(`🔍 [Debug] Delayed check - isAttacking: ${isAttacking}`);
+      // console.log(`🔍 [Debug] Delayed check - equippedSword: ${!!equippedSword}`);
       
       const swordPowerupAnimation = `sword_${ANIMATIONS.POWERUP}`;
-      console.log(`🔍 [Debug] Looking for sword powerup animation: ${swordPowerupAnimation}`);
-      console.log(`🔍 [Debug] Animation exists: ${!!animations[swordPowerupAnimation]}`);
+      // console.log(`🔍 [Debug] Looking for sword powerup animation: ${swordPowerupAnimation}`);
+      // console.log(`🔍 [Debug] Animation exists: ${!!animations[swordPowerupAnimation]}`);
       
       if (animations[swordPowerupAnimation] && !isAttacking && Object.keys(animations).length > 0) {
-        console.log('[Player] ⚡ Playing sword power-up animation - ENTERING POWER-UP MODE');
+        // console.log('[Player] ⚡ Playing sword power-up animation - ENTERING POWER-UP MODE');
         
                       // Enter power-up mode - blocks all other animations and movement
               setIsPlayingPowerUp(true);
               setIsMovementFrozen(true);
               
               // Position already set in equipSword function to sword location  
-              console.log(`🧊 [Movement Frozen] Position already locked at sword location - polling path`);
+              // console.log(`🧊 [Movement Frozen] Position already locked at sword location - polling path`);
         
         // Position already set in equipSword function to sword location
-        console.log(`🧊 [Movement Frozen] Position already locked at sword location`);
+        // console.log(`🧊 [Movement Frozen] Position already locked at sword location`);
         
         const powerupAction = animations[swordPowerupAnimation];
         const currentAction = animations[currentAnimation];
@@ -2469,10 +2460,10 @@ export const Player: React.FC<PlayerProps> = ({
           clearTimeout(powerUpTimeoutRef.current);
         }
         
-        console.log(`[Player] ⚡ Power-up will last for ${powerUpDuration}ms`);
+        // console.log(`[Player] ⚡ Power-up will last for ${powerUpDuration}ms`);
         
         powerUpTimeoutRef.current = setTimeout(() => {
-          console.log('[Player] ⚡ Power-up duration complete - EXITING POWER-UP MODE');
+          // console.log('[Player] ⚡ Power-up duration complete - EXITING POWER-UP MODE');
           
           // Exit power-up mode and unfreeze movement
           setIsPlayingPowerUp(false);
@@ -2481,22 +2472,22 @@ export const Player: React.FC<PlayerProps> = ({
           frozenPositionRef.current = null; // Clear frozen position
           powerUpTimeoutRef.current = null;
           
-          console.log('[Player] 🧊 Movement unfrozen - player can move again');
-          console.log(`🛡️ [Race Protection] Cleared isPlayingPowerUpRef`);
+          // console.log('[Player] 🧊 Movement unfrozen - player can move again');
+          // console.log(`🛡️ [Race Protection] Cleared isPlayingPowerUpRef`);
           
           // Small delay to let state clear before transitioning
           setTimeout(() => {
-            console.log('[Player] ⚡ Power-up complete - allowing normal animation flow to resume');
+            // console.log('[Player] ⚡ Power-up complete - allowing normal animation flow to resume');
             
             // Check if sword is still equipped and handle animation transition
             if (swordAttachmentRef.current) {
               // Resume with server animation state to prevent conflicts
               const serverAnim = playerData.currentAnimation;
               if (serverAnim && animations[serverAnim]) {
-                console.log(`[Player] ⚡ Resuming with server animation: ${serverAnim}`);
+                // console.log(`[Player] ⚡ Resuming with server animation: ${serverAnim}`);
                 playAnimation(serverAnim, 0.3);
               } else {
-                console.log('[Player] ⚡ Falling back to sword idle');
+                // console.log('[Player] ⚡ Falling back to sword idle');
                 playAnimation(ANIMATIONS.IDLE, 0.3);
               }
             }
@@ -2505,15 +2496,15 @@ export const Player: React.FC<PlayerProps> = ({
       } else {
         // Fallback if power-up animation isn't available
         if (!animations[swordPowerupAnimation]) {
-          console.log(`[Player] ⚠️ Power-up animation '${swordPowerupAnimation}' not found in animations object`);
-          console.log(`[Player] 🔍 Available sword animations:`, Object.keys(animations).filter(key => key.startsWith('sword_')));
-          console.log(`[Player] 🔍 Total animations available:`, Object.keys(animations).length);
+          // console.log(`[Player] ⚠️ Power-up animation '${swordPowerupAnimation}' not found in animations object`);
+          // console.log(`[Player] 🔍 Available sword animations:`, Object.keys(animations).filter(key => key.startsWith('sword_')));
+          // console.log(`[Player] 🔍 Total animations available:`, Object.keys(animations).length);
         }
         if (isAttacking) {
-          console.log(`[Player] ⚠️ Cannot play power-up animation because isAttacking = ${isAttacking}`);
+          // console.log(`[Player] ⚠️ Cannot play power-up animation because isAttacking = ${isAttacking}`);
         }
         if (Object.keys(animations).length === 0) {
-          console.log(`[Player] ⚠️ No animations loaded yet, setting up polling for power-up animation...`);
+          // console.log(`[Player] ⚠️ No animations loaded yet, setting up polling for power-up animation...`);
           
           // Poll for animations to be ready with multiple retries
           let retryCount = 0;
@@ -2521,11 +2512,11 @@ export const Player: React.FC<PlayerProps> = ({
           
           const pollForAnimations = () => {
             retryCount++;
-            console.log(`[Player] 🔄 Polling attempt ${retryCount}/${maxRetries} for animations...`);
-            console.log(`[Player] 🔍 Current animations count: ${Object.keys(animations).length}`);
+            // console.log(`[Player] 🔄 Polling attempt ${retryCount}/${maxRetries} for animations...`);
+            // console.log(`[Player] 🔍 Current animations count: ${Object.keys(animations).length}`);
             
             if (animations[swordPowerupAnimation] && swordAttachmentRef.current) {
-              console.log('[Player] 🎬 Power-up animation now available! Playing... - ENTERING POWER-UP MODE');
+              // console.log('[Player] 🎬 Power-up animation now available! Playing... - ENTERING POWER-UP MODE');
               
               // Enter power-up mode - blocks all other animations and movement
               setIsPlayingPowerUp(true);
@@ -2533,7 +2524,7 @@ export const Player: React.FC<PlayerProps> = ({
               
               // Store current position to freeze at
               frozenPositionRef.current = localPositionRef.current.clone();
-              console.log(`🧊 [Movement Frozen] Position locked at (${frozenPositionRef.current.x.toFixed(2)}, ${frozenPositionRef.current.y.toFixed(2)}, ${frozenPositionRef.current.z.toFixed(2)}) - polling path`);
+              // console.log(`🧊 [Movement Frozen] Position locked at (${frozenPositionRef.current.x.toFixed(2)}, ${frozenPositionRef.current.y.toFixed(2)}, ${frozenPositionRef.current.z.toFixed(2)}) - polling path`);
               
               // Retry the power-up animation
               const powerupAction = animations[swordPowerupAnimation];
@@ -2562,10 +2553,10 @@ export const Player: React.FC<PlayerProps> = ({
                 clearTimeout(powerUpTimeoutRef.current);
               }
               
-              console.log(`[Player] ⚡ Power-up (polling path) will last for ${powerUpDuration}ms`);
+              // console.log(`[Player] ⚡ Power-up (polling path) will last for ${powerUpDuration}ms`);
               
               powerUpTimeoutRef.current = setTimeout(() => {
-                console.log('[Player] ⚡ Power-up duration complete (polling path) - EXITING POWER-UP MODE');
+                // console.log('[Player] ⚡ Power-up duration complete (polling path) - EXITING POWER-UP MODE');
                 
                 // Exit power-up mode and unfreeze movement
                 setIsPlayingPowerUp(false);
@@ -2574,21 +2565,21 @@ export const Player: React.FC<PlayerProps> = ({
                 frozenPositionRef.current = null; // Clear frozen position
                 powerUpTimeoutRef.current = null;
                 
-                console.log('[Player] 🧊 Movement unfrozen (polling path) - player can move again');
-                console.log(`🛡️ [Race Protection] Cleared isPlayingPowerUpRef (polling path)`);
+                // console.log('[Player] 🧊 Movement unfrozen (polling path) - player can move again');
+                // console.log(`🛡️ [Race Protection] Cleared isPlayingPowerUpRef (polling path)`);
                 
                 // Small delay to let power-up state clear
                 setTimeout(() => {
                   if (swordAttachmentRef.current) {
-                    console.log('[Player] ⚡ Power-up complete (polling) - allowing normal animation flow to resume');
+                    // console.log('[Player] ⚡ Power-up complete (polling) - allowing normal animation flow to resume');
                     
                     // Resume with server animation state instead of forcing idle
                     const serverAnim = playerData.currentAnimation;
                     if (serverAnim && animations[serverAnim]) {
-                      console.log(`[Player] ⚡ Resuming with server animation (polling): ${serverAnim}`);
+                      // console.log(`[Player] ⚡ Resuming with server animation (polling): ${serverAnim}`);
                       playAnimation(serverAnim, 0.3);
                     } else {
-                      console.log('[Player] ⚡ Falling back to sword idle (polling)');
+                      // console.log('[Player] ⚡ Falling back to sword idle (polling)');
                       playAnimation(ANIMATIONS.IDLE, 0.3);
                     }
                   }
@@ -2597,11 +2588,11 @@ export const Player: React.FC<PlayerProps> = ({
               
             } else if (retryCount < maxRetries && swordAttachmentRef.current) {
               // Keep trying
-              console.log(`[Player] ⏳ Animations not ready yet, retrying in 500ms... (${retryCount}/${maxRetries})`);
+              // console.log(`[Player] ⏳ Animations not ready yet, retrying in 500ms... (${retryCount}/${maxRetries})`);
               setTimeout(pollForAnimations, 500);
             } else {
               // Give up and fall back to sword idle
-              console.log('[Player] ⚠️ Max retries reached or sword no longer equipped, falling back to sword idle');
+              // console.log('[Player] ⚠️ Max retries reached or sword no longer equipped, falling back to sword idle');
               if (swordAttachmentRef.current) {
                 playAnimation(ANIMATIONS.IDLE, 0.3);
               }
@@ -2612,7 +2603,7 @@ export const Player: React.FC<PlayerProps> = ({
           setTimeout(pollForAnimations, 500);
           return; // Don't play idle yet, wait for polling
         }
-        console.log('[Player] ⚠️ Power-up animation not found or blocked, switching directly to sword idle');
+        // console.log('[Player] ⚠️ Power-up animation not found or blocked, switching directly to sword idle');
         playAnimation(ANIMATIONS.IDLE, 0.3);
       }
     }, 100); // Short delay to ensure state updates have propagated
@@ -2624,7 +2615,7 @@ export const Player: React.FC<PlayerProps> = ({
       rightHandBone.remove(equippedSword);
       setEquippedSword(null);
       swordAttachmentRef.current = null;
-      console.log('[Player] ⚔️ Sword unequipped! Animation system will switch back to default animations.');
+      // console.log('[Player] ⚔️ Sword unequipped! Animation system will switch back to default animations.');
     }
     
     // Clean up any active glow effect
@@ -2650,7 +2641,7 @@ export const Player: React.FC<PlayerProps> = ({
       
       // Don't switch animations if we're currently playing power-up
       if (currentAnimation === `sword_${ANIMATIONS.POWERUP}`) {
-        console.log(`🗡️ Sword state changed but skipping animation switch - currently in power-up animation`);
+        // console.log(`🗡️ Sword state changed but skipping animation switch - currently in power-up animation`);
         prevSwordEquippedRef.current = isSwordEquipped; // Update the ref but don't switch
         return;
       }
@@ -2660,7 +2651,7 @@ export const Player: React.FC<PlayerProps> = ({
         ? currentAnimation.replace('sword_', '') 
         : currentAnimation;
       
-      console.log(`🗡️ Sword state ACTUALLY changed (${prevSwordEquippedRef.current} → ${isSwordEquipped}), switching from ${currentAnimation} to appropriate variant of ${baseAnimationName}`);
+      // console.log(`🗡️ Sword state ACTUALLY changed (${prevSwordEquippedRef.current} → ${isSwordEquipped}), switching from ${currentAnimation} to appropriate variant of ${baseAnimationName}`);
       
       // Play the appropriate variant of the current animation
       playAnimation(baseAnimationName, 0.2); // Quick crossfade for smooth transition
@@ -2680,7 +2671,7 @@ export const Player: React.FC<PlayerProps> = ({
         timestamp: 0
       };
       (window as any).currentPlayerAttackIsSword = false;
-      console.log(`[Player] 🌐 Initialized global attack state for zombie system`);
+      // console.log(`[Player] 🌐 Initialized global attack state for zombie system`);
     }
   }, [isLocalPlayer]);
 

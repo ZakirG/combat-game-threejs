@@ -91,47 +91,47 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
         const texturePromises = [];
         
         if (characterName === 'Zaqir Mufasa') {
-          console.log(`[Character3DPreview] Loading Zaqir textures from ${config.folder}`);
+          // console.log(`[Character3DPreview] Loading Zaqir textures from ${config.folder}`);
           texturePromises.push(
             textureLoader.loadAsync(`${config.folder}texture_diffuse.png`)
               .then(tex => { 
                 textures.diffuse = tex;
-                console.log(`[Character3DPreview] Loaded diffuse texture for Zaqir`);
+                // console.log(`[Character3DPreview] Loaded diffuse texture for Zaqir`);
               })
               .catch(err => console.warn(`[Character3DPreview] Failed to load diffuse:`, err)),
             textureLoader.loadAsync(`${config.folder}texture_normal.png`)
               .then(tex => { 
                 textures.normal = tex;
-                console.log(`[Character3DPreview] Loaded normal texture for Zaqir`);
+                // console.log(`[Character3DPreview] Loaded normal texture for Zaqir`);
               })
               .catch(err => console.warn(`[Character3DPreview] Failed to load normal:`, err)),
             textureLoader.loadAsync(`${config.folder}texture_roughness.png`)
               .then(tex => { 
                 textures.roughness = tex;
-                console.log(`[Character3DPreview] Loaded roughness texture for Zaqir`);
+                // console.log(`[Character3DPreview] Loaded roughness texture for Zaqir`);
               })
               .catch(err => console.warn(`[Character3DPreview] Failed to load roughness:`, err)),
             textureLoader.loadAsync(`${config.folder}texture_metallic.png`)
               .then(tex => { 
                 textures.metallic = tex;
-                console.log(`[Character3DPreview] Loaded metallic texture for Zaqir`);
+                // console.log(`[Character3DPreview] Loaded metallic texture for Zaqir`);
               })
               .catch(err => console.warn(`[Character3DPreview] Failed to load metallic:`, err))
           );
         } else if (characterName === 'Grok Ani') {
-          console.log(`[Character3DPreview] Loading Grok Ani texture from ${config.folder}`);
+          // console.log(`[Character3DPreview] Loading Grok Ani texture from ${config.folder}`);
           texturePromises.push(
             textureLoader.loadAsync(`${config.folder}Gothic_Elegance_0715203917_texture.png`)
               .then(tex => { 
                 textures.diffuse = tex;
-                console.log(`[Character3DPreview] Loaded diffuse texture for Grok Ani`);
+                // console.log(`[Character3DPreview] Loaded diffuse texture for Grok Ani`);
               })
               .catch(err => console.warn(`[Character3DPreview] Failed to load Grok Ani texture:`, err))
           );
         }
         
         await Promise.allSettled(texturePromises);
-        console.log(`[Character3DPreview] Texture loading complete for ${characterName}. Loaded ${Object.keys(textures).length} textures:`, Object.keys(textures));
+        // console.log(`[Character3DPreview] Texture loading complete for ${characterName}. Loaded ${Object.keys(textures).length} textures:`, Object.keys(textures));
         return Object.keys(textures).length > 0 ? textures : null;
       } catch (error) {
         console.error(`[Character3DPreview] Failed to load textures for ${characterName}:`, error);
@@ -143,7 +143,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
   useEffect(() => {
     if (!characterName) return;
     
-    console.log(`[Character3DPreview] Loading character: ${characterName}`);
+    // console.log(`[Character3DPreview] Loading character: ${characterName}`);
     setCurrentState(PreviewState.LOADING);
     setStateTimer(0);
     
@@ -153,20 +153,20 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
     loader.load(
       characterConfig.modelPath,
       (fbx) => {
-        console.log(`[Character3DPreview] Model loaded for ${characterName}`);
-        console.log(`[Character3DPreview] Model scale: ${characterConfig.scale}, yOffset: ${characterConfig.yOffset}`);
+        // console.log(`[Character3DPreview] Model loaded for ${characterName}`);
+        // console.log(`[Character3DPreview] Model scale: ${characterConfig.scale}, yOffset: ${characterConfig.yOffset}`);
         
         // Calculate bounding box for debugging
         const bbox = new THREE.Box3().setFromObject(fbx);
-        console.log(`[Character3DPreview] Model bounding box:`, bbox);
+        // console.log(`[Character3DPreview] Model bounding box:`, bbox);
         
         // Apply character-specific scaling and positioning for preview
         fbx.scale.setScalar(previewConfig.scale);
         // Push character DOWN to prevent floating up
         fbx.position.set(0, previewConfig.yOffset - 0.5, 0); // Extra downward offset to prevent floating
         
-        console.log(`[Character3DPreview] Model positioned at:`, fbx.position);
-        console.log(`[Character3DPreview] Model scaled to:`, fbx.scale);
+        // console.log(`[Character3DPreview] Model positioned at:`, fbx.position);
+        // console.log(`[Character3DPreview] Model scaled to:`, fbx.scale);
         
         // Load external textures if needed
         const processModelWithTextures = async () => {
@@ -182,19 +182,11 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
               if (child.material) {
                 const materials = Array.isArray(child.material) ? child.material : [child.material];
                 const newMaterials = materials.map((material: any, index: number) => {
-                  console.log(`[Character3DPreview] Processing material ${index}:`, {
-                    type: material.type,
-                    map: !!material.map,
-                    color: material.color?.getHexString(),
-                    emissive: material.emissive?.getHexString(),
-                    visible: material.visible,
-                    transparent: material.transparent,
-                    opacity: material.opacity
-                  });
+                  
                   
                   // Convert MeshPhongMaterial to MeshStandardMaterial for better PBR lighting (like main game)
                   if (material.type === 'MeshPhongMaterial' || material.type === 'MeshBasicMaterial' || material.type === 'MeshLambertMaterial') {
-                    console.log(`[Character3DPreview] Converting ${material.type} to MeshStandardMaterial for material ${index}`);
+                    // console.log(`[Character3DPreview] Converting ${material.type} to MeshStandardMaterial for material ${index}`);
                     
                     const newMaterial = new THREE.MeshStandardMaterial({
                       map: externalTextures?.diffuse || material.map, // Use embedded map if no external textures
@@ -220,7 +212,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
                     
                     // Fix any color issues (like main game)
                     if (material.color && material.color.r === 0 && material.color.g === 0 && material.color.b === 0) {
-                      console.log(`[Character3DPreview] Material ${index} color is black, setting to white`);
+                      // console.log(`[Character3DPreview] Material ${index} color is black, setting to white`);
                       material.color.setRGB(1, 1, 1);
                     }
                     
@@ -243,7 +235,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
         
         // Process materials asynchronously
         processModelWithTextures().then(() => {
-          console.log(`[Character3DPreview] Material processing complete for ${characterName}`);
+          // console.log(`[Character3DPreview] Material processing complete for ${characterName}`);
         }).catch(error => {
           console.error(`[Character3DPreview] Material processing failed:`, error);
         });
@@ -274,7 +266,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
     );
     
     return () => {
-      console.log(`[Character3DPreview] Cleaning up resources for ${characterName}`);
+      // console.log(`[Character3DPreview] Cleaning up resources for ${characterName}`);
       
       // Stop all animations
       if (mixer) {
@@ -348,7 +340,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
           if (model && group.current) {
             model.visible = true;
             setIsModelVisible(true);
-            console.log(`[Character3DPreview] Model now visible for ${characterName} with animation playing (delay: ${visibilityDelay}ms)`);
+            // console.log(`[Character3DPreview] Model now visible for ${characterName} with animation playing (delay: ${visibilityDelay}ms)`);
             
             // Notify parent that model is ready and visible
             if (onLoadComplete) onLoadComplete();
@@ -359,7 +351,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
     
     animationsToLoad.forEach((animName) => {
       const animPath = getAnimationPath(characterName, animName);
-      console.log(`[Character3DPreview] Loading animation "${animName}" from: ${animPath}`);
+      // console.log(`[Character3DPreview] Loading animation "${animName}" from: ${animPath}`);
       
       const loader = new FBXLoader();
       loader.load(
@@ -402,7 +394,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
             }
             
             loadedAnimations[animName] = action;
-            console.log(`[Character3DPreview] Animation loaded: ${animName}`);
+            // console.log(`[Character3DPreview] Animation loaded: ${animName}`);
           }
           
           checkComplete();
@@ -435,7 +427,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
                .fadeIn(0.3)
                .play();
                
-    console.log(`[Character3DPreview] Playing animation: ${animName}`);
+    // console.log(`[Character3DPreview] Playing animation: ${animName}`);
   }, [animations, mixer]);
   
   // Animation state machine
@@ -570,7 +562,7 @@ export const Character3DPreview: React.FC<Character3DPreviewProps> = ({
   // Cleanup effect for component unmounting
   useEffect(() => {
     return () => {
-      console.log(`[Character3DPreview] Component unmounting for ${characterName}`);
+      // console.log(`[Character3DPreview] Component unmounting for ${characterName}`);
       // React Three Fiber will handle WebGL context cleanup automatically
     };
   }, [characterName]);

@@ -59,7 +59,7 @@ class BloodEffectManager {
   createBloodSpurt(position: THREE.Vector3, config: Partial<BloodSpurtConfig> = {}): void {
     // Check global toggle - early return if disabled
     if (!BLOOD_EFFECTS_ENABLED) {
-      console.log(`[BloodEffect] 🩸 Blood effects disabled globally - skipping spurt creation`);
+      // console.log(`[BloodEffect] 🩸 Blood effects disabled globally - skipping spurt creation`);
       return;
     }
     
@@ -122,10 +122,10 @@ class BloodEffectManager {
         config: finalConfig
       });
 
-      console.log(`[BloodEffect] 🩸 ${colorConfig.name} blood spurt created with ${colorConfig.count} particles`);
+      // console.log(`[BloodEffect] 🩸 ${colorConfig.name} blood spurt created with ${colorConfig.count} particles`);
     });
 
-    console.log(`[BloodEffect] 🩸 Total blood spurt created at (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)}) with ${finalConfig.particleCount} particles`);
+    // console.log(`[BloodEffect] 🩸 Total blood spurt created at (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)}) with ${finalConfig.particleCount} particles`);
   }
 
   /**
@@ -178,7 +178,7 @@ class BloodEffectManager {
     spurt.points.geometry.dispose();
     (spurt.points.material as THREE.Material).dispose();
     this.activeSpurts.splice(index, 1);
-    console.log(`[BloodEffect] 🧹 Blood spurt cleaned up (${this.activeSpurts.length} remaining)`);
+    // console.log(`[BloodEffect] 🧹 Blood spurt cleaned up (${this.activeSpurts.length} remaining)`);
   }
 
   /**
@@ -209,7 +209,7 @@ export function createBloodSpurtAt(
 ): void {
   // Check global toggle - early return if disabled
   if (!BLOOD_EFFECTS_ENABLED) {
-    console.log(`[BloodEffect] 🩸 Blood effects disabled globally - skipping utility spurt creation`);
+    // console.log(`[BloodEffect] 🩸 Blood effects disabled globally - skipping utility spurt creation`);
     return;
   }
   

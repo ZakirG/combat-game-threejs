@@ -163,7 +163,7 @@ const RockInstance: React.FC<RockInstanceProps> = ({ modelPath, position, scale,
         setBoundingBox(box);
         
         setModel(loadedModel);
-        console.log(`[EnvironmentAssets] Loaded rock model: ${modelPath} at scale ${scale}`);
+        // console.log(`[EnvironmentAssets] Loaded rock model: ${modelPath} at scale ${scale}`);
         
         // Report bounding box to parent when ready
         if (onBoundingBoxReady && instanceId) {
@@ -269,8 +269,8 @@ const LargeAsset: React.FC<LargeAssetProps> = ({ modelPath, position, scale, rot
         setBoundingBox(box);
         
         setModel(loadedModel);
-        console.log(`[EnvironmentAssets] ✅ Loaded ${name}: ${modelPath} at scale ${scale}, position [${position.join(', ')}]`);
-        console.log(`[EnvironmentAssets] ${name} bounding box:`, box);
+        // console.log(`[EnvironmentAssets] ✅ Loaded ${name}: ${modelPath} at scale ${scale}, position [${position.join(', ')}]`);
+        // console.log(`[EnvironmentAssets] ${name} bounding box:`, box);
         
         // Report bounding box to parent when ready
         if (onBoundingBoxReady) {
@@ -282,7 +282,7 @@ const LargeAsset: React.FC<LargeAssetProps> = ({ modelPath, position, scale, rot
       },
       (progress) => {
         if (name === 'X-Statue') {
-          console.log(`[EnvironmentAssets] 📊 Loading ${name}: ${Math.round((progress.loaded / progress.total) * 100)}%`);
+          // console.log(`[EnvironmentAssets] 📊 Loading ${name}: ${Math.round((progress.loaded / progress.total) * 100)}%`);
         }
       },
       (error) => {
@@ -392,7 +392,7 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({
         }
         
         setSwordModel(loadedModel);
-        console.log('[EnvironmentAssets] ✨ Floating sword loaded successfully');
+        // console.log('[EnvironmentAssets] ✨ Floating sword loaded successfully');
       },
       undefined,
       (error) => {
@@ -481,7 +481,7 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({
     glowPillarGroup.current.add(middleGlow);
     glowPillarGroup.current.add(outerGlow);
     
-    console.log('[EnvironmentAssets] 🔵 Light blue glow pillar created');
+    // console.log('[EnvironmentAssets] 🔵 Light blue glow pillar created');
   }, [isCollected]);
 
   // Set initial positions
@@ -528,7 +528,7 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({
           const distance = playerPos.distanceTo(swordPos);
           
           if (distance <= COLLECTION_RADIUS) {
-            console.log('[EnvironmentAssets] ⚔️ Sword collected by player!');
+            // console.log('[EnvironmentAssets] ⚔️ Sword collected by player!');
             setIsCollected(true);
             
             // Create a copy of the sword model for the player
@@ -584,7 +584,7 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
     const expectedAssets = rock1Positions.length + rock2Positions.length + rock3Positions.length + 2; // +2 for arch and statue
     if (collisionBoxesRef.current.size >= expectedAssets && !collisionDataReady) {
       setCollisionDataReady(true);
-      console.log(`[EnvironmentAssets] 🧱 All ${collisionBoxesRef.current.size} collision boxes ready!`);
+      // console.log(`[EnvironmentAssets] 🧱 All ${collisionBoxesRef.current.size} collision boxes ready!`);
     }
   }, [collisionDataReady]);
 
@@ -593,7 +593,7 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
     if (collisionDataReady && onCollisionDataReady) {
       const allCollisionBoxes = Array.from(collisionBoxesRef.current.values());
       onCollisionDataReady(allCollisionBoxes);
-      console.log(`[EnvironmentAssets] 📡 Sent ${allCollisionBoxes.length} collision boxes to parent`);
+      // console.log(`[EnvironmentAssets] 📡 Sent ${allCollisionBoxes.length} collision boxes to parent`);
     }
   }, [collisionDataReady, onCollisionDataReady]);
 

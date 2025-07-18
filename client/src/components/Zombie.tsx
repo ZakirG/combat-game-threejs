@@ -95,7 +95,7 @@ export const Zombie: React.FC<ZombieProps> = ({
       loader.load(
       ZOMBIE_CONFIG.modelPath,
       (gltf) => {
-        console.log('[Zombie] Main model loaded');
+        // console.log('[Zombie] Main model loaded');
         
         const model = gltf.scene;
         
@@ -154,7 +154,7 @@ export const Zombie: React.FC<ZombieProps> = ({
   // Load animations when mixer is ready
   useEffect(() => {
     if (mixer && model && !animationsLoadedRef.current) {
-      console.log('[Zombie] Loading animations...');
+      // console.log('[Zombie] Loading animations...');
       animationsLoadedRef.current = true;
       loadZombieAnimations(mixer);
     }
@@ -187,7 +187,7 @@ export const Zombie: React.FC<ZombieProps> = ({
     const checkCompletedLoading = () => {
       loadedCount++;
       if (loadedCount === totalCount) {
-        console.log(`[Zombie] Loaded ${Object.keys(newAnimations).length}/${totalCount} animations`);
+        // console.log(`[Zombie] Loaded ${Object.keys(newAnimations).length}/${totalCount} animations`);
         setAnimations(newAnimations);
         
         // Start with idle animation
@@ -199,7 +199,7 @@ export const Zombie: React.FC<ZombieProps> = ({
               // Make model visible now that idle animation is playing
               if (model && model.visible !== undefined) {
                 model.visible = true;
-                console.log(`[Zombie] Model now visible with idle animation playing`);
+                // console.log(`[Zombie] Model now visible with idle animation playing`);
               }
             }
           }, 100);
@@ -236,7 +236,7 @@ export const Zombie: React.FC<ZombieProps> = ({
               action.clampWhenFinished = true;
             }
             
-            console.log(`[Zombie] Animation "${name}" loaded successfully`);
+            // console.log(`[Zombie] Animation "${name}" loaded successfully`);
           } catch (e) {
             console.error(`[Zombie] Error processing animation ${name}:`, e);
           }
@@ -284,7 +284,7 @@ export const Zombie: React.FC<ZombieProps> = ({
       return;
     }
     
-    console.log(`[Zombie] Playing animation: ${name}`);
+    // console.log(`[Zombie] Playing animation: ${name}`);
     
     const targetAction = animsToUse[name];
     const currentAction = animsToUse[currentAnimation];
@@ -356,7 +356,7 @@ export const Zombie: React.FC<ZombieProps> = ({
             targetRotation.current = calculateAngleToTarget(targetPos);
             setAiState(ZombieState.TURNING);
             setStateTimer(0);
-            console.log('[Zombie] Found target player, starting to turn');
+            // console.log('[Zombie] Found target player, starting to turn');
           }
         }
         break;
@@ -371,7 +371,7 @@ export const Zombie: React.FC<ZombieProps> = ({
           setAiState(ZombieState.SCREAMING);
           setStateTimer(0);
           playZombieAnimation(ZOMBIE_ANIMATIONS.SCREAM);
-          console.log('[Zombie] Finished turning, starting scream');
+          // console.log('[Zombie] Finished turning, starting scream');
         } else {
           // Continue turning
           const turnAmount = Math.sign(normalizedDiff) * TURN_SPEED * delta;
@@ -385,7 +385,7 @@ export const Zombie: React.FC<ZombieProps> = ({
           setAiState(ZombieState.WALKING);
           setStateTimer(0);
           playZombieAnimation(ZOMBIE_ANIMATIONS.WALKING);
-          console.log('[Zombie] Finished screaming, starting to walk');
+          // console.log('[Zombie] Finished screaming, starting to walk');
         }
         break;
         
@@ -402,10 +402,10 @@ export const Zombie: React.FC<ZombieProps> = ({
           // Switch to running if target is far away (> 8 units) and not already running
           if (distance > 8.0 && currentAnimation !== ZOMBIE_ANIMATIONS.RUNNING) {
             playZombieAnimation(ZOMBIE_ANIMATIONS.RUNNING);
-            console.log('[Zombie] Target is far, switching to running');
+            // console.log('[Zombie] Target is far, switching to running');
           } else if (distance <= 8.0 && currentAnimation !== ZOMBIE_ANIMATIONS.WALKING) {
             playZombieAnimation(ZOMBIE_ANIMATIONS.WALKING);
-            console.log('[Zombie] Target is close, switching to walking');
+            // console.log('[Zombie] Target is close, switching to walking');
           }
           
           // Adjust speed based on animation (running is faster)
@@ -424,7 +424,7 @@ export const Zombie: React.FC<ZombieProps> = ({
             setIdleTime(Math.random() * 3);
             setTargetPlayer(null);
             playZombieAnimation(ZOMBIE_ANIMATIONS.IDLE);
-            console.log('[Zombie] Reached target, returning to idle');
+            // console.log('[Zombie] Reached target, returning to idle');
           }
         }
         break;

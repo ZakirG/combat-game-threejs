@@ -117,7 +117,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
   // Handle collision data from EnvironmentAssets
   const handleCollisionDataReady = useCallback((collisionBoxes: THREE.Box3[]) => {
     setEnvironmentCollisionBoxes(collisionBoxes);
-    console.log(`[GameScene] 🧱 Received ${collisionBoxes.length} collision boxes from environment`);
+    // console.log(`[GameScene] 🧱 Received ${collisionBoxes.length} collision boxes from environment`);
   }, []); 
 
   return (
