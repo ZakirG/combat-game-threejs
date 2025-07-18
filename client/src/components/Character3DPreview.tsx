@@ -392,7 +392,6 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
               action.setLoop(THREE.LoopRepeat, Infinity);
             } else {
               action.setLoop(THREE.LoopOnce, 1);
-              // Don't clamp when finished to prevent freezing on final frame
               action.clampWhenFinished = true;
             }
             
