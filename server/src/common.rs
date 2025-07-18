@@ -49,4 +49,5 @@ pub struct InputState {
 
 pub const PLAYER_SPEED: f32 = 7.5;
 pub const SPRINT_MULTIPLIER: f32 = 1.8;
+pub const NINJA_RUN_MULTIPLIER: f32 = 4.0; // 4x speed for ninja run (matches client-side sprintRunSpeed)
 pub const SPAWN_ALTITUDE: f32 = 90.0;

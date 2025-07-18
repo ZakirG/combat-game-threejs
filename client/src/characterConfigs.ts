@@ -20,6 +20,7 @@
 export interface CharacterMovementConfig {
   walkSpeed: number;
   runSpeed: number;
+  sprintRunSpeed: number; // New: high-speed sprint (activated after 2s of sprint+forward)
 }
 
 export const SPAWN_ALTITUDE = 90.0;
@@ -34,6 +35,7 @@ export interface CharacterAnimationTable {
   'run-back': string;
   'run-left': string;
   'run-right': string;
+  'ninja-run'?: string; // Special high-speed sprint animation (activated after 2s of sprint+forward)
   jump: string;
   attack1: string;
   attack2: string; // Combo attack animation
@@ -96,7 +98,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
      },
     movement: {
       walkSpeed: 2.8,
-      runSpeed: 5.5
+      runSpeed: 5.5,
+      sprintRunSpeed: 22.0 // Quadruple the run speed for ninja run (4x normal run speed)
     },
     animationTable: {
       idle: "Idle.fbx",
@@ -108,6 +111,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-back': "Standing Run Back.fbx",
       'run-left': "Standing Run Left.fbx",
       'run-right': "Standing Run Right.fbx",
+      'ninja-run': "Ninja Run.fbx", // High-speed sprint animation
       jump: "Crouch Torch Walk Back.fbx", // Using available animation as placeholder
       attack1: "Mma Kick.fbx",
       attack2: "Flip Kick.fbx", // Combo attack animation
@@ -130,6 +134,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         'run-back': "Standing Run Back.fbx",
         'run-left': "Standing Run Left.fbx",
         'run-right': "Standing Run Right.fbx",
+        'ninja-run': "Ninja Run.fbx", // High-speed sprint animation
         jump: "Crouch Torch Walk Back.fbx", // Using available animation as placeholder
         attack1: "Mma Kick.fbx",
         attack2: "Flip Kick.fbx", // Combo attack animation
@@ -151,6 +156,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         'run-back': "Sword And Shield Run Back.fbx",
         'run-left': "Great Sword Run Left.fbx",
         'run-right': "Great Sword Run Right.fbx",
+        'ninja-run': "Ninja Run.fbx", // High-speed sprint animation (same for sword)
         jump: "Sword And Shield Jump.fbx",
         attack1: "Sword And Shield Attack.fbx", // Swapped: now the first attack
         attack2: "Cartwheel.fbx", // Now the second attack
@@ -167,6 +173,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
     timeScale: {
       'walk-forward': 2.7, // 1.5x faster walking (1.8 * 1.5 = 2.7)
       'run-forward': 1.0,
+      'ninja-run': 1.2, // Slightly faster animation for high-speed sprint
       idle: 0.7, // Slower, more regal idle
       jump: 1.3, // Double speed for faster jumping animation
       falling: 1.3, // Normal falling speed
@@ -186,6 +193,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       'run-left': 1.3, // 1.5x speed for sword run left
       'run-right': 1.5, // 1.5x speed for sword run right
       'run-back': 1.1, // Keep normal speed for run back
+      'ninja-run': 1.2, // Same high-speed animation for sword ninja run
       idle: 0.8, // Slower sword idle stance
       jump: 2.0, // Normal sword jump speed
       falling: 1.3, // Normal falling speed
@@ -214,7 +222,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
      },
     movement: {
       walkSpeed: 3.0,
-      runSpeed: 6.0
+      runSpeed: 6.0,
+      sprintRunSpeed: 24.0 // Quadruple the run speed for ninja run (4x normal run speed)
     },
     animationTable: {
       idle: "Idle.fbx",
@@ -294,7 +303,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
      },
     movement: {
       walkSpeed: 3.2,
-      runSpeed: 6.5
+      runSpeed: 6.5,
+      sprintRunSpeed: 26.0 // Quadruple the run speed for ninja run (4x normal run speed)
     },
     animationTable: {
       idle: "Fight Idle.fbx", // Grok Rudi's combat idle

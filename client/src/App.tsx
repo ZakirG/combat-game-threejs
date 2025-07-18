@@ -560,6 +560,7 @@ function App() {
     const onConnect = (connection: DbConnection, id: Identity, _token: string) => {
       // console.log("Connected!");
       conn = connection;
+      (window as any).spacetimeConnection = connection; // Expose connection globally for components
       setIdentity(id);
       setConnected(true);
       setStatusMessage(`Connected as ${id.toHexString().substring(0, 8)}...`);
@@ -575,6 +576,7 @@ function App() {
       // console.log("onDisconnect triggered:", reasonStr);
       setStatusMessage(`Disconnected: ${reasonStr}`);
       conn = null;
+      (window as any).spacetimeConnection = null; // Clean up global connection
       setIdentity(null);
       setConnected(false);
       setPlayers(new Map());

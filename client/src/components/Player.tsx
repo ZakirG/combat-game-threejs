@@ -66,6 +66,7 @@ const ANIMATIONS = {
   RUN_BACK: 'run-back',
   RUN_LEFT: 'run-left',
   RUN_RIGHT: 'run-right',
+  NINJA_RUN: 'ninja-run', // High-speed sprint animation (activated after 2s of sprint+forward)
   JUMP: 'jump',
   ATTACK: 'attack1',
   ATTACK2: 'attack2', // Combo attack animation
@@ -153,6 +154,36 @@ export const Player: React.FC<PlayerProps> = ({
   const [comboStage, setComboStage] = useState<number>(0); // 0-7 for 8-hit combo (0=none, 1-7=combo stages)
   const [currentAttackIsSword, setCurrentAttackIsSword] = useState<boolean>(false); // Track current attack type
   const COMBO_WINDOW = 2000; // 2 seconds to perform combo (changed from 3 to match requirement)
+  
+  // Ninja run sprint system state
+  const [sprintStartTime, setSprintStartTime] = useState<number>(0);
+  const [isNinjaRunActive, setIsNinjaRunActive] = useState<boolean>(false);
+  const [lastValidSprintTime, setLastValidSprintTime] = useState<number>(0); // Track last time sprint+forward was valid
+  const NINJA_RUN_ACTIVATION_TIME = 1000; // 1 second of sprint+forward to activate ninja run
+  const NINJA_RUN_GRACE_PERIOD = 100; // 100ms grace period for brief key releases
+  
+  // Debug: Track ninja run state changes and sync with server
+  useEffect(() => {
+    console.log(`🥷 [Ninja Run State] isNinjaRunActive changed to: ${isNinjaRunActive}`);
+    
+    // Sync ninja run state with server (only for local player)
+    if (isLocalPlayer && onPositionChange) {
+      // Use the connection from App.tsx to call the server reducer
+      const conn = (window as any).spacetimeConnection;
+      if (conn && conn.reducers && conn.reducers.setNinjaRunStatus) {
+        conn.reducers.setNinjaRunStatus(isNinjaRunActive);
+        console.log(`🥷 [Server Sync] Sent ninja run status to server: ${isNinjaRunActive}`);
+      } else {
+        console.warn(`🥷 [Server Sync] Could not sync ninja run status - connection or reducer not available`);
+      }
+    }
+  }, [isNinjaRunActive, isLocalPlayer]);
+  
+  // Debug: Character info on mount
+  useEffect(() => {
+    console.log(`🥷 [Character Debug] Character: ${characterClass}, Is Local Player: ${isLocalPlayer}`);
+    console.log(`🥷 [Character Debug] Movement speeds:`, characterConfig.movement);
+  }, []);
   
   // Blood effect system
   const bloodEffectManagerRef = useRef<BloodEffectManager | null>(null);
@@ -376,7 +407,22 @@ export const Player: React.FC<PlayerProps> = ({
     }
 
     let worldMoveVector = new THREE.Vector3();
-    const speed = inputState.sprint ? characterConfig.movement.runSpeed : characterConfig.movement.walkSpeed;
+    
+    // Determine movement speed based on ninja run state and sprint
+    let speed = characterConfig.movement.walkSpeed; // Default to walk speed
+    if (inputState.sprint) {
+      if (isNinjaRunActive && inputState.forward) {
+        // Use high-speed ninja run speed when ninja run is active and moving forward
+        speed = characterConfig.movement.sprintRunSpeed;
+        // console.log('🥷 [Ninja Run Speed] Using ninja run speed:', speed, 'vs normal run:', characterConfig.movement.runSpeed);
+      } else {
+        // Use normal run speed for regular sprinting
+        speed = characterConfig.movement.runSpeed;
+        // if (isNinjaRunActive) {
+        //   console.log('🥷 [Ninja Run Speed] Ninja run active but not moving forward, using run speed:', speed);
+        // }
+      }
+    }
     let rotationYaw = 0;
 
     // 1. Calculate local movement vector based on WASD
@@ -438,7 +484,7 @@ export const Player: React.FC<PlayerProps> = ({
     }
 
     return proposedPosition;
-  }, [cameraMode, checkEnvironmentCollision]); // Depend on cameraMode and collision detection
+  }, [cameraMode, checkEnvironmentCollision, isNinjaRunActive, characterConfig.movement]); // Depend on cameraMode, collision detection, ninja run state, and movement config
 
   // --- Effect for model loading ---
   useEffect(() => {
@@ -799,6 +845,7 @@ export const Player: React.FC<PlayerProps> = ({
         // console.log("Available animations: ", Object.keys(newAnimations).join(", "));
         // console.log(`🎉 [Animation Loading] All animations loaded! Total: ${Object.keys(newAnimations).length}`);
         // console.log(`🗡️ [Animation Loading] Sword animations:`, Object.keys(newAnimations).filter(key => key.startsWith('sword_')).join(", "));
+        console.log(`🥷 [Animation Loading] Ninja run animation loaded:`, !!newAnimations[ANIMATIONS.NINJA_RUN]);
         
         // Emit progress for animations loading completion
         if (isLocalPlayer && gameReadyCallbacks) {
@@ -938,9 +985,11 @@ export const Player: React.FC<PlayerProps> = ({
               name === 'idle' ||
               name.startsWith('walk-') ||
               name.startsWith('run-') ||
+              name === 'ninja-run' || // Ninja run should loop continuously
               name.includes('_idle') ||
               name.includes('_walk-') ||
-              name.includes('_run-')
+              name.includes('_run-') ||
+              name.includes('_ninja-run') // Sword version should also loop
             );
             
             // Special handling for power-up animation (should play once)
@@ -1126,6 +1175,9 @@ export const Player: React.FC<PlayerProps> = ({
   // Update playAnimation to have better logging and sword support
   const playAnimation = useCallback((name: string, crossfadeDuration = 0.3) => {
     // console.log(`🎬 playAnimation called with: ${name} (sword equipped: ${isSwordEquipped})`);
+    if (name === ANIMATIONS.NINJA_RUN) {
+      console.log('🥷 [Ninja Run Animation] playAnimation called for NINJA RUN!');
+    }
     
     if (!mixer) {
       // console.log(`❌ playAnimation: No mixer available`);
@@ -1502,6 +1554,63 @@ export const Player: React.FC<PlayerProps> = ({
           // --- LOCAL PLAYER PREDICTION & RECONCILIATION --- 
 
           // 1. Calculate predicted position based on current input, rotation, and SERVER_TICK_DELTA
+          // Handle ninja run sprint timing
+          const currentTime = Date.now();
+          
+          // Check if sprint+forward is being held
+          if (currentInput.sprint && currentInput.forward && !currentInput.backward && !currentInput.left && !currentInput.right) {
+            // Sprint+forward is active - update last valid time and continue timing
+            setLastValidSprintTime(currentTime);
+            
+            if (sprintStartTime === 0) {
+              // Start timing ninja run activation
+              setSprintStartTime(currentTime);
+              console.log('🥷 [Ninja Run] Started sprint+forward timing');
+            } else if (!isNinjaRunActive && (currentTime - sprintStartTime) >= NINJA_RUN_ACTIVATION_TIME) {
+              // Activate ninja run after 2 seconds
+              setIsNinjaRunActive(true);
+              console.log('🥷 [Ninja Run] NINJA RUN ACTIVATED! High-speed sprint engaged.');
+              console.log('🥷 [Ninja Run] Character:', characterClass);
+              console.log('🥷 [Ninja Run] Available animations:', Object.keys(animations));
+              console.log('🥷 [Ninja Run] Ninja run animation available:', !!animations[ANIMATIONS.NINJA_RUN]);
+            } else if (!isNinjaRunActive) {
+              // Still timing - show progress
+              const elapsed = currentTime - sprintStartTime;
+              if (elapsed % 250 < 50) { // Log every 250ms (with 50ms tolerance) for faster feedback
+                console.log(`🥷 [Ninja Run] Sprint timing: ${elapsed}ms / ${NINJA_RUN_ACTIVATION_TIME}ms`);
+              }
+            }
+          } else {
+            // Sprint+forward combo is broken - check grace period before resetting
+            const timeSinceLastValid = currentTime - lastValidSprintTime;
+            
+            if (isNinjaRunActive && timeSinceLastValid > NINJA_RUN_GRACE_PERIOD) {
+              // Ninja run was active but grace period expired - deactivate
+              setIsNinjaRunActive(false);
+              setSprintStartTime(0);
+              console.log(`🥷 [Ninja Run] Ninja run deactivated after ${timeSinceLastValid}ms grace period`);
+              console.log('🥷 [Ninja Run] Input state:', {
+                sprint: currentInput.sprint,
+                forward: currentInput.forward,
+                backward: currentInput.backward,
+                left: currentInput.left,
+                right: currentInput.right
+              });
+            } else if (!isNinjaRunActive && sprintStartTime !== 0 && timeSinceLastValid > NINJA_RUN_GRACE_PERIOD) {
+              // Was building up to ninja run but grace period expired - reset
+              setSprintStartTime(0);
+              console.log(`🥷 [Ninja Run] Sprint timing reset after ${timeSinceLastValid}ms grace period`);
+              console.log('🥷 [Ninja Run] Input state:', {
+                sprint: currentInput.sprint,
+                forward: currentInput.forward,
+                backward: currentInput.backward,
+                left: currentInput.left,
+                right: currentInput.right
+              });
+            }
+            // If within grace period, don't reset anything - just wait
+          }
+
           // Only update horizontal position when physics is enabled and movement is not frozen
           if (!isMovementFrozen) {
             const predictedPosition = calculateClientMovement(
@@ -2197,7 +2306,19 @@ export const Player: React.FC<PlayerProps> = ({
       // Check BOTH state and ref for immediate protection against race conditions
       const isCurrentlyInPowerUp = isPlayingPowerUp || isPlayingPowerUpRef.current;
       
-      // console.log(`🎯 [Anim Check] Received ServerAnim: ${serverAnim}, Current LocalAnim: ${currentAnimation}, High Alt Falling: ${isHighAltitudeFalling}, Is Attacking: ${isAttacking}, Is Playing PowerUp: ${isPlayingPowerUp}, PowerUp Ref: ${isPlayingPowerUpRef.current}, Is Available: ${!!animations[serverAnim]}`);
+      // Check if ninja run should override server animation (LOCAL PLAYER ONLY)
+      let finalAnimation = serverAnim;
+      if (isLocalPlayer && isNinjaRunActive && (serverAnim === ANIMATIONS.RUN_FORWARD || serverAnim === 'sword_run-forward')) {
+        // Override server's run-forward animation with ninja run when ninja run is active
+        finalAnimation = ANIMATIONS.NINJA_RUN;
+        console.log(`🥷 [Ninja Run Animation] Overriding server animation '${serverAnim}' with ninja run`);
+        console.log(`🥷 [Ninja Run Animation] Ninja run animation key: ${ANIMATIONS.NINJA_RUN}`);
+        console.log(`🥷 [Ninja Run Animation] Animation exists:`, !!animations[ANIMATIONS.NINJA_RUN]);
+      } else if (isLocalPlayer && isNinjaRunActive) {
+        console.log(`🥷 [Ninja Run Animation] Ninja run active but server animation is '${serverAnim}', not overriding`);
+      }
+      
+      // console.log(`🎯 [Anim Check] Received ServerAnim: ${serverAnim}, Final Anim: ${finalAnimation}, Current LocalAnim: ${currentAnimation}, High Alt Falling: ${isHighAltitudeFalling}, Is Attacking: ${isAttacking}, Is Playing PowerUp: ${isPlayingPowerUp}, PowerUp Ref: ${isPlayingPowerUpRef.current}, Is Available: ${!!animations[finalAnimation]}`);
 
       // Play animation if it's different and available, but not during high altitude falling, local attacks, or power-up
       if (isHighAltitudeFalling) {
@@ -2205,23 +2326,26 @@ export const Player: React.FC<PlayerProps> = ({
       } else if (isLocalPlayer && isAttacking) {
         // console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during local attack animation (LOCAL PLAYER ONLY)`);
       } else if (isLocalPlayer && isCurrentlyInPowerUp) {
-        // console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during sword power-up animation (LOCAL PLAYER ONLY) - State: ${isPlayingPowerUp}, Ref: ${isPlayingPowerUpRef.current}`);
-      } else if (serverAnim && serverAnim !== currentAnimation && animations[serverAnim]) {
-         // console.log(`🎬 [Anim Play] Server requested animation change to: ${serverAnim}`);
+        // console.log(`🚫 [Anim Block] Ignoring server animation '${finalAnimation}' during sword power-up animation (LOCAL PLAYER ONLY) - State: ${isPlayingPowerUp}, Ref: ${isPlayingPowerUpRef.current}`);
+      } else if (finalAnimation && finalAnimation !== currentAnimation && animations[finalAnimation]) {
+         // console.log(`🎬 [Anim Play] Playing animation: ${finalAnimation} (original server: ${serverAnim})`);
+         if (finalAnimation === ANIMATIONS.NINJA_RUN) {
+           console.log('🥷 [Ninja Run Animation] PLAYING NINJA RUN ANIMATION!');
+         }
         try {
-          playAnimation(serverAnim, 0.2);
+          playAnimation(finalAnimation, 0.2);
         } catch (error) {
-          console.error(`❌ [Anim Error] Error playing animation ${serverAnim}:`, error);
+          console.error(`❌ [Anim Error] Error playing animation ${finalAnimation}:`, error);
           // Attempt to fallback to idle if error occurs and not already idle
           if (animations['idle'] && currentAnimation !== 'idle') {
             playAnimation('idle', 0.2);
           }
         }
-      } else if (serverAnim && !animations[serverAnim]) {
-         console.warn(`⚠️ [Anim Warn] Server requested unavailable animation: ${serverAnim}. Available: ${Object.keys(animations).join(', ')}`);
+      } else if (finalAnimation && !animations[finalAnimation]) {
+         console.warn(`⚠️ [Anim Warn] Animation not available: ${finalAnimation} (original server: ${serverAnim}). Available: ${Object.keys(animations).join(', ')}`);
       }
     }
-  }, [playerData.currentAnimation, animations, mixer, playAnimation, currentAnimation, isAttacking, isPlayingPowerUp]); // Dependencies include things that trigger animation changes
+  }, [playerData.currentAnimation, animations, mixer, playAnimation, currentAnimation, isAttacking, isPlayingPowerUp, isNinjaRunActive]); // Dependencies include things that trigger animation changes
 
   // Cleanup effects on unmount
   useEffect(() => {

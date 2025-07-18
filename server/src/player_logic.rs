@@ -34,16 +34,25 @@
 
 use spacetimedb::ReducerContext;
 // Import common structs and constants
-use crate::common::{Vector3, InputState, PLAYER_SPEED, SPRINT_MULTIPLIER};
+use crate::common::{Vector3, InputState, PLAYER_SPEED, SPRINT_MULTIPLIER, NINJA_RUN_MULTIPLIER};
 // Import the PlayerData struct definition (assuming it's in lib.rs or common.rs)
 use crate::PlayerData;
 
 // Corrected movement logic based on reversed feedback
-pub fn calculate_new_position(position: &Vector3, rotation: &Vector3, input: &InputState, delta_time: f32) -> Vector3 {
+pub fn calculate_new_position(position: &Vector3, rotation: &Vector3, input: &InputState, is_ninja_running: bool, delta_time: f32) -> Vector3 {
     let has_movement_input = input.forward || input.backward || input.left || input.right;
 
     if has_movement_input {
-        let speed = if input.sprint { PLAYER_SPEED * SPRINT_MULTIPLIER } else { PLAYER_SPEED };
+        let speed = if is_ninja_running && input.sprint && input.forward {
+            // Ninja run: 4x base speed when ninja running with sprint+forward
+            PLAYER_SPEED * NINJA_RUN_MULTIPLIER
+        } else if input.sprint {
+            // Regular sprint: normal sprint multiplier
+            PLAYER_SPEED * SPRINT_MULTIPLIER
+        } else {
+            // Walk speed
+            PLAYER_SPEED
+        };
 
         // This approach more directly matches the new client implementation
         // Create basis vectors for movement (forward/right vectors from camera)
@@ -145,6 +154,7 @@ pub fn update_input_state(player: &mut PlayerData, input: InputState, client_pos
         &player.position,
         &client_rot, // Use client rotation for direction calc
         &input,
+        player.is_ninja_running, // Pass ninja run state to movement calculation
         delta_time_estimate
     );
 

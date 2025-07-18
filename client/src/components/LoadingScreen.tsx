@@ -166,12 +166,12 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
       border: '1px solid rgba(139, 69, 19, 0.3)',
       borderRadius: '8px',
       padding: '20px',
-      maxWidth: '500px',
+      maxWidth: '440px',
       width: '100%',
     },
     controlsHeader: {
       fontFamily: 'Newrocker, serif',
-      fontSize: '14px',
+      fontSize: '18px',
       color: '#5D4037',
       fontWeight: 'bold' as const,
       textAlign: 'center' as const,
@@ -182,7 +182,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
       display: 'grid',
       gridTemplateColumns: 'repeat(2, 1fr)',
       gap: '8px',
-      fontSize: '12px',
+      fontSize: '16px',
       fontFamily: 'Arial, sans-serif',
     },
     controlRow: {
@@ -195,7 +195,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
       border: '1px solid rgba(139, 69, 19, 0.4)',
       borderRadius: '4px',
       padding: '2px 6px',
-      fontSize: '11px',
+      fontSize: '14px',
       fontWeight: 'bold' as const,
       color: '#3E2723',
       minWidth: '50px',
@@ -204,7 +204,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
     },
     controlAction: {
       color: '#5D4037',
-      fontSize: '11px',
+      fontSize: '14px',
       opacity: 0.9,
     }
   };

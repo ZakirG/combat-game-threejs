@@ -34,15 +34,13 @@ if [ $# -eq 0 ]; then
 fi
 
 FOLDER_NAME="$1"
-MODELS_DIR="combat-game-threejs/client/public/models"
+MODELS_DIR="client/public/models"
 SOURCE_DIR="${MODELS_DIR}/${FOLDER_NAME}"
 TARGET_DIR="${MODELS_DIR}/${FOLDER_NAME}-converted"
 
 # Check if fbx2gltf is installed (try local first, then global)
 FBX2GLTF_CMD=""
-if [ -f "./combat-game-threejs/client/node_modules/fbx2gltf/bin/Darwin/FBX2glTF" ]; then
-    FBX2GLTF_CMD="./combat-game-threejs/client/node_modules/fbx2gltf/bin/Darwin/FBX2glTF"
-elif [ -f "./client/node_modules/fbx2gltf/bin/Darwin/FBX2glTF" ]; then
+if [ -f "./client/node_modules/fbx2gltf/bin/Darwin/FBX2glTF" ]; then
     FBX2GLTF_CMD="./client/node_modules/fbx2gltf/bin/Darwin/FBX2glTF"
 elif command -v fbx2gltf &> /dev/null; then
     FBX2GLTF_CMD="fbx2gltf"

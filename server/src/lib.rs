@@ -60,6 +60,7 @@ pub struct PlayerData {
     current_animation: String,
     is_moving: bool,
     is_running: bool,
+    is_ninja_running: bool, // New: ninja run state for high-speed movement
     is_attacking: bool,
     is_casting: bool,
     last_input_seq: u32,
@@ -200,6 +201,7 @@ pub fn register_player(ctx: &ReducerContext, username: String, character_class: 
             current_animation: "idle".to_string(),
             is_moving: false,
             is_running: false,
+            is_ninja_running: false, // Initialize ninja run as false
             is_attacking: false,
             is_casting: false,
             last_input_seq: 0,
@@ -229,6 +231,7 @@ pub fn register_player(ctx: &ReducerContext, username: String, character_class: 
             current_animation: "idle".to_string(),
             is_moving: false,
             is_running: false,
+            is_ninja_running: false, // Initialize ninja run as false
             is_attacking: false,
             is_casting: false,
             last_input_seq: 0,
@@ -251,6 +254,17 @@ pub fn update_player_input(
         ctx.db.player().identity().update(player);
     } else {
         spacetimedb::log::warn!("Player {} tried to update input but is not active.", ctx.sender);
+    }
+}
+
+#[spacetimedb::reducer]
+pub fn set_ninja_run_status(ctx: &ReducerContext, is_ninja_running: bool) {
+    if let Some(mut player) = ctx.db.player().identity().find(ctx.sender) {
+        player.is_ninja_running = is_ninja_running;
+        ctx.db.player().identity().update(player);
+        spacetimedb::log::debug!("Player {} ninja run status set to: {}", ctx.sender, is_ninja_running);
+    } else {
+        spacetimedb::log::warn!("Player {} tried to set ninja run status but is not active.", ctx.sender);
     }
 }
 
