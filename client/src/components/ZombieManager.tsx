@@ -28,7 +28,7 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { PlayerData } from '../generated';
-import { makeZombieDecision, ZOMBIE_ANIMATIONS, ZombieDecision, STRIKING_DISTANCE } from './ZombieBrain';
+import { makeZombieDecision, ZOMBIE_ANIMATIONS, ZOMBIE_ATTACK_ANIMATIONS, ZombieDecision, STRIKING_DISTANCE } from './ZombieBrain';
 import { ZOMBIE_CONFIG } from '../characterConfigs';
 import { GameReadyCallbacks } from '../types/gameReady';
 
@@ -698,7 +698,9 @@ export const ZombieManager: React.FC<ZombieManagerProps> = ({
       [ZOMBIE_ANIMATIONS.SCREAM]: '/models/zombie-2-converted/Zombie Scream.glb',
       [ZOMBIE_ANIMATIONS.WALKING]: '/models/zombie-2-converted/Zombie Walk.glb',
       [ZOMBIE_ANIMATIONS.RUNNING]: '/models/zombie-2-converted/Zombie Running.glb',
-      [ZOMBIE_ANIMATIONS.ATTACK]: '/models/zombie-2-converted/Zombie Punching.glb',
+      [ZOMBIE_ATTACK_ANIMATIONS[0]]: '/models/zombie-2-converted/Zombie Punching.glb',
+      [ZOMBIE_ATTACK_ANIMATIONS[1]]: '/models/zombie-2-converted/Zombie Kicking.glb',
+      [ZOMBIE_ATTACK_ANIMATIONS[2]]: '/models/zombie-2-converted/Zombie Neck Bite.glb',
       [ZOMBIE_ANIMATIONS.DEATH]: '/models/zombie-2-converted/Zombie Death.glb',
     };
 

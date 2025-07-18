@@ -35,7 +35,8 @@ enum ZombieState {
   IDLE = 'idle',
   TURNING = 'turning',
   SCREAMING = 'screaming',
-  WALKING = 'walking'
+  WALKING = 'walking',
+  ATTACKING = 'attacking'
 }
 
 // Animation names for zombie
@@ -44,9 +45,15 @@ const ZOMBIE_ANIMATIONS = {
   SCREAM: 'scream',
   WALKING: 'walking',
   RUNNING: 'running',
-  ATTACK: 'attack',
   DEATH: 'death',
 };
+
+// Attack animation names
+const ZOMBIE_ATTACK_ANIMATIONS = [
+  'attack_punch',
+  'attack_kick',
+  'attack_bite',
+];
 
 interface ZombieProps {
   position?: [number, number, number];
@@ -176,7 +183,9 @@ export const Zombie: React.FC<ZombieProps> = ({
       [ZOMBIE_ANIMATIONS.SCREAM]: `${basePath}Zombie Scream.glb`,
       [ZOMBIE_ANIMATIONS.WALKING]: `${basePath}Zombie Walk.glb`,
       [ZOMBIE_ANIMATIONS.RUNNING]: `${basePath}Zombie Running.glb`,
-      [ZOMBIE_ANIMATIONS.ATTACK]: `${basePath}Zombie Punching.glb`,
+      [ZOMBIE_ATTACK_ANIMATIONS[0]]: `${basePath}Zombie Punching.glb`,
+      [ZOMBIE_ATTACK_ANIMATIONS[1]]: `${basePath}Zombie Kicking.glb`,
+      [ZOMBIE_ATTACK_ANIMATIONS[2]]: `${basePath}Zombie Neck Bite.glb`,
       [ZOMBIE_ANIMATIONS.DEATH]: `${basePath}Zombie Death.glb`,
     };
     
@@ -187,7 +196,7 @@ export const Zombie: React.FC<ZombieProps> = ({
     const checkCompletedLoading = () => {
       loadedCount++;
       if (loadedCount === totalCount) {
-        // console.log(`[Zombie] Loaded ${Object.keys(newAnimations).length}/${totalCount} animations`);
+        // console.log(`[Zombie] Loaded ${Object.keys(newAnimations).length}/${totalCount} animations:`, Object.keys(newAnimations));
         setAnimations(newAnimations);
         
         // Start with idle animation
@@ -328,6 +337,13 @@ export const Zombie: React.FC<ZombieProps> = ({
     return Math.atan2(direction.x, direction.z);
   }, []);
   
+  // Choose a random attack animation
+  const chooseRandomAttack = useCallback((): string => {
+    const randomIndex = Math.floor(Math.random() * ZOMBIE_ATTACK_ANIMATIONS.length);
+    const selectedAttack = ZOMBIE_ATTACK_ANIMATIONS[randomIndex];
+    return selectedAttack;
+  }, []);
+  
   // AI State machine and animation updates
   useFrame((state, delta) => {
     if (!modelLoaded || !mixer) return;
@@ -418,14 +434,27 @@ export const Zombie: React.FC<ZombieProps> = ({
           
           // Check if reached target (within 2 units)
           if (distance < 2.0) {
-            // Reset to idle for now (could extend to attack)
-            setAiState(ZombieState.IDLE);
+            // Start attacking with a random attack animation
+            setAiState(ZombieState.ATTACKING);
             setStateTimer(0);
-            setIdleTime(Math.random() * 3);
-            setTargetPlayer(null);
-            playZombieAnimation(ZOMBIE_ANIMATIONS.IDLE);
-            // console.log('[Zombie] Reached target, returning to idle');
+            const attackAnimation = chooseRandomAttack();
+            playZombieAnimation(attackAnimation);
+            // console.log(`[Zombie] Reached target, starting attack: ${attackAnimation}`);
           }
+        }
+        break;
+        
+      case ZombieState.ATTACKING:
+        // Wait for attack animation to complete (reduced to 1.5 seconds)
+        const ATTACK_DURATION = 1.5;
+        if (stateTimer >= ATTACK_DURATION) {
+          // Attack finished, return to idle
+          setAiState(ZombieState.IDLE);
+          setStateTimer(0);
+          setIdleTime(Math.random() * 3);
+          setTargetPlayer(null);
+          playZombieAnimation(ZOMBIE_ANIMATIONS.IDLE);
+          // console.log('[Zombie] Attack finished, returning to idle');
         }
         break;
     }
@@ -445,6 +474,7 @@ export const Zombie: React.FC<ZombieProps> = ({
           }}>
             Zombie - State: {aiState}<br/>
             Timer: {stateTimer.toFixed(1)}s<br/>
+            Animation: {currentAnimation}<br/>
             Target: {targetPlayer?.username || 'None'}
           </div>
         </Html>

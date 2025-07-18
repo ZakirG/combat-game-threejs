@@ -11,9 +11,22 @@ export const ZOMBIE_ANIMATIONS = {
   SCREAM: 'scream',
   WALKING: 'walking',
   RUNNING: 'running',
-  ATTACK: 'attack',
   DEATH: 'death',
 } as const;
+
+// Attack animation names
+export const ZOMBIE_ATTACK_ANIMATIONS = [
+  'attack_punch',
+  'attack_kick',
+  'attack_bite',
+] as const;
+
+// Function to choose a random attack animation
+export const chooseRandomAttack = (): string => {
+  const randomIndex = Math.floor(Math.random() * ZOMBIE_ATTACK_ANIMATIONS.length);
+  const selectedAttack = ZOMBIE_ATTACK_ANIMATIONS[randomIndex];
+  return selectedAttack;
+};
 
 // Zombie decision interface
 export interface ZombieDecision {
@@ -123,7 +136,7 @@ export function makeZombieDecision(
         // Check if enough time has passed since starting the attack sequence
         const timeSinceAttackStart = currentTime - (zombieState.lastDecisionTime || 0);
         
-        if (timeSinceAttackStart > 1500) { // 500ms rotation + 1000ms attack = 1500ms total
+        if (timeSinceAttackStart > 2000) { // 500ms rotation + 1500ms attack = 2000ms total
           // Attack sequence completed, reset to pursuing mode for another attack
           zombieState.mode = 'pursuing';
           zombieState.lastDecisionTime = currentTime;
@@ -137,11 +150,11 @@ export function makeZombieDecision(
             targetPosition: playerPos
           };
         } else {
-          // Already rotated, now attack
+          // Already rotated, now attack with random attack animation
           return {
             action: 'attack',
-            duration: 1000, // Attack animation duration
-            animation: ZOMBIE_ANIMATIONS.ATTACK,
+            duration: 1500, // Attack animation duration (reduced to 1.5 seconds)
+            animation: chooseRandomAttack(),
             speed: 0,
             targetPosition: playerPos
           };
