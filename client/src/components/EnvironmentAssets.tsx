@@ -38,7 +38,7 @@ export const SWORD_SPAWN_POSITION: [number, number, number] = [25, 0, 35];
 export const FLAMETHROWER_SPAWN_POSITION: [number, number, number] = [-25, 0, 35];
 
 // Cybertruck spawn position 
-export const CYBERTRUCK_SPAWN_POSITION: [number, number, number] = [-1, -0.8, -140];
+export const CYBERTRUCK_SPAWN_POSITION: [number, number, number] = [-1, -1.0, -140]; // Lowered further
 
 interface EnvironmentAssetsProps {
   // Player data for sword collision detection
@@ -86,6 +86,13 @@ const ENVIRONMENT_CONFIG = {
     scale: 120.0, // Much larger scale to ensure visibility (increased from 50.0)
     position: [0.0, 70.0, 700.0] as [number, number, number], // Raised much higher in the air (was Y=20)
     rotation: [0, 0, 0.01] as [number, number, number] // 90-degree rotation
+  },
+  egyptianHouse: {
+    path: '/models/environments/desert-house-9/highpoly_egyptian_house_009.fbx',
+    textureFolder: '/models/environments/desert-house-9/',
+    scale: 5.0, // Made much bigger (5x larger)
+    position: [-10.0, 0.0, -20.0] as [number, number, number], // Positioned away from spawn
+    rotation: [0, Math.PI * 0.25, 0] as [number, number, number] // 45-degree rotation for visual interest
   }
 };
 
@@ -253,6 +260,17 @@ interface LargeAssetProps {
   onBoundingBoxReady?: (id: string, boundingBox: THREE.Box3, worldPosition: THREE.Vector3) => void;
 }
 
+// FBX environment asset component (for Egyptian house)
+interface FBXAssetProps {
+  modelPath: string;
+  position: [number, number, number];
+  scale: number;
+  rotation?: [number, number, number];
+  name: string;
+  textureFolder?: string; // Optional folder path for external textures
+  onBoundingBoxReady?: (id: string, boundingBox: THREE.Box3, worldPosition: THREE.Vector3) => void;
+}
+
 const LargeAsset: React.FC<LargeAssetProps> = ({ modelPath, position, scale, rotation, name, onBoundingBoxReady }) => {
   const group = useRef<THREE.Group>(null!);
   const [model, setModel] = useState<THREE.Group | null>(null);
@@ -317,6 +335,173 @@ const LargeAsset: React.FC<LargeAssetProps> = ({ modelPath, position, scale, rot
       }
     };
   }, [modelPath, scale, name]);
+
+  // Set position and rotation
+  useEffect(() => {
+    if (group.current) {
+      group.current.position.set(...position);
+      if (rotation) {
+        group.current.rotation.set(...rotation);
+      }
+    }
+  }, [position, rotation]);
+
+  return (
+    <group ref={group}>
+      {/* Invisible collision box */}
+      {boundingBox && (
+        <Box
+          args={[
+            boundingBox.max.x - boundingBox.min.x,
+            boundingBox.max.y - boundingBox.min.y,
+            boundingBox.max.z - boundingBox.min.z
+          ]}
+          position={[
+            (boundingBox.max.x + boundingBox.min.x) / 2,
+            (boundingBox.max.y + boundingBox.min.y) / 2,
+            (boundingBox.max.z + boundingBox.min.z) / 2
+          ]}
+          visible={false} // Invisible collision box
+        >
+          <meshBasicMaterial transparent opacity={0} />
+        </Box>
+      )}
+    </group>
+  );
+};
+
+// FBX asset component for Egyptian house
+const FBXAsset: React.FC<FBXAssetProps> = ({ modelPath, position, scale, rotation, name, textureFolder, onBoundingBoxReady }) => {
+  const group = useRef<THREE.Group>(null!);
+  const [model, setModel] = useState<THREE.Group | null>(null);
+  const [boundingBox, setBoundingBox] = useState<THREE.Box3 | null>(null);
+
+  // Load external textures if texture folder is provided
+  const loadTextures = useCallback(async (textureFolder: string) => {
+    const textureLoader = new THREE.TextureLoader();
+    const textures: Record<string, THREE.Texture> = {};
+    
+    try {
+      // Egyptian house specific texture files based on actual file names
+      // Using stone wall textures as primary since it's likely the main material
+      const texturePromises = [
+        // Primary stone wall textures
+        textureLoader.loadAsync(`${textureFolder}T_stone_wall_bc.png`)
+          .then(tex => { 
+            textures.diffuse = tex;
+            console.log(`[${name}] ✅ Loaded stone wall diffuse texture`);
+          })
+          .catch(() => console.warn(`[${name}] Stone wall diffuse texture not found`)),
+        textureLoader.loadAsync(`${textureFolder}T_stone_wall_n.png`)
+          .then(tex => { 
+            textures.normal = tex;
+            console.log(`[${name}] ✅ Loaded stone wall normal texture`);
+          })
+          .catch(() => console.warn(`[${name}] Stone wall normal texture not found`)),
+        textureLoader.loadAsync(`${textureFolder}T_stone_wall_r.png`)
+          .then(tex => { 
+            textures.roughness = tex;
+            console.log(`[${name}] ✅ Loaded stone wall roughness texture`);
+          })
+          .catch(() => console.warn(`[${name}] Stone wall roughness texture not found`))
+      ];
+      
+      await Promise.allSettled(texturePromises);
+      
+      console.log(`[${name}] 🎨 Loaded ${Object.keys(textures).length} stone wall textures for Egyptian house`);
+      return Object.keys(textures).length > 0 ? textures : null;
+    } catch (error) {
+      console.error(`[${name}] ❌ Failed to load textures:`, error);
+      return null;
+    }
+  }, [name]);
+
+  useEffect(() => {
+    const loader = new FBXLoader();
+    
+    loader.load(
+      modelPath,
+      async (fbx) => {
+        const loadedModel = fbx.clone();
+        
+        // Configure model
+        loadedModel.scale.setScalar(scale);
+        loadedModel.position.set(0, 0, 0);
+        
+        // Load external textures if texture folder is provided
+        const externalTextures = textureFolder ? await loadTextures(textureFolder) : null;
+        
+        // Enable shadows and apply textures
+        loadedModel.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            
+            // Apply textures if available
+            if (child.material && externalTextures) {
+              const materials = Array.isArray(child.material) ? child.material : [child.material];
+              const newMaterials = materials.map((material: any) => {
+                // Convert to StandardMaterial for better PBR rendering
+                if (material.type === 'MeshPhongMaterial' || material.type === 'MeshBasicMaterial' || material.type === 'MeshLambertMaterial') {
+                  const newMaterial = new THREE.MeshStandardMaterial({
+                    map: externalTextures.diffuse || material.map,
+                    normalMap: externalTextures.normal,
+                    roughnessMap: externalTextures.roughness,
+                    color: material.color || new THREE.Color(1, 1, 1),
+                    transparent: material.transparent || false,
+                    opacity: material.opacity !== undefined ? material.opacity : 1.0,
+                    roughness: 0.7,
+                    metalness: 0.1,
+                  });
+                  return newMaterial;
+                } else {
+                  // Already StandardMaterial, just apply external textures
+                  if (externalTextures.diffuse) material.map = externalTextures.diffuse;
+                  if (externalTextures.normal) material.normalMap = externalTextures.normal;
+                  if (externalTextures.roughness) material.roughnessMap = externalTextures.roughness;
+                  material.needsUpdate = true;
+                  return material;
+                }
+              });
+              
+              child.material = Array.isArray(child.material) ? newMaterials : newMaterials[0];
+            }
+          }
+        });
+
+        if (group.current) {
+          group.current.add(loadedModel);
+        }
+        
+        // Calculate bounding box for collision
+        const box = new THREE.Box3().setFromObject(loadedModel);
+        setBoundingBox(box);
+        
+        setModel(loadedModel);
+        console.log(`[EnvironmentAssets] ✅ Loaded ${name}: ${modelPath} at scale ${scale}, position [${position.join(', ')}]`);
+        
+        // Report bounding box to parent when ready
+        if (onBoundingBoxReady) {
+          setTimeout(() => {
+            const worldPosition = new THREE.Vector3(...position);
+            onBoundingBoxReady(name, box, worldPosition);
+          }, 50);
+        }
+      },
+      (progress) => {
+        console.log(`[EnvironmentAssets] 📊 Loading ${name}: ${Math.round((progress.loaded / progress.total) * 100)}%`);
+      },
+      (error) => {
+        console.error(`[EnvironmentAssets] ❌ Error loading ${name}: ${modelPath}`, error);
+      }
+    );
+
+    return () => {
+      if (model && group.current) {
+        group.current.remove(model);
+      }
+    };
+  }, [modelPath, scale, name, textureFolder, loadTextures]);
 
   // Set position and rotation
   useEffect(() => {
@@ -843,7 +1028,7 @@ const FloatingCybertruck: React.FC<FloatingCybertruckProps> = ({
         // Current scale: 6.0 (6x larger than original)
         // For smaller: use 0.5, 0.3, etc.
         // For larger: use 2.0, 3.0, etc.
-        loadedModel.scale.setScalar(4.0); // <-- CHANGE THIS TO SCALE THE CYBERTRUCK
+        loadedModel.scale.setScalar(3.5); // <-- CHANGE THIS TO SCALE THE CYBERTRUCK
         
         // Orient cybertruck (you can adjust rotation here)
         loadedModel.rotation.set(0, 0, 0); // No rotation (facing forward)
@@ -1075,7 +1260,7 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
     collisionBoxesRef.current.set(id, worldBoundingBox);
     
     // Check if all collision data is ready
-    const expectedAssets = rock1Configs.length + rock2Configs.length + rock3Configs.length + 2; // +2 for arch and statue
+    const expectedAssets = rock1Configs.length + rock2Configs.length + rock3Configs.length + 3; // +3 for arch near sword, statue, and Egyptian house
     if (collisionBoxesRef.current.size >= expectedAssets && !collisionDataReady) {
       setCollisionDataReady(true);
       // console.log(`[EnvironmentAssets] 🧱 All ${collisionBoxesRef.current.size} collision boxes ready!`);
@@ -1137,7 +1322,8 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
         />
       ))}
 
-      {/* Desert Arch (very large, 100 units away) */}
+      {/* Desert Arch (very large, 100 units away) - REMOVED: keeping only the one by the sword */}
+      {/* 
       <LargeAsset
         modelPath={ENVIRONMENT_CONFIG.desertArch.path}
         position={ENVIRONMENT_CONFIG.desertArch.position}
@@ -1146,6 +1332,7 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
         name="Desert Arch"
         onBoundingBoxReady={handleAssetBoundingBox}
       />
+      */}
 
       {/* X-Statue (10x bigger than arch, 1000 units away) */}
       <LargeAsset
@@ -1154,6 +1341,17 @@ export const EnvironmentAssets: React.FC<EnvironmentAssetsProps> = ({
         scale={ENVIRONMENT_CONFIG.statue.scale}
         rotation={ENVIRONMENT_CONFIG.statue.rotation}
         name="X-Statue"
+        onBoundingBoxReady={handleAssetBoundingBox}
+      />
+
+      {/* Egyptian House (FBX model) */}
+      <FBXAsset
+        modelPath={ENVIRONMENT_CONFIG.egyptianHouse.path}
+        position={ENVIRONMENT_CONFIG.egyptianHouse.position}
+        scale={ENVIRONMENT_CONFIG.egyptianHouse.scale}
+        rotation={ENVIRONMENT_CONFIG.egyptianHouse.rotation}
+        name="Egyptian House"
+        textureFolder={ENVIRONMENT_CONFIG.egyptianHouse.textureFolder}
         onBoundingBoxReady={handleAssetBoundingBox}
       />
 

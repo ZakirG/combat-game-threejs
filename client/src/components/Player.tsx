@@ -1503,7 +1503,7 @@ export const Player: React.FC<PlayerProps> = ({
         // Check for coin collection by local player
         if (isLocalPlayer) {
           const playerPosition = group.current.position;
-          const collectedCoins = coinEffectManagerRef.current.checkCollisions(playerPosition);
+          const collectedCoins = coinEffectManagerRef.current.checkCollisions(playerPosition, 3.0); // Increased from 1.5 to 3.0 for easier pickup
           
           if (collectedCoins > 0 && gameReadyCallbacks?.onCoinCollected) {
             gameReadyCallbacks.onCoinCollected(collectedCoins);
