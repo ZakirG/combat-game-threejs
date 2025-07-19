@@ -59,7 +59,7 @@ export const MaxComboCounter: React.FC<MaxComboCounterProps> = ({ maxComboCount 
         textShadow: '2px 2px 4px rgba(255, 0, 0, 0.8)' // Red drop shadow
       }}
     >
-      <span style={{ fontFamily: 'HorrorTheater, serif' }}>MAX COMBO </span>
+      <span style={{ fontFamily: 'HorrorTheater, serif' }}>MAX KILL STREAK </span>
       <span 
         style={{ 
           fontFamily: 'Arial, sans-serif',

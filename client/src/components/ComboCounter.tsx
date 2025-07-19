@@ -117,7 +117,7 @@ export const ComboCounter: React.FC<ComboCounterProps> = ({
         }}
       >
         <div>
-          <span className="combo-text">COMBO </span>
+          <span className="combo-text">KILL STREAK </span>
           <span className="combo-number">x{displayCount}</span>
         </div>
         {comboName && (
