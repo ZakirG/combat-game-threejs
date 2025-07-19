@@ -608,10 +608,8 @@ function App() {
               cancelAnimationFrame(animationFrameIdRef.current);
               animationFrameIdRef.current = null;
           }
-          if (tutorialTimeoutRef.current) {
-              clearTimeout(tutorialTimeoutRef.current);
-              tutorialTimeoutRef.current = null;
-          }
+          // Note: tutorialTimeoutRef should only be managed by onMessage function
+          // Removing it from here prevents premature clearing of tutorial messages
       };
   }, [localPlayer, sendInput]);
 
