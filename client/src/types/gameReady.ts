@@ -28,6 +28,7 @@ export interface GameReadyCallbacks {
   onZombieProgress: (progress: number, status: string) => void;
   onCoinCollected?: (count: number) => void;
   onSwordCollected?: (swordModel: THREE.Group, swordPosition: THREE.Vector3) => void;
+  onMessage?: (message: string, duration?: number) => void;
 }
 
 export interface PlayerReadyState {

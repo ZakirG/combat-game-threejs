@@ -103,6 +103,11 @@ function App() {
   const [showZombieAttackFlash, setShowZombieAttackFlash] = useState<boolean>(false);
   const [shouldTriggerHitAnimation, setShouldTriggerHitAnimation] = useState<boolean>(false);
 
+  // --- Tutorial Message State ---
+  const [tutorialMessage, setTutorialMessage] = useState<string>('');
+  const [showTutorialMessage, setShowTutorialMessage] = useState<boolean>(false);
+  const tutorialTimeoutRef = useRef<number | null>(null);
+
   // --- Ref for current input state ---
   const currentInputRef = useRef<InputState>({
     forward: false, backward: false, left: false, right: false,
@@ -217,7 +222,23 @@ function App() {
     onZombieProgress: (progress: number, status: string) => {
       setGameReadyState(prev => ({ ...prev, zombieProgress: progress, zombieStatus: status }));
     },
-    onCoinCollected: handleCoinCollected
+    onCoinCollected: handleCoinCollected,
+    onMessage: (message: string, duration: number = 5000) => {
+      setTutorialMessage(message);
+      setShowTutorialMessage(true);
+      
+      // Clear any existing timeout
+      if (tutorialTimeoutRef.current) {
+        clearTimeout(tutorialTimeoutRef.current);
+      }
+      
+      // Set new timeout to hide message
+      tutorialTimeoutRef.current = setTimeout(() => {
+        setShowTutorialMessage(false);
+        setTutorialMessage('');
+        tutorialTimeoutRef.current = null;
+      }, duration);
+    }
   };
 
   // --- Moved Table Callbacks/Subscription Functions Up ---
@@ -610,6 +631,10 @@ function App() {
               cancelAnimationFrame(animationFrameIdRef.current);
               animationFrameIdRef.current = null;
           }
+          if (tutorialTimeoutRef.current) {
+              clearTimeout(tutorialTimeoutRef.current);
+              tutorialTimeoutRef.current = null;
+          }
       };
   }, [connected, conn, identity, sendInput]);
 
@@ -762,6 +787,32 @@ function App() {
         <MaxComboCounter maxComboCount={maxComboCount} />
           {/* Coin Counter - always show when game is active */}
           <CoinCounter coinCount={totalCoinCount} />
+          
+          {/* Tutorial Message Overlay */}
+          {showTutorialMessage && (
+            <div
+              style={{
+                position: 'fixed',
+                top: '80px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                color: 'white',
+                padding: '15px 30px',
+                borderRadius: '8px',
+                fontSize: '18px',
+                fontFamily: 'Newrocker, serif',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                zIndex: 1500,
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+                backdropFilter: 'blur(4px)'
+              }}
+            >
+              {tutorialMessage}
+            </div>
+          )}
         </>
       )}
 

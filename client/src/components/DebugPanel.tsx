@@ -215,6 +215,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
                 <li>Mouse: Look around</li>
                 <li>Mouse Wheel: Zoom</li>
                 <li>C: Toggle Camera Mode (Follow/Orbital)</li>
+                <li>J: Cycle Weapons</li>
               </ul>
             </div>
           )}

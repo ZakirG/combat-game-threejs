@@ -83,6 +83,10 @@ const ANIMATIONS = {
   POWERUP: 'powerup', // Sword power-up animation
 };
 
+// Weapon switching system configuration
+const WEAPON_MODES = ['UNARMED', 'SWORD'] as const;
+type WeaponMode = typeof WEAPON_MODES[number];
+
 // Attack combo configuration - easily customizable
 const ATTACK_COMBO_ANIMATIONS_EQUIPPED = ['attack1', 'attack2', 'attack3', 'attack4', 'attack5', 'attack6'];
 const ATTACK_COMBO_ANIMATIONS_UNEQUIPPED = ['attack1', 'attack2', 'attack3', 'attack4', 'attack5', 'attack6']; // No repeats when unequipped
@@ -147,6 +151,11 @@ export const Player: React.FC<PlayerProps> = ({
   const characterConfig = useMemo(() => getCharacterConfig(characterClass), [characterClass]);
   const gameplayConfig = useMemo(() => getCharacterGameplayConfig(characterClass), [characterClass]);
   
+  // Weapon switching state management
+  const [weaponIndex, setWeaponIndex] = useState<number>(0); // Start with UNARMED (index 0)
+  const currentWeaponMode = WEAPON_MODES[weaponIndex];
+  const [hasShownWeaponTutorial, setHasShownWeaponTutorial] = useState<boolean>(false);
+  
   // Model management
   const [modelLoaded, setModelLoaded] = useState(false);
   const [model, setModel] = useState<THREE.Group | null>(null);
@@ -206,7 +215,9 @@ export const Player: React.FC<PlayerProps> = ({
   // Sword equipping system
   const [equippedSword, setEquippedSword] = useState<THREE.Group | null>(null);
   const [rightHandBone, setRightHandBone] = useState<THREE.Bone | null>(null);
+  const [backBone, setBackBone] = useState<THREE.Bone | null>(null); // Add back bone for unequipped sword
   const swordAttachmentRef = useRef<THREE.Group | null>(null);
+  const swordModelRef = useRef<THREE.Group | null>(null); // Store sword model reference
   
   // Damage animation state management
   const [isTakingDamage, setIsTakingDamage] = useState<boolean>(false);
@@ -357,11 +368,20 @@ export const Player: React.FC<PlayerProps> = ({
   // Immediate race condition protection - ref is updated synchronously
   const isPlayingPowerUpRef = useRef<boolean>(false);
   
-  // Derive sword equipped state from equippedSword
-  const isSwordEquipped = useMemo(() => !!equippedSword, [equippedSword]);
+  // Derive sword equipped state from weapon mode (sword is "equipped" when in hand, not when on back)
+  const isSwordEquipped = useMemo(() => currentWeaponMode === 'SWORD', [currentWeaponMode]);
   
   // Track previous sword state to prevent unnecessary effect triggers
   const prevSwordEquippedRef = useRef<boolean>(false);
+
+  // Debug: Log weapon mode changes
+  useEffect(() => {
+    if (isLocalPlayer) {
+      console.log(`[Weapon Switch] 🔄 Weapon mode changed to: ${currentWeaponMode} (index: ${weaponIndex})`);
+      console.log(`[Weapon Switch] 🗡️ isSwordEquipped: ${isSwordEquipped}`);
+      console.log(`[Weapon Switch] 📍 Sword model exists: ${!!swordModelRef.current}`);
+    }
+  }, [weaponIndex, currentWeaponMode, isSwordEquipped, isLocalPlayer]);
 
   // --- Client Prediction State ---
   // For gameplay, force high altitude spawn on first entrance
@@ -1492,7 +1512,7 @@ export const Player: React.FC<PlayerProps> = ({
     }
   }, [cameraMode]); // localRotationRef is not a state/prop, so not needed here
 
-  // Set up keyboard handlers for camera toggling
+  // Set up keyboard handlers for camera toggling and weapon switching
   useEffect(() => {
     if (!isLocalPlayer) return;
     
@@ -1501,6 +1521,43 @@ export const Player: React.FC<PlayerProps> = ({
       if (event.code === 'KeyC' && !event.repeat) { // Check for !event.repeat
         toggleCameraMode();
       }
+      
+      // Weapon switching on 'J' key press
+      if (event.code === 'KeyJ' && !event.repeat) {
+        // Prevent weapon switching during attack, power-up, or damage animations
+        if (isAttacking || isPlayingPowerUp || isTakingDamage) {
+          console.log(`[Weapon Switch] ⚠️ Weapon switching blocked during animation state (attacking: ${isAttacking}, powerup: ${isPlayingPowerUp}, damage: ${isTakingDamage})`);
+          return;
+        }
+        
+        // Validate sword model exists before switching
+        if (!swordModelRef.current) {
+          console.log(`[Weapon Switch] ⚠️ No sword model available for switching`);
+          return;
+        }
+        
+        const nextWeaponIndex = (weaponIndex + 1) % WEAPON_MODES.length;
+        const nextWeaponMode = WEAPON_MODES[nextWeaponIndex];
+        
+        console.log(`[Weapon Switch] 🔄 Switching from ${currentWeaponMode} (${weaponIndex}) to ${nextWeaponMode} (${nextWeaponIndex})`);
+        console.log(`[Weapon Switch] 🔍 Current sword parent: ${swordModelRef.current.parent?.constructor.name || 'None'}`);
+        
+        // Update weapon index
+        setWeaponIndex(nextWeaponIndex);
+        
+        // Handle weapon switching logic with small delay to ensure state updates
+        setTimeout(() => {
+          if (nextWeaponMode === 'SWORD') {
+            // Switch to equipped mode - move sword from back to hand
+            console.log(`[Weapon Switch] ⚔️ Equipping sword from back to hand`);
+            moveSwordToHand();
+          } else {
+            // Switch to unequipped mode - move sword from hand to back
+            console.log(`[Weapon Switch] 🎒 Unequipping sword from hand to back`);
+            moveSwordToBack();
+          }
+        }, 50); // Small delay to ensure React state has updated
+      }
     };
     
     window.addEventListener('keydown', handleKeyDown);
@@ -1508,7 +1565,7 @@ export const Player: React.FC<PlayerProps> = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isLocalPlayer, toggleCameraMode]);
+  }, [isLocalPlayer, toggleCameraMode, weaponIndex, currentWeaponMode, isAttacking, isPlayingPowerUp, isTakingDamage]);
 
   // Update the useFrame hook to handle both camera modes and reconciliation
   useFrame((state, delta) => {
@@ -2628,44 +2685,206 @@ export const Player: React.FC<PlayerProps> = ({
     return foundBone;
   }, [characterClass]);
 
-  // Function to equip sword to right hand
-  const equipSword = useCallback((swordModel: THREE.Group, swordPosition: THREE.Vector3) => {
-    if (!model || !rightHandBone) {
-      console.warn('[Player] ⚔️ Cannot equip sword: missing model or right hand bone');
-      // console.log('[Player] 🔍 Debug - model exists:', !!model);
-      // console.log('[Player] 🔍 Debug - rightHandBone exists:', !!rightHandBone);
+  // Function to find the back/spine bone for unequipped sword storage
+  const findBackBone = useCallback((model: THREE.Group): THREE.Bone | null => {
+    let foundBone: THREE.Bone | null = null;
+    
+    console.log(`[Player] 🎒 Starting back bone search for ${characterClass}...`);
+    
+    model.traverse((child) => {
+      if (child instanceof THREE.SkinnedMesh && child.skeleton) {
+        const bones = child.skeleton.bones;
+        
+        // Search for back/spine bone - prioritize mid-spine bones for natural sword placement
+        const backBonePatterns = [
+          // Highest priority - mid spine bones
+          'spine2', 'spine_2', 'spine02', 'chest', 'upper_chest',
+          'mixamorig:spine2', 'mixamorig:spine_2', 'mixamorig:spine02', 'mixamorig:chest',
+          'bip01_spine2', 'bip01_spine_2', 'bone_spine2', 'spine.002',
+          // Medium priority - spine1 bones
+          'spine1', 'spine_1', 'spine01',
+          'mixamorig:spine1', 'mixamorig:spine_1', 'mixamorig:spine01',
+          'bip01_spine1', 'bip01_spine_1', 'bone_spine1', 'spine.001',
+          // Lower priority - general spine bones
+          'spine', 'back', 'torso',
+          'mixamorig:spine', 'mixamorig:back', 'mixamorig:torso',
+          'bip01_spine', 'bone_spine', 'spine.000'
+        ];
+        
+        console.log(`[Player] 🔍 Searching with back-priority patterns:`, backBonePatterns);
+        
+        for (const bone of bones) {
+          const boneName = bone.name.toLowerCase().replace(/[\s_\-\.]/g, '');
+          
+          for (const pattern of backBonePatterns) {
+            const patternClean = pattern.toLowerCase().replace(/[\s_\-\.]/g, '');
+            if (boneName.includes(patternClean) || boneName === patternClean) {
+              console.log(`[Player] 🎒 Found back bone: "${bone.name}" (matched pattern: ${pattern})`);
+              foundBone = bone;
+              return; // Stop traversing once found
+            }
+          }
+        }
+      }
+    });
+    
+    if (!foundBone) {
+      console.warn(`[Player] ⚠️ No suitable back/spine bone found in skeleton for ${characterClass}`);
+    } else {
+      console.log(`[Player] ✅ Final selected back bone: "${foundBone.name}"`);
+    }
+    
+    return foundBone;
+  }, [characterClass]);
+
+  // Function to move sword from back to hand (equipping)
+  const moveSwordToHand = useCallback(() => {
+    if (!swordModelRef.current || !rightHandBone) {
+      console.warn('[Weapon Switch] ⚠️ Cannot move sword to hand: missing sword model or right hand bone');
       return;
     }
+    
+    console.log('[Weapon Switch] ⚔️ Moving sword from back to hand');
+    console.log('[Weapon Switch] 🔍 Current sword parent:', swordModelRef.current.parent?.constructor.name || 'None');
+    
+    // Force cleanup - remove from ALL possible parents to prevent duplication
+    if (swordModelRef.current.parent) {
+      console.log('[Weapon Switch] 🧹 Removing sword from current parent');
+      swordModelRef.current.parent.remove(swordModelRef.current);
+    }
+    
+    // Double-check: remove from back bone specifically if it's there
+    if (backBone && backBone.children.includes(swordModelRef.current)) {
+      console.log('[Weapon Switch] 🧹 Force removing sword from back bone');
+      backBone.remove(swordModelRef.current);
+    }
+    
+    // Clear any existing equipped sword reference to prevent conflicts
+    if (equippedSword && equippedSword !== swordModelRef.current) {
+      console.log('[Weapon Switch] 🧹 Clearing conflicting equipped sword reference');
+      setEquippedSword(null);
+    }
+    
+    // Configure sword for hand attachment
+    const characterScale = gameplayConfig.scale;
+    const swordScale = 1 / characterScale;
+    
+    swordModelRef.current.scale.setScalar(2.5 * swordScale);
+    swordModelRef.current.position.set(0, 25, 3); // Position forward and up from hand bone
+    swordModelRef.current.rotation.set(Math.PI / 2, 0, 0); // Orient sword pointing forward from hand
+    
+    // Verify hand bone doesn't already have the sword to prevent duplication
+    if (rightHandBone.children.includes(swordModelRef.current)) {
+      console.warn('[Weapon Switch] ⚠️ Sword already attached to hand bone, skipping attachment');
+    } else {
+      // Attach to hand bone
+      rightHandBone.add(swordModelRef.current);
+      console.log('[Weapon Switch] ✅ Sword attached to hand bone');
+    }
+    
+    // Update state to reflect equipped status
+    setEquippedSword(swordModelRef.current);
+    swordAttachmentRef.current = swordModelRef.current;
+    
+    console.log('[Weapon Switch] ✅ Sword equipped to hand');
+  }, [rightHandBone, gameplayConfig.scale, createGlowEffect]);
+
+  // Function to move sword from hand to back (unequipping)
+  const moveSwordToBack = useCallback(() => {
+    if (!swordModelRef.current || !backBone) {
+      console.warn('[Weapon Switch] ⚠️ Cannot move sword to back: missing sword model or back bone');
+      return;
+    }
+    
+    console.log('[Weapon Switch] 🎒 Moving sword from hand to back');
+    console.log('[Weapon Switch] 🔍 Current sword parent:', swordModelRef.current.parent?.constructor.name || 'None');
+    
+    // Force cleanup - remove from ALL possible parents to prevent duplication
+    if (swordModelRef.current.parent) {
+      console.log('[Weapon Switch] 🧹 Removing sword from current parent');
+      swordModelRef.current.parent.remove(swordModelRef.current);
+    }
+    
+    // Double-check: remove from hand bone specifically if it's there
+    if (rightHandBone && rightHandBone.children.includes(swordModelRef.current)) {
+      console.log('[Weapon Switch] 🧹 Force removing sword from hand bone');
+      rightHandBone.remove(swordModelRef.current);
+    }
+    
+    // Clear equipped sword state since it's going to back
+    if (equippedSword) {
+      console.log('[Weapon Switch] 🧹 Clearing equipped sword state');
+      setEquippedSword(null);
+      swordAttachmentRef.current = null;
+    }
+    
+    // Configure sword for back attachment
+    const characterScale = gameplayConfig.scale;
+    const swordScale = 1 / characterScale;
+    
+    swordModelRef.current.scale.setScalar(2.0 * swordScale); // Slightly smaller on back
+    swordModelRef.current.position.set(0, 10, -15); // Position behind character, higher up
+    swordModelRef.current.rotation.set(-Math.PI / 2, 0, 0); // Rotate around X-axis to lay flat on back
+    
+    // Verify back bone doesn't already have the sword to prevent duplication
+    if (backBone.children.includes(swordModelRef.current)) {
+      console.warn('[Weapon Switch] ⚠️ Sword already attached to back bone, skipping attachment');
+    } else {
+      // Attach to back bone
+      backBone.add(swordModelRef.current);
+      console.log('[Weapon Switch] ✅ Sword attached to back bone');
+    }
+    
+    // Ensure proper state cleanup
+    setEquippedSword(null); // Clear equipped state since it's on back
+    swordAttachmentRef.current = null; // Clear attachment ref since it's not "equipped"
+    
+    console.log('[Weapon Switch] ✅ Sword stored on back');
+  }, [backBone, gameplayConfig.scale]);
+
+  // Function to equip sword to right hand (modified for weapon switching system)
+  const equipSword = useCallback((swordModel: THREE.Group, swordPosition: THREE.Vector3) => {
+    if (!model || !rightHandBone || !backBone) {
+      console.warn('[Player] ⚔️ Cannot equip sword: missing model, right hand bone, or back bone');
+      console.log('[Player] 🔍 Debug - model exists:', !!model);
+      console.log('[Player] 🔍 Debug - rightHandBone exists:', !!rightHandBone);
+      console.log('[Player] 🔍 Debug - backBone exists:', !!backBone);
+      return;
+    }
+    
+    // Store sword model reference for weapon switching
+    swordModelRef.current = swordModel;
     
     // Prevent multiple attachments
-    if (equippedSword) {
-      // console.log('[Player] ⚔️ Sword already equipped, skipping...');
+    if (equippedSword || swordAttachmentRef.current) {
+      console.log('[Player] ⚔️ Sword already attached, skipping...');
       return;
     }
     
-    // console.log('[Player] ⚔️ Equipping sword to right hand bone:', rightHandBone.name);
-    // console.log('[Player] 🔍 Debug - Bone world position:', rightHandBone.getWorldPosition(new THREE.Vector3()));
+    // Determine effective weapon mode for this pickup
+    let effectiveWeaponMode = currentWeaponMode;
     
-        // Calculate scale relative to character for proper sword sizing
-    const characterScale = gameplayConfig.scale;
-    const swordScale = 1 / characterScale; // Scale relative to character size
-    // console.log('[Player] 📏 Character scale:', characterScale, 'Sword scale multiplier:', swordScale);
-    
-    // Move the original sword model to the hand bone
-    // console.log('[Player] 🗡️ Attaching sword to hand bone...');
-    if (swordModel.parent) {
-      swordModel.parent.remove(swordModel); // Remove from its current parent
+    // Auto-equip sword on first pickup (set to SWORD mode)
+    if (currentWeaponMode === 'UNARMED') {
+      console.log('[Player] ⚔️ First sword pickup - auto-equipping to hand');
+      setWeaponIndex(1); // Switch to SWORD mode (index 1)
+      effectiveWeaponMode = 'SWORD'; // Use SWORD mode for this placement
     }
     
-    // Configure sword properties for hand attachment
-    swordModel.scale.setScalar(2.5 * swordScale); // Much bigger sword (increased from 1.5 to 3.0)
-    swordModel.position.set(0, 25, 3); // Position forward and up from hand bone (hilt at hand level)
-    swordModel.rotation.set(Math.PI / 2, 0, 0); // Orient sword pointing forward from hand
+    console.log(`[Player] ⚔️ Equipping sword in ${effectiveWeaponMode} mode`);
+    console.log('[Player] 🔍 Debug - Bone world position:', rightHandBone.getWorldPosition(new THREE.Vector3()));
     
-    // console.log(`🗡️ [Debug] Sword equipped with scale: ${3.0 * swordScale}, final scale: ${swordModel.scale.x}`);
-    // console.log(`🗡️ [Debug] Character scale: ${characterScale}, swordScale multiplier: ${swordScale}`);
+    // Calculate scale relative to character for proper sword sizing
+    const characterScale = gameplayConfig.scale;
+    const swordScale = 1 / characterScale; // Scale relative to character size
+    console.log('[Player] 📏 Character scale:', characterScale, 'Sword scale multiplier:', swordScale);
     
-    // Restore sword's natural materials (remove red debug color)
+    // Remove the sword from its current parent
+    if (swordModel.parent) {
+      swordModel.parent.remove(swordModel);
+    }
+    
+    // Restore sword's natural materials
     swordModel.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.visible = true;
@@ -2675,15 +2894,41 @@ export const Player: React.FC<PlayerProps> = ({
       }
     });
     
-    rightHandBone.add(swordModel);
-    // console.log('[Player] ✅ Sword attached to hand bone with natural materials');
-    
-    // Store reference
-    setEquippedSword(swordModel);
-    swordAttachmentRef.current = swordModel;
+    // Place sword based on effective weapon mode
+    if (effectiveWeaponMode === 'SWORD') {
+      // Equip to hand
+      console.log('[Player] 🗡️ Attaching sword to hand bone (equipped mode)');
+      swordModel.scale.setScalar(2.5 * swordScale);
+      swordModel.position.set(0, 25, 3); // Position forward and up from hand bone
+      swordModel.rotation.set(Math.PI / 2, 0, 0); // Orient sword pointing forward from hand
+      rightHandBone.add(swordModel);
+      setEquippedSword(swordModel);
+      swordAttachmentRef.current = swordModel;
+    } else {
+      // Place on back (unequipped mode)
+      console.log('[Player] 🎒 Attaching sword to back bone (unequipped mode)');
+      swordModel.scale.setScalar(2.0 * swordScale); // Slightly smaller on back
+      swordModel.position.set(0, 10, -15); // Position behind character, higher up
+      swordModel.rotation.set(-Math.PI / 2, 0, 0); // Rotate around X-axis to lay flat on back
+      backBone.add(swordModel);
+      setEquippedSword(null); // Not equipped when on back
+      swordAttachmentRef.current = null;
+    }
     
     // Trigger visual glow effect for 1 second
     createGlowEffect();
+    
+    // Show weapon tutorial message on first sword pickup
+    if (!hasShownWeaponTutorial && isLocalPlayer) {
+      setHasShownWeaponTutorial(true);
+      
+      // Show message for 5 seconds
+      if (gameReadyCallbacks?.onMessage) {
+        gameReadyCallbacks.onMessage('To cycle weapons, press J', 5000);
+      } else {
+        console.log('[Weapon Tutorial] 📢 To cycle weapons, press J');
+      }
+    }
     
     // console.log('[Player] ✅ Sword equipped and ready! Playing power-up animation...');
     // console.log(`🔍 [Debug] Available animations:`, Object.keys(animations));
@@ -2908,28 +3153,40 @@ export const Player: React.FC<PlayerProps> = ({
         playAnimation(ANIMATIONS.IDLE, 0.3);
       }
     }, 100); // Short delay to ensure state updates have propagated
-  }, [model, rightHandBone, equippedSword, animations, isAttacking, currentAnimation, playAnimation, getAnimationTimeScale, characterClass, gameplayConfig.scale, ANIMATIONS.POWERUP, ANIMATIONS.IDLE, setIsPlayingPowerUp, setIsMovementFrozen, playerData.currentAnimation, localPositionRef]);
+  }, [model, rightHandBone, backBone, currentWeaponMode, equippedSword, animations, isAttacking, currentAnimation, playAnimation, getAnimationTimeScale, characterClass, gameplayConfig.scale, ANIMATIONS.POWERUP, ANIMATIONS.IDLE, setIsPlayingPowerUp, setIsMovementFrozen, playerData.currentAnimation, localPositionRef]);
 
-  // Function to unequip sword
+  // Function to completely remove sword (for external calls)
   const unequipSword = useCallback(() => {
-    if (equippedSword && rightHandBone) {
-      rightHandBone.remove(equippedSword);
+    if (swordModelRef.current) {
+      // Remove sword from whatever bone it's currently attached to
+      if (swordModelRef.current.parent) {
+        swordModelRef.current.parent.remove(swordModelRef.current);
+      }
+      
+      // Clear all references
       setEquippedSword(null);
       swordAttachmentRef.current = null;
-      // console.log('[Player] ⚔️ Sword unequipped! Animation system will switch back to default animations.');
+      swordModelRef.current = null;
+      
+      // Reset weapon mode to unarmed
+      setWeaponIndex(0);
+      
+      console.log('[Player] ⚔️ Sword completely removed! Animation system will switch back to default animations.');
     }
     
     // Clean up any active glow effect
     removeGlowEffect();
-  }, [rightHandBone, equippedSword, removeGlowEffect]);
+  }, [removeGlowEffect]);
 
-  // Find right hand bone when model loads
+  // Find right hand bone and back bone when model loads
   useEffect(() => {
     if (model && isLocalPlayer) {
-      const bone = findRightHandBone(model);
-      setRightHandBone(bone);
+      const handBone = findRightHandBone(model);
+      const spineBone = findBackBone(model);
+      setRightHandBone(handBone);
+      setBackBone(spineBone);
     }
-  }, [model, isLocalPlayer, findRightHandBone]);
+  }, [model, isLocalPlayer, findRightHandBone, findBackBone]);
 
   // Handle animation switching when sword is equipped/unequipped (but not during combat or power-up)
   useEffect(() => {
@@ -3096,6 +3353,11 @@ export const Player: React.FC<PlayerProps> = ({
             <div className="nametag">
             <div className="nametag-text">{playerData.username}</div>
             <div className="nametag-class">{(playerData as any).xHandle || ''}</div>
+            {isLocalPlayer && isDebugPanelVisible && (
+              <div className="nametag-debug" style={{ fontSize: '10px', color: '#ffff00' }}>
+                {currentWeaponMode} ({weaponIndex})
+              </div>
+            )}
             </div>
         </Html>
       )}

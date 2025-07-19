@@ -222,6 +222,10 @@ export const JoinGameDialog: React.FC<JoinGameDialogProps> = ({ onJoin }) => {
                 <span style={styles.controlKey}>C:</span>
                 <span style={styles.controlDescription}>Toggle Camera Mode</span>
               </div>
+              <div style={styles.controlItem}>
+                <span style={styles.controlKey}>J:</span>
+                <span style={styles.controlDescription}>Cycle Weapons</span>
+              </div>
             </div>
             <button onClick={handleControlsToggle} style={styles.button}>Back</button>
           </div>
