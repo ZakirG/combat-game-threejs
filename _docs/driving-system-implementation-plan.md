@@ -401,6 +401,75 @@ Based on verified learnings:
 4. **Consider client-side approaches** for UI state that doesn't need server validation
 5. **Test reducer calls in isolation** before implementing complex state synchronization
 
+# More Learnings from our First Attempt at Implementing the Driving Feature
+
+# GLTF Loading & Subscription Bug Fixes
+
+## Bug 1: GLTF Loader Constructor Error
+
+**Error**: `window.GLTFLoader is not a constructor`
+
+**Root Cause**: Attempted to instantiate GLTFLoader from global window object which doesn't exist in browser context.
+
+**Problematic Code**:
+```typescript
+const gltfLoader = new (window as any).GLTFLoader();
+gltfLoader.load('/models/items/cybertruck.glb', callback);
+```
+
+**Fix**: Use React Three Fiber's `useGLTF` hook from `@react-three/drei`:
+```typescript
+const gltf = useGLTF('/models/items/cybertruck.glb');
+useEffect(() => {
+  if (gltf?.scene) {
+    // Process loaded model
+  }
+}, [gltf]);
+```
+
+**Key Learning**: In React Three Fiber, use hooks from `@react-three/drei` for asset loading, not direct Three.js loaders.
+
+## Bug 2: Subscription Unsubscribe TypeError
+
+**Error**: `this.db.unsubscribe is not a function`
+
+**Root Cause**: SpacetimeDB subscription object structure inconsistent, cleanup functions called without type checking.
+
+**Problematic Code**:
+```typescript
+return () => {
+  subscription.unsubscribe();
+  unsubscribeInsert();
+};
+```
+
+**Fix**: Add defensive type checking:
+```typescript
+return () => {
+  if (subscription && typeof subscription.unsubscribe === 'function') {
+    subscription.unsubscribe();
+  }
+  if (unsubscribeInsert && typeof unsubscribeInsert === 'function') {
+    unsubscribeInsert();
+  }
+};
+```
+
+**Key Learning**: Always validate function existence before calling cleanup methods in SpacetimeDB subscriptions.
+
+## Additional Fix: Model Fallback
+
+Added geometric primitive fallback to ensure driving system functionality regardless of model loading:
+```typescript
+<mesh castShadow receiveShadow>
+  <boxGeometry args={[6, 3, 12]} />
+  <meshStandardMaterial color={isOccupied ? "#ff4444" : "#888888"} />
+</mesh>
+```
+
+**Pattern**: Always provide functional fallbacks for 3D assets to prevent feature blocking. 
+
+
 ## Implementation Order
 
 1. **Server Foundation**: Database changes, basic reducers
@@ -410,4 +479,3 @@ Based on verified learnings:
 5. **Combat System**: Run-over mechanics and damage application
 6. **Polish & Testing**: Camera transitions, edge cases, optimization
 
-This plan ensures minimal disruption to existing systems while adding comprehensive driving functionality that integrates seamlessly with the current game mechanics. 
