@@ -258,7 +258,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
     </Canvas>
     
     {/* Controls Panel is rendered only after the player has joined the game */}
-    {showControlsPanel && <ControlsPanel autoShowOnLoad={true} gameReady={gameReady} />}
+    {showControlsPanel && <ControlsPanel autoShowOnLoad={false} gameReady={gameReady} />}
     </div>
   );
 };

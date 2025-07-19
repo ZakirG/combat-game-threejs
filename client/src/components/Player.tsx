@@ -206,10 +206,15 @@ export const Player: React.FC<PlayerProps> = ({
   // Glow effect system for sword equipping
   const [glowMesh, setGlowMesh] = useState<THREE.Mesh | null>(null);
   const glowTimeoutRef = useRef<number | null>(null);
+  const glowMeshRef = useRef<THREE.Mesh | null>(null); // Add ref for immediate tracking
   
   // Create glow effect for character model
   const createGlowEffect = useCallback(() => {
-    if (!model || !group.current || glowMesh) return; // Don't create if already exists
+    // Enhanced guard conditions - use ref for immediate check
+    if (!model || !group.current || glowMeshRef.current) return; // Check ref instead of state
+    
+    // Clear any existing glow effect first (defensive cleanup)
+    removeGlowEffect();
     
     // console.log('[Player] ✨ Creating 4-layer expanding glow effect for sword equipping...');
     
@@ -266,7 +271,10 @@ export const Player: React.FC<PlayerProps> = ({
     
     // Add glow group directly to scene
     scene.add(glowGroup);
+    
+    // Set both state and ref immediately for tracking
     setGlowMesh(glowGroup as any); // Store as glowMesh for tracking
+    glowMeshRef.current = glowGroup as any; // Immediate ref update
     
     // console.log('[Player] ✅ 4-layer expanding glow effect created and added to scene');
     
@@ -280,24 +288,26 @@ export const Player: React.FC<PlayerProps> = ({
   
   // Remove glow effect
   const removeGlowEffect = useCallback(() => {
-    if (glowMesh && group.current) {
+    const currentGlow = glowMeshRef.current || glowMesh; // Use ref first, then state
+    
+    if (currentGlow && group.current) {
       // console.log('[Player] ✨ Removing 4-layer glow effect...');
       
       // Get scene reference and remove glow group
       const scene = group.current.parent as THREE.Scene;
       if (scene) {
-        scene.remove(glowMesh);
+        scene.remove(currentGlow);
         // console.log('[Player] ✅ Glow group removed from scene');
       } else {
         // Fallback: remove from parent if it exists
-        if (glowMesh.parent) {
-          glowMesh.parent.remove(glowMesh);
+        if (currentGlow.parent) {
+          currentGlow.parent.remove(currentGlow);
           // console.log('[Player] ✅ Glow group removed from parent');
         }
       }
       
       // Dispose of all geometries and materials in the group to prevent memory leaks
-      glowMesh.children.forEach((child: THREE.Mesh) => {
+      currentGlow.children.forEach((child: THREE.Mesh) => {
         if (child.geometry) {
           child.geometry.dispose();
         }
@@ -305,10 +315,13 @@ export const Player: React.FC<PlayerProps> = ({
           (child.material as THREE.Material).dispose();
         }
       });
-      
-      setGlowMesh(null);
     }
     
+    // Clear both state and ref
+    setGlowMesh(null);
+    glowMeshRef.current = null;
+    
+    // Clear timeout
     if (glowTimeoutRef.current) {
       clearTimeout(glowTimeoutRef.current);
       glowTimeoutRef.current = null;
@@ -1531,22 +1544,23 @@ export const Player: React.FC<PlayerProps> = ({
       }
 
       // Update glow effect animation if active
-      if (glowMesh && group.current) {
+      const currentGlow = glowMeshRef.current || glowMesh; // Use ref first, then state
+      if (currentGlow && group.current) {
         const currentTime = performance.now();
-        const startTime = (glowMesh as any).startTime || currentTime;
+        const startTime = (currentGlow as any).startTime || currentTime;
         const elapsed = (currentTime - startTime) / 1000; // Convert to seconds
         const progress = Math.min(elapsed / 1.0, 1.0); // Progress from 0 to 1 over 1 second
         
         // Expanding animation - scale increases over time
         const expansionFactor = 1.0 + progress * 2.0; // Expand to 3x original size
-        glowMesh.scale.set(expansionFactor, expansionFactor, expansionFactor);
+        currentGlow.scale.set(expansionFactor, expansionFactor, expansionFactor);
         
         // Fade-out animation - opacity decreases over time
         const fadeOpacity = 1.0 - progress; // Fade from 1.0 to 0.0
         
         // Update each layer's opacity
-        const initialOpacities = (glowMesh as any).initialOpacities || [0.6, 0.4, 0.25, 0.15];
-        glowMesh.children.forEach((child: THREE.Mesh, index: number) => {
+        const initialOpacities = (currentGlow as any).initialOpacities || [0.6, 0.4, 0.25, 0.15];
+        currentGlow.children.forEach((child: THREE.Mesh, index: number) => {
           if (child.material && 'opacity' in child.material) {
             const material = child.material as THREE.MeshBasicMaterial;
             material.opacity = initialOpacities[index] * fadeOpacity;
@@ -1556,8 +1570,8 @@ export const Player: React.FC<PlayerProps> = ({
         // Keep glow positioned at player's current world location
         const playerWorldPosition = new THREE.Vector3();
         group.current.getWorldPosition(playerWorldPosition);
-        glowMesh.position.copy(playerWorldPosition);
-        glowMesh.position.y += 1; // Keep it slightly above ground
+        currentGlow.position.copy(playerWorldPosition);
+        currentGlow.position.y += 1; // Keep it slightly above ground
       }
 
       // Update latest server data ref for local player
@@ -1967,7 +1981,22 @@ export const Player: React.FC<PlayerProps> = ({
               }
             }, 300); // 300ms delay to let attack animation play
             
-            // Complete the attack after full animation duration
+            // Calculate the actual animation duration for this specific attack
+            const actualAnimName = attackIsSword ? `sword_${attackAnimation}` : attackAnimation;
+            const animAction = animations[actualAnimName];
+            let animationDuration = 1000; // Default fallback
+            
+            if (animAction && animAction.getClip()) {
+              const clip = animAction.getClip();
+              const timeScale = getAnimationTimeScale(characterClass, attackAnimation, attackIsSword);
+              // Calculate actual duration based on clip duration and time scale
+              animationDuration = (clip.duration / timeScale) * 1000; // Convert to milliseconds
+              // Add small buffer (50ms) to ensure animation completes
+              animationDuration += 50;
+              console.log(`[ATTACK_TRACE] ⏰ Calculated attack duration: ${animationDuration.toFixed(0)}ms (clip: ${clip.duration.toFixed(2)}s, timeScale: ${timeScale})`);
+            }
+
+            // Complete the attack after actual animation duration
             attackTimeoutRef.current = setTimeout(() => {
               console.log(`[ATTACK_TRACE] 🏁 Attack animation completed - transitioning from attacking state`);
               
@@ -2021,11 +2050,11 @@ export const Player: React.FC<PlayerProps> = ({
                   const movementAnimation = `${moveType}-${direction}`;
                   
                   console.log(`[ATTACK_TRACE] 🏃 Post-attack transition: Player moving, switching to ${movementAnimation}`);
-                  playAnimation(movementAnimation, 0.3);
+                  playAnimation(movementAnimation, 0.1);
                 } else {
                   // Player is not moving, transition to idle
                   console.log(`[ATTACK_TRACE] 🧍 Post-attack transition: Player idle, switching to idle`);
-                  playAnimation(ANIMATIONS.IDLE, 0.3);
+                  playAnimation(ANIMATIONS.IDLE, 0.1);
                 }
               }
               
@@ -2040,9 +2069,9 @@ export const Player: React.FC<PlayerProps> = ({
                   }
                 }, COMBO_WINDOW);
               }
-            }, 1000); // 1 second for full attack animation to complete
-            
-            console.log(`[ATTACK_TRACE] ⏰ Attack timeout set for 1000ms`);
+                          }, animationDuration); // Use calculated animation duration
+              
+              console.log(`[ATTACK_TRACE] ⏰ Attack timeout set for ${animationDuration.toFixed(0)}ms`);
             
           } else if (!currentInput.attack) {
             wasAttackPressed.current = false;
@@ -2404,12 +2433,9 @@ export const Player: React.FC<PlayerProps> = ({
             Object.entries(animations).forEach(([name, action]) => {
               if (action.paused || (action.weight > 0 && !action.isRunning())) {
                 stuckCount++;
-                console.log(`[MIXER_TRACE] ⚠️ Stuck animation found: ${name} (weight=${action.weight}, paused=${action.paused})`);
               }
             });
-            if (stuckCount > 0) {
-              console.log(`[MIXER_TRACE] ⚠️ Total stuck animations: ${stuckCount}`);
-            }
+            
           }
         }
       }
