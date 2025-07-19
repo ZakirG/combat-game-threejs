@@ -327,6 +327,80 @@ const VEHICLE_PHYSICS = {
 - Ensure vehicle doesn't get stuck in environment geometry
 - Handle animation conflicts during state transitions
 
+## Stuff We Learned on Our First Attempt at Implementing This
+
+#### 1. Server Module Publishing Requirements
+**Problem**: Reducers not available on server despite being defined in code.
+**Root Cause**: Server module needs to be rebuilt and republished after any reducer changes.
+**Solution (VERIFIED)**:
+```bash
+# In server/ directory
+spacetime build
+spacetime publish vibe-multiplayer -s http://127.0.0.1:5555
+```
+**Key Learning**: Client was calling `conn.reducers.toggleDrivingMode()` successfully, but server had no `toggle_driving_mode` reducer because module wasn't republished.
+
+#### 2. Cybertruck Position Coordinate Mismatch  
+**Problem**: Distance calculation failed because driving logic used wrong vehicle coordinates.
+**Root Cause**: Actual Cybertruck spawn position is `[-1, -1.0, -140]` (defined in `CYBERTRUCK_SPAWN_POSITION`), but driving logic assumed `[50, 0, 50]`.
+**Solution (VERIFIED)**: 
+```typescript
+// Use actual cybertruck coordinates from EnvironmentAssets.tsx
+const vehiclePosition = new THREE.Vector3(-1, 0, -140);
+```
+**Key Learning**: Always reference the actual model spawn coordinates, not arbitrary coordinates.
+
+#### 3. SpacetimeDB React State Management Issues
+**Problem**: React state shows `connected: false`, `identity: undefined`, `localPlayer: null` even when connection works.
+**Root Cause**: SpacetimeDB React integration has broken state synchronization - the connection object exists but React state gets reset/nullified.
+**Solution (VERIFIED)**:
+```typescript
+// Bypass broken React state by extracting from connection object directly
+let workingIdentity = identity;
+if (!workingIdentity && conn) {
+  const connIdentity = (conn as any).identity || (conn as any)._identity;
+  if (connIdentity) {
+    workingIdentity = connIdentity;
+  }
+}
+
+if (conn && workingIdentity) {
+  conn.reducers.toggleDrivingMode(); // This works
+}
+```
+**Key Learning**: SpacetimeDB React state is unreliable - use connection object directly when React state fails.
+
+#### 4. Client-Side Approach Success
+**Problem**: Server-side state management complexity with broken React integration.
+**Solution (VERIFIED)**: Client-side only driving state management bypasses all SpacetimeDB state issues.
+**Implementation**:
+```typescript
+// Client-side driving state (no server complexity)
+const [isDriving, setIsDriving] = useState(false);
+const [vehiclePosition, setVehiclePosition] = useState(() => new THREE.Vector3(-1, 0, -140));
+
+// Distance check works with correct coordinates
+const distance = Math.sqrt(
+  Math.pow(playerPos.x - vehiclePosition.x, 2) + 
+  Math.pow(playerPos.z - vehiclePosition.z, 2)
+);
+
+if (distance < 10) {
+  setIsDriving(!isDriving); // Simple client-side toggle
+}
+```
+**Key Learning**: For rapid prototyping, client-side state management is more reliable than complex server synchronization.
+
+### Implementation Strategy Adjustments
+
+Based on verified learnings:
+
+1. **Always rebuild and republish server module** after any reducer changes
+2. **Use actual coordinate references** from existing spawn position constants  
+3. **Extract identity from connection object** when React state fails
+4. **Consider client-side approaches** for UI state that doesn't need server validation
+5. **Test reducer calls in isolation** before implementing complex state synchronization
+
 ## Implementation Order
 
 1. **Server Foundation**: Database changes, basic reducers

@@ -48,6 +48,7 @@ export interface CharacterAnimationTable {
   death: string;
   falling: string;
   landing: string;
+  driving?: string; // Driving animation for when player is in vehicle
   powerup?: string; // Optional power-up animation when sword is equipped
 }
 
@@ -124,7 +125,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       damage: "Hit To Body.fbx",
       death: "Standing React Death Backward.fbx",
       falling: "Falling Idle.fbx", // Use available falling animation
-      landing: "Falling To Landing.fbx" // Use available landing animation
+      landing: "Hard Landing.fbx", // Use available landing animation
+      driving: "Driving.fbx" // Driving animation for vehicle mode
     },
     animations: {
       default: {
@@ -149,7 +151,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         damage: "Hit To Body.fbx",
         death: "Standing React Death Backward.fbx",
         falling: "Falling Idle.fbx", // Use available falling animation
-        landing: "Falling To Landing.fbx" // Use available landing animation
+        landing: "Hard Landing.fbx", // Use available landing animation
+      driving: "Driving.fbx" // Driving animation for vehicle mode
       },
       sword: {
         idle: "Sword And Shield Idle.fbx",
@@ -172,8 +175,9 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         damage: "Hit To Body.fbx", // Keep same damage animation
         death: "Standing React Death Backward.fbx", // Keep same death animation
         falling: "Falling Idle.fbx", // Keep same falling animation
-        landing: "Falling To Landing.fbx", // Keep same landing animation
-        powerup: "Sword And Shield Power Up.fbx" // Special power-up animation when sword is equipped
+              landing: "Hard Landing.fbx", // Keep same landing animation
+      driving: "Driving.fbx", // Driving animation for vehicle mode
+      powerup: "Sword And Shield Power Up.fbx" // Special power-up animation when sword is equipped
       }
     },
     timeScale: {
