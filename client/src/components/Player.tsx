@@ -81,6 +81,11 @@ const ANIMATIONS = {
   POWERUP: 'powerup', // Sword power-up animation
 };
 
+// Attack combo configuration - easily customizable
+const ATTACK_COMBO_ANIMATIONS_EQUIPPED = ['attack1', 'attack1', 'attack2', 'attack2', 'attack3', 'attack3', 'attack4', 'attack4'];
+const ATTACK_COMBO_ANIMATIONS_UNEQUIPPED = ['attack1', 'attack2', 'attack3', 'attack4']; // No repeats when unequipped
+const ATTACK_COMBO_IS_SWORD = [true, true, true, true, true, true, true, true]; // true = sword, false = melee
+
 // Note: Movement speeds are now defined per-character in characterConfigs.ts
 
 // --- Client-side Prediction Constants ---
@@ -1721,43 +1726,21 @@ export const Player: React.FC<PlayerProps> = ({
             
             if (comboActive && timeSinceLastAttack <= COMBO_WINDOW) {
               isComboAttack = true;
-              if (comboStage === 1) {
-                attackAnimation = ANIMATIONS.ATTACK;  // Repeat attack1 for melee
-                comboDescription = 'SECOND';
-              } else if (comboStage === 2) {
-                attackAnimation = ANIMATIONS.ATTACK2; // Sword attack2
-                comboDescription = 'THIRD';
-              } else if (comboStage === 3) {
-                attackAnimation = ANIMATIONS.ATTACK2; // Repeat attack2 for melee
-                comboDescription = 'FOURTH';
-              } else if (comboStage === 4) {
-                attackAnimation = ANIMATIONS.ATTACK3; // Sword attack3
-                comboDescription = 'FIFTH';
-              } else if (comboStage === 5) {
-                attackAnimation = ANIMATIONS.ATTACK3; // Repeat attack3 for melee
-                comboDescription = 'SIXTH';
-              } else if (comboStage === 6) {
-                attackAnimation = ANIMATIONS.ATTACK4; // Sword attack4
-                comboDescription = 'SEVENTH';
-              } else if (comboStage === 7) {
-                attackAnimation = ANIMATIONS.ATTACK4; // Repeat attack4 for melee
-                comboDescription = 'EIGHTH';
-              }
+              // Use array-based combo system - different arrays for equipped vs unequipped
+              const animationArray = isSwordEquipped ? ATTACK_COMBO_ANIMATIONS_EQUIPPED : ATTACK_COMBO_ANIMATIONS_UNEQUIPPED;
+              const comboIndex = comboStage % animationArray.length;
+              attackAnimation = animationArray[comboIndex];
+              const comboStageNames = ['SECOND', 'THIRD', 'FOURTH', 'FIFTH', 'SIXTH', 'SEVENTH', 'EIGHTH'];
+              comboDescription = comboStageNames[comboStage - 1] || 'COMBO';
             }
             
             // console.log(`🔍 [DEBUG] After combo logic - attackAnimation: ${attackAnimation}, isComboAttack: ${isComboAttack}, comboDescription: ${comboDescription}`);
             
-            // For sword-equipped characters, alternate between sword and melee attacks
+            // Determine if attack is sword or melee based on configuration arrays
             if (isSwordEquipped) {
-              // Even stages (0,2,4,6): Sword attacks
-              // Odd stages (1,3,5,7): Melee attacks
-              if (comboStage % 2 === 0) {
-                attackIsSword = true;
-                comboDescription += ' SWORD';
-              } else {
-                attackIsSword = false;
-                comboDescription += ' MELEE';
-              }
+              const comboIndex = comboStage % ATTACK_COMBO_IS_SWORD.length;
+              attackIsSword = ATTACK_COMBO_IS_SWORD[comboIndex];
+              comboDescription += attackIsSword ? ' SWORD' : ' MELEE';
             } else {
               // Not sword equipped: all attacks are melee
               attackIsSword = false;
