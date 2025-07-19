@@ -174,7 +174,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         attack1: "Great Sword High Spin Attack.fbx",
         attack2: "Sword And Shield Slash B.fbx",
         attack3: "Sword And Shield Attack B.fbx",
-        attack4: "Sword And Shield Slash.fbx",
+        attack4: "Sword And Shield Attack A.fbx",
         attack5: "Kicking - Sword Spin Kick.fbx", // Fifth sword combo attack
         attack6: "Great Sword Kick.fbx", // Sixth sword combo attack
         'ninja-run-attack': "Sprinting Forward Roll.fbx", // Ninja run attack using sprinting forward roll

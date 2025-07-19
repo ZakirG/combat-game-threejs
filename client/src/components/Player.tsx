@@ -2479,6 +2479,24 @@ export const Player: React.FC<PlayerProps> = ({
         // Track why the power-up ref is stuck
         console.log(`🔍 POWERUP_BLOCKING: Ref=${isPlayingPowerUpRef.current}, blocking '${serverAnim}' transition from '${currentAnimation}'`);
         console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${finalAnimation}' during sword power-up animation (LOCAL PLAYER ONLY) - State: ${isPlayingPowerUp}, Ref: ${isPlayingPowerUpRef.current}`);
+        
+        // FAILSAFE: Force clear stuck ref if it's been blocking movement animations
+        if (!isPlayingPowerUp && isPlayingPowerUpRef.current && 
+            (serverAnim === 'run-forward' || serverAnim === 'walk-forward' || serverAnim === 'idle')) {
+          console.log(`🛡️ FAILSAFE: Detected stuck power-up ref blocking '${serverAnim}'. Force clearing ref!`);
+          isPlayingPowerUpRef.current = false;
+          setIsPlayingPowerUp(false);
+          setIsMovementFrozen(false);
+          frozenPositionRef.current = null;
+          if (powerUpTimeoutRef.current) {
+            clearTimeout(powerUpTimeoutRef.current);
+            powerUpTimeoutRef.current = null;
+          }
+          console.log(`🛡️ FAILSAFE: Ref cleared! Retrying animation: ${finalAnimation}`);
+          // Retry the animation now that ref is cleared
+          playAnimation(finalAnimation, 0.3);
+          return;
+        }
       } else if (isLocalPlayer && isTakingDamage) {
         console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${serverAnim}' during damage animation (LOCAL PLAYER ONLY)`);
       } else if (finalAnimation && finalAnimation !== currentAnimation && animations[finalAnimation]) {
@@ -2532,7 +2550,7 @@ export const Player: React.FC<PlayerProps> = ({
       setIsMovementFrozen(false);
       isPlayingPowerUpRef.current = false; // Clear race condition protection
       frozenPositionRef.current = null; // Clear frozen position
-      // console.log(`[Player] 🧹 Power-up timeout cleared and movement unfrozen due to sword unequip`);
+      console.log(`🛡️ POWERUP_REF: Cleared to FALSE due to sword unequip at ${Date.now()}`);
     }
   }, [equippedSword]);
 
@@ -2677,7 +2695,7 @@ export const Player: React.FC<PlayerProps> = ({
     
     // IMMEDIATE race condition protection - set ref synchronously
     isPlayingPowerUpRef.current = true;
-    // console.log(`🛡️ [Race Protection] Set isPlayingPowerUpRef to true immediately`);
+    console.log(`🛡️ POWERUP_REF: Set to TRUE at ${Date.now()} (sword equipping)`);
     
     // Move player to sword position immediately and freeze there (X/Z only, keep player on ground)
     const swordGroundPosition = new THREE.Vector3(
@@ -2739,13 +2757,14 @@ export const Player: React.FC<PlayerProps> = ({
         
         // Clear any existing power-up timeout
         if (powerUpTimeoutRef.current) {
+          console.log(`🛡️ POWERUP_REF: Clearing existing timeout before setting new one`);
           clearTimeout(powerUpTimeoutRef.current);
         }
         
-        // console.log(`[Player] ⚡ Power-up will last for ${powerUpDuration}ms`);
+        console.log(`🛡️ POWERUP_REF: Setting 1-second timeout to clear ref at ${Date.now() + powerUpDuration}`);
         
         powerUpTimeoutRef.current = setTimeout(() => {
-          // console.log('[Player] ⚡ Power-up duration complete - EXITING POWER-UP MODE');
+          console.log(`🛡️ POWERUP_REF: Timeout fired! Clearing ref to FALSE at ${Date.now()}`);
           
           // Exit power-up mode and unfreeze movement
           setIsPlayingPowerUp(false);
@@ -2838,7 +2857,7 @@ export const Player: React.FC<PlayerProps> = ({
               // console.log(`[Player] ⚡ Power-up (polling path) will last for ${powerUpDuration}ms`);
               
               powerUpTimeoutRef.current = setTimeout(() => {
-                // console.log('[Player] ⚡ Power-up duration complete (polling path) - EXITING POWER-UP MODE');
+                console.log(`🛡️ POWERUP_REF: Timeout fired (polling path)! Clearing ref to FALSE at ${Date.now()}`);
                 
                 // Exit power-up mode and unfreeze movement
                 setIsPlayingPowerUp(false);
