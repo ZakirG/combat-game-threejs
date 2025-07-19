@@ -2747,6 +2747,14 @@ export const Player: React.FC<PlayerProps> = ({
     console.log('[Weapon Switch] ⚔️ Moving sword from back to hand');
     console.log('[Weapon Switch] 🔍 Current sword parent:', swordModelRef.current.parent?.constructor.name || 'None');
     
+    // Debug: Show current state of both bones before cleanup
+    if (rightHandBone) {
+      console.log(`[Weapon Switch] 🔍 Hand bone currently has ${rightHandBone.children.length} children:`, rightHandBone.children.map(c => c.constructor.name + (c.name ? ` (${c.name})` : '')));
+    }
+    if (backBone) {
+      console.log(`[Weapon Switch] 🔍 Back bone currently has ${backBone.children.length} children:`, backBone.children.map(c => c.constructor.name + (c.name ? ` (${c.name})` : '')));
+    }
+    
     // Force cleanup - remove from ALL possible parents to prevent duplication
     if (swordModelRef.current.parent) {
       console.log('[Weapon Switch] 🧹 Removing sword from current parent');
@@ -2757,6 +2765,19 @@ export const Player: React.FC<PlayerProps> = ({
     if (backBone && backBone.children.includes(swordModelRef.current)) {
       console.log('[Weapon Switch] 🧹 Force removing sword from back bone');
       backBone.remove(swordModelRef.current);
+    }
+    
+    // AGGRESSIVE CLEANUP: Remove ANY sword-like objects from back bone
+    if (backBone) {
+      const backboneChildren = [...backBone.children]; // Create copy to avoid mutation during iteration
+      backboneChildren.forEach((child, index) => {
+        console.log(`[Weapon Switch] 🔍 Back bone child ${index}:`, child.constructor.name, child.name || 'unnamed');
+        // Remove any child that looks like a sword (Group objects that aren't bones)
+        if (child instanceof THREE.Group && child !== swordModelRef.current) {
+          console.log(`[Weapon Switch] 🧹 Removing potentially duplicate sword from back bone:`, child.name || 'unnamed group');
+          backBone.remove(child);
+        }
+      });
     }
     
     // Clear any existing equipped sword reference to prevent conflicts
@@ -2799,6 +2820,14 @@ export const Player: React.FC<PlayerProps> = ({
     console.log('[Weapon Switch] 🎒 Moving sword from hand to back');
     console.log('[Weapon Switch] 🔍 Current sword parent:', swordModelRef.current.parent?.constructor.name || 'None');
     
+    // Debug: Show current state of both bones before cleanup
+    if (rightHandBone) {
+      console.log(`[Weapon Switch] 🔍 Hand bone currently has ${rightHandBone.children.length} children:`, rightHandBone.children.map(c => c.constructor.name + (c.name ? ` (${c.name})` : '')));
+    }
+    if (backBone) {
+      console.log(`[Weapon Switch] 🔍 Back bone currently has ${backBone.children.length} children:`, backBone.children.map(c => c.constructor.name + (c.name ? ` (${c.name})` : '')));
+    }
+    
     // Force cleanup - remove from ALL possible parents to prevent duplication
     if (swordModelRef.current.parent) {
       console.log('[Weapon Switch] 🧹 Removing sword from current parent');
@@ -2809,6 +2838,19 @@ export const Player: React.FC<PlayerProps> = ({
     if (rightHandBone && rightHandBone.children.includes(swordModelRef.current)) {
       console.log('[Weapon Switch] 🧹 Force removing sword from hand bone');
       rightHandBone.remove(swordModelRef.current);
+    }
+    
+    // AGGRESSIVE CLEANUP: Remove ANY sword-like objects from hand bone
+    if (rightHandBone) {
+      const handboneChildren = [...rightHandBone.children]; // Create copy to avoid mutation during iteration
+      handboneChildren.forEach((child, index) => {
+        console.log(`[Weapon Switch] 🔍 Hand bone child ${index}:`, child.constructor.name, child.name || 'unnamed');
+        // Remove any child that looks like a sword (Group objects that aren't bones)
+        if (child instanceof THREE.Group && child !== swordModelRef.current) {
+          console.log(`[Weapon Switch] 🧹 Removing potentially duplicate sword from hand bone:`, child.name || 'unnamed group');
+          rightHandBone.remove(child);
+        }
+      });
     }
     
     // Clear equipped sword state since it's going to back
