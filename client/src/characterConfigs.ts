@@ -41,6 +41,8 @@ export interface CharacterAnimationTable {
   attack2: string; // Combo attack animation
   attack3: string; // Third combo attack animation
   attack4: string; // Fourth combo attack animation
+  attack5?: string; // Fifth combo attack animation (optional)
+  attack6?: string; // Sixth combo attack animation (optional)
   'cartwheel'?: string; // Special ninja run attack animation
   'ninja-run-attack'?: string; // Ninja run attack using Sprinting Forward Roll
   cast: string;
@@ -120,6 +122,7 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       attack2: "Flip Kick.fbx", // Combo attack animation
       attack3: "Inverted Double Kick To Kip Up.fbx", // Third combo attack animation
       attack4: "Martelo Do Chau.fbx", // Fourth combo attack animation
+      attack5: "Flying Knee Punch Combo.fbx", // Fifth combo attack animation
       'cartwheel': "Cartwheel.fbx", // Special ninja run attack
       cast: "Elbow Punch.fbx",
       damage: "Hit To Body.fbx",
@@ -145,6 +148,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         attack2: "Flip Kick.fbx", // Combo attack animation
         attack3: "Inverted Double Kick To Kip Up.fbx", // Third combo attack animation
         attack4: "Martelo Do Chau.fbx", // Fourth combo attack animation
+        attack5: "Armada.fbx", // Fifth combo attack animation
+        attack6: "Martelo 2.fbx", // Sixth combo attack animation
         'cartwheel': "Cartwheel.fbx", // Special ninja run attack
         'ninja-run-attack': "Sprinting Forward Roll.fbx", // Ninja run attack using sprinting forward roll
         cast: "Elbow Punch.fbx",
@@ -166,10 +171,12 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
         'run-right': "Great Sword Run Right.fbx",
         'ninja-run': "Ninja Run.fbx", // High-speed sprint animation (same for sword)
         jump: "Jump.fbx", // Sword And Shield Jump.fbx
-        attack1: "Sword And Shield Attack.fbx", // Swapped: now the first attack
-        attack2: "Cartwheel.fbx", // Now the second attack
-        attack3: "Sword And Shield Attack B.fbx", // Swapped: third combo attack animation
-        attack4: "Sword And Shield Slash B.fbx", // Fourth combo attack animation
+        attack1: "Great Sword High Spin Attack.fbx",
+        attack2: "Sword And Shield Slash B.fbx",
+        attack3: "Sword And Shield Attack B.fbx",
+        attack4: "Sword And Shield Slash.fbx",
+        attack5: "Kicking - Sword Spin Kick.fbx", // Fifth sword combo attack
+        attack6: "Great Sword Kick.fbx", // Sixth sword combo attack
         'ninja-run-attack': "Sprinting Forward Roll.fbx", // Ninja run attack using sprinting forward roll
         cast: "Great Sword Kick.fbx", // Use kick for casting with sword
         damage: "Hit To Body.fbx", // Keep same damage animation
@@ -192,6 +199,8 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       attack2: 3.0, // Same speed as attack1 for combo consistency
       attack3: 2.5, // Slightly slower for dramatic third combo finisher
       attack4: 3.5, // Faster fourth attack for quick finisher
+      attack5: 2.0, // Double speed for fifth melee attack
+      attack6: 2.0, // Double speed for sixth melee attack
       'cartwheel': 1.5, // Moderate speed for special ninja run attack
       'ninja-run-attack': 2.0, // Double speed for sprinting forward roll attack
       cast: 3.0, // 1.5x speed increase (2.0 * 1.5 = 3.0)
@@ -211,10 +220,12 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
       jump: 2.0, // Normal sword jump speed
       falling: 1.3, // Normal falling speed
       landing: 0.3, // Slower landing with sword
-      attack1: 3.0, // Swapped: Speed for Sword And Shield Slash A.fbx (now first attack)
-      attack2: 1.8, // Speed for Sword And Shield Attack.fbx (now second attack)
-      attack3: 4.0, // Swapped: Speed for Sword And Shield Attack B.fbx (now third attack)
-      attack4: 2.5, // Final sword combo strike
+      attack1: 3.0, 
+      attack2: 4.0, 
+      attack3: 4.0, 
+      attack4: 2.5, 
+      attack5: 2.0, 
+      attack6: 2.0, 
       cast: 2.5, // Sword casting speed
       'ninja-run-attack': 2.0, // Double speed for sprinting forward roll attack
       powerup: 1.2, // Power-up animation speed when sword is equipped

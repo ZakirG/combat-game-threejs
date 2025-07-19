@@ -72,6 +72,8 @@ const ANIMATIONS = {
   ATTACK2: 'attack2', // Combo attack animation
   ATTACK3: 'attack3', // Third combo attack animation
   ATTACK4: 'attack4', // Fourth combo attack animation
+  ATTACK5: 'attack5', // Fifth combo attack animation
+  ATTACK6: 'attack6', // Sixth combo attack animation
   NINJA_ATTACK: 'ninja-run-attack', // Special ninja run attack animation (Sprinting Forward Roll)
   CAST: 'cast',
   DAMAGE: 'damage',
@@ -82,9 +84,9 @@ const ANIMATIONS = {
 };
 
 // Attack combo configuration - easily customizable
-const ATTACK_COMBO_ANIMATIONS_EQUIPPED = ['attack1', 'attack1', 'attack2', 'attack2', 'attack3', 'attack3', 'attack4', 'attack4'];
-const ATTACK_COMBO_ANIMATIONS_UNEQUIPPED = ['attack1', 'attack2', 'attack3', 'attack4']; // No repeats when unequipped
-const ATTACK_COMBO_IS_SWORD = [true, true, true, true, true, true, true, true]; // true = sword, false = melee
+const ATTACK_COMBO_ANIMATIONS_EQUIPPED = ['attack1', 'attack2', 'attack3', 'attack4', 'attack5', 'attack6'];
+const ATTACK_COMBO_ANIMATIONS_UNEQUIPPED = ['attack1', 'attack2', 'attack3', 'attack4', 'attack5', 'attack6']; // No repeats when unequipped
+const ATTACK_COMBO_IS_SWORD = [true, true, true, true, true, true]; // true = sword, false = melee
 
 // Note: Movement speeds are now defined per-character in characterConfigs.ts
 
@@ -1730,8 +1732,9 @@ export const Player: React.FC<PlayerProps> = ({
               const animationArray = isSwordEquipped ? ATTACK_COMBO_ANIMATIONS_EQUIPPED : ATTACK_COMBO_ANIMATIONS_UNEQUIPPED;
               const comboIndex = comboStage % animationArray.length;
               attackAnimation = animationArray[comboIndex];
-              const comboStageNames = ['SECOND', 'THIRD', 'FOURTH', 'FIFTH', 'SIXTH', 'SEVENTH', 'EIGHTH'];
-              comboDescription = comboStageNames[comboStage - 1] || 'COMBO';
+              // Generate combo stage names dynamically
+              const ordinalNames = ['SECOND', 'THIRD', 'FOURTH', 'FIFTH', 'SIXTH', 'SEVENTH', 'EIGHTH', 'NINTH', 'TENTH', 'ELEVENTH', 'TWELFTH'];
+              comboDescription = ordinalNames[comboStage - 1] || `COMBO ${comboStage + 1}`;
             }
             
             // console.log(`🔍 [DEBUG] After combo logic - attackAnimation: ${attackAnimation}, isComboAttack: ${isComboAttack}, comboDescription: ${comboDescription}`);
@@ -1772,40 +1775,29 @@ export const Player: React.FC<PlayerProps> = ({
             // Legacy support
             (window as any).currentPlayerAttackIsSword = attackIsSword;
             
-            // Update combo state for next attack (8-hit combo system)
+            // Update combo state for next attack - dynamic based on array length
             // console.log(`🔍 [DEBUG] Before combo update - comboStage: ${comboStage}, comboActive: ${comboActive}`);
+            
+            // Get the max combo stages based on current weapon state
+            const maxComboStages = isSwordEquipped ? ATTACK_COMBO_ANIMATIONS_EQUIPPED.length : ATTACK_COMBO_ANIMATIONS_UNEQUIPPED.length;
             
             if (comboStage === 0 || timeSinceLastAttack > COMBO_WINDOW) {
               // First attack or combo window expired - start new combo chain
               setComboActive(true);
               setComboStage(1); // Next attack will be stage 1
               // console.log(`[Player] 👊 First attack, combo window opened for stage 1`);
-            } else if (comboStage === 1) {
-              setComboStage(2);
-              // console.log(`[Player] 🥊 Stage 1 → Stage 2`);
-            } else if (comboStage === 2) {
-              setComboStage(3);
-              // console.log(`[Player] 💥 Stage 2 → Stage 3`);
-            } else if (comboStage === 3) {
-              setComboStage(4);
-              // console.log(`[Player] 🔥 Stage 3 → Stage 4`);
-            } else if (comboStage === 4) {
-              setComboStage(5);
-              // console.log(`[Player] ⚡ Stage 4 → Stage 5`);
-            } else if (comboStage === 5) {
-              setComboStage(6);
-              // console.log(`[Player] 🌟 Stage 5 → Stage 6`);
-            } else if (comboStage === 6) {
-              setComboStage(7);
-              // console.log(`[Player] 💫 Stage 6 → Stage 7`);
-            } else if (comboStage === 7) {
-              // Eighth attack - reset combo chain
+            } else if (comboStage >= maxComboStages) {
+              // Last attack in combo - reset combo chain
               setComboActive(false);
               setComboStage(0);
-              // console.log(`[Player] 🎆 STAGE 7 COMPLETE! 8-HIT ULTIMATE COMBO FINISHED!`);
+              // console.log(`[Player] 🎆 COMBO COMPLETE! ${maxComboStages}-HIT ULTIMATE COMBO FINISHED!`);
+            } else {
+              // Continue combo - increment stage
+              setComboStage(comboStage + 1);
+              // console.log(`[Player] 🥊 Stage ${comboStage} → Stage ${comboStage + 1}`);
             }
             
-            // console.log(`🔍 [DEBUG] After combo update - new comboStage will be: ${comboStage === 0 || timeSinceLastAttack > COMBO_WINDOW ? 1 : comboStage < 7 ? comboStage + 1 : 0}`);
+            // console.log(`🔍 [DEBUG] After combo update - new comboStage will be: ${comboStage === 0 || timeSinceLastAttack > COMBO_WINDOW ? 1 : comboStage < maxComboStages ? comboStage + 1 : 0}`);
             
             // Clear any existing attack timeout to restart sequence
             if (attackTimeoutRef.current) {
@@ -2048,7 +2040,7 @@ export const Player: React.FC<PlayerProps> = ({
                   if (timeNow - lastAttackTime >= COMBO_WINDOW) {
                     setComboActive(false);
                     setComboStage(0);
-                    // console.log(`[Player] ⏱️ 8-hit combo window expired, reset to normal attacks`);
+                    // console.log(`[Player] ⏱️ Combo window expired, reset to normal attacks`);
                   }
                 }, COMBO_WINDOW);
               }

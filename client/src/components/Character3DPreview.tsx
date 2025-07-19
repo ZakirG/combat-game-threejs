@@ -48,6 +48,8 @@ enum PreviewState {
   ATTACK2 = 'attack2',
   ATTACK3 = 'attack3',
   ATTACK4 = 'attack4',
+  ATTACK5 = 'attack5',
+  ATTACK6 = 'attack6',
   IDLE_LOOP = 'idle_loop'
 }
 
@@ -317,7 +319,7 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
   
   // Load character animations
   const loadAnimations = useCallback((mixer: THREE.AnimationMixer, model: THREE.Group) => {
-    const animationsToLoad = ['idle', 'attack1', 'attack2', 'attack3', 'attack4']; // Full combo sequence
+    const animationsToLoad = ['idle', 'attack1', 'attack2', 'attack3', 'attack4', 'attack5', 'attack6']; // Full combo sequence
     const loadedAnimations: Record<string, THREE.AnimationAction> = {};
     let loadedCount = 0;
     
@@ -486,7 +488,25 @@ const Character3DModel: React.FC<Character3DModelProps> = ({
         break;
         
       case PreviewState.ATTACK4:
-        // Attack4 animation for 1.5 seconds, then back to idle
+        // Attack4 animation for 1.5 seconds, then move to attack5
+        if (stateTimer > 1.5) {
+          setCurrentState(PreviewState.ATTACK5);
+          setStateTimer(0);
+          playAnimation('attack5');
+        }
+        break;
+        
+      case PreviewState.ATTACK5:
+        // Attack5 animation for 1.5 seconds, then move to attack6
+        if (stateTimer > 1.5) {
+          setCurrentState(PreviewState.ATTACK6);
+          setStateTimer(0);
+          playAnimation('attack6');
+        }
+        break;
+        
+      case PreviewState.ATTACK6:
+        // Attack6 animation for 1.5 seconds, then back to idle
         if (stateTimer > 1.5) {
           setCurrentState(PreviewState.IDLE);
           setStateTimer(0);
