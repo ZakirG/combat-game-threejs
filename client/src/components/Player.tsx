@@ -2166,69 +2166,11 @@ export const Player: React.FC<PlayerProps> = ({
             }
           }
 
-          // 2. RECONCILIATION (Position)
-          const serverPosition = new THREE.Vector3(dataRef.current.position.x, dataRef.current.position.y, dataRef.current.position.z);
-          
-          // Only allow reconciliation when physics is enabled, model is ready, and movement is not frozen
-          const allowReconciliation = physicsEnabled && isModelVisible && !isMovementFrozen && !isTakingDamage;
-          
-          if (allowReconciliation) {
-            // Compare local (unflipped) prediction with an unflipped version of the server state
-            const unflippedServerPosition = serverPosition.clone();
-            unflippedServerPosition.x *= -1; // Undo server flip for comparison
-            unflippedServerPosition.z *= -1; // Undo server flip for comparison
-
-            // Calculate horizontal position error only (exclude Y for physics)
-            const localHorizontal = new THREE.Vector3(localPositionRef.current.x, 0, localPositionRef.current.z);
-            const serverHorizontal = new THREE.Vector3(unflippedServerPosition.x, 0, unflippedServerPosition.z);
-            const horizontalError = localHorizontal.distanceTo(serverHorizontal);
-            
-            // Don't reconcile at all if character is still falling from high altitude
-            const isStillFalling = currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
-            
-            // Check if player is currently in air (not on ground) to avoid Y reconciliation during jumping/falling
-            const isInAir = !isOnGround.current || Math.abs(velocityY.current) > 0.1;
-            
-            if (horizontalError > POSITION_RECONCILE_THRESHOLD && !isStillFalling) {
-              // Only reconcile when not falling from altitude
-              if (cameraMode !== CAMERA_MODES.ORBITAL) {
-                  // Only reconcile X and Z coordinates, preserve Y for physics
-                  // ALWAYS only reconcile horizontal position (X/Z), never Y - let client physics handle Y entirely
-                  localPositionRef.current.x = THREE.MathUtils.lerp(localPositionRef.current.x, serverPosition.x, RECONCILE_LERP_FACTOR);
-                  localPositionRef.current.z = THREE.MathUtils.lerp(localPositionRef.current.z, serverPosition.z, RECONCILE_LERP_FACTOR);
-                  
-              }
-            } else if (isStillFalling && localPositionRef.current.y > 120) {
-              // ...
-            }
-            // During falling, skip reconciliation entirely to allow physics to work
-          } else if (isMovementFrozen) {
-            // console.log(`🧊 [Movement Frozen] Skipping server reconciliation during power-up`);
-          } else if (isTakingDamage) {
-            console.log(`[DAMAGE_TRACE] 🧊 Skipping server reconciliation during damage animation`);
-            console.log(`[DAMAGE_TRACE] 📍 Local pos: (${localPositionRef.current.x.toFixed(2)}, ${localPositionRef.current.y.toFixed(2)}, ${localPositionRef.current.z.toFixed(2)})`);
-            console.log(`[DAMAGE_TRACE] 📍 Server pos: (${serverPosition.x.toFixed(2)}, ${serverPosition.y.toFixed(2)}, ${serverPosition.z.toFixed(2)})`);
-          } else {
-            // During initial spawn period before physics is enabled - no reconciliation needed
-            // FORCE character to stay at spawn altitude until physics is enabled
+          // **SINGLE-PLAYER MODE**: No server reconciliation needed
+          // In single-player mode, we trust client-side prediction entirely
+          // Keep the spawn altitude enforcement during initial spawn period
+          if (!physicsEnabled && !isModelVisible) {
             localPositionRef.current.y = SPAWN_ALTITUDE;
-          }
-
-          // 2.5 RECONCILIATION (Rotation) 
-          const serverRotation = new THREE.Euler(0, dataRef.current.rotation.y, 0, 'YXZ');
-          const reconcileTargetQuat = new THREE.Quaternion().setFromEuler(serverRotation);
-          const currentQuat = new THREE.Quaternion().setFromEuler(localRotationRef.current);
-          const rotationError = currentQuat.angleTo(reconcileTargetQuat);
-          
-          // Don't reconcile rotation during falling to prevent camera jitter
-          const isStillFalling = currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
-          
-          if (rotationError > ROTATION_RECONCILE_THRESHOLD && !isStillFalling) {
-              currentQuat.slerp(reconcileTargetQuat, RECONCILE_LERP_FACTOR);
-              localRotationRef.current.setFromQuaternion(currentQuat, 'YXZ');
-              // console.log(`🔄 [Rotation Reconcile] Applied rotation reconciliation - error: ${rotationError.toFixed(3)}`);
-          } else if (isStillFalling) {
-              // console.log(`🚫 [Rotation Reconcile] Skipping rotation reconciliation during falling - Y=${localPositionRef.current.y.toFixed(1)}`);
           }
 
           // 3. Apply potentially reconciled predicted position AND reconciled local rotation directly to the model group
@@ -2485,7 +2427,7 @@ export const Player: React.FC<PlayerProps> = ({
     }
   });
 
-  // --- Animation Triggering based on Server State ---
+  // --- Animation Triggering based on Local State (Single-Player Mode) ---
   useEffect(() => {
     // Explicitly wrap hook body
     {
@@ -2495,42 +2437,42 @@ export const Player: React.FC<PlayerProps> = ({
         return;
       }
 
-      const serverAnim = playerData.currentAnimation;
+      const requestedAnim = playerData.currentAnimation;
 
-      // Don't allow server to override falling animation during high altitude descent (LOCAL PLAYER ONLY)
+      // Don't allow animation changes during high altitude descent (LOCAL PLAYER ONLY)
       const isHighAltitudeFalling = isLocalPlayer && currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
 
       // Check BOTH state and ref for immediate protection against race conditions
       const isCurrentlyInPowerUp = isPlayingPowerUp || isPlayingPowerUpRef.current;
       
-      // Check if ninja run should override server animation (LOCAL PLAYER ONLY)
-      let finalAnimation = serverAnim;
-      if (isLocalPlayer && isNinjaRunActive && (serverAnim === ANIMATIONS.RUN_FORWARD || serverAnim === 'sword_run-forward')) {
-        // Override server's run-forward animation with ninja run when ninja run is active
+      // Check if ninja run should override requested animation (LOCAL PLAYER ONLY)
+      let finalAnimation = requestedAnim;
+      if (isLocalPlayer && isNinjaRunActive && (requestedAnim === ANIMATIONS.RUN_FORWARD || requestedAnim === 'sword_run-forward')) {
+        // Override run-forward animation with ninja run when ninja run is active
         finalAnimation = ANIMATIONS.NINJA_RUN;
-        console.log(`🥷 [Ninja Run Animation] Overriding server animation '${serverAnim}' with ninja run`);
+        console.log(`🥷 [Ninja Run Animation] Overriding animation '${requestedAnim}' with ninja run`);
         console.log(`🥷 [Ninja Run Animation] Ninja run animation key: ${ANIMATIONS.NINJA_RUN}`);
         console.log(`🥷 [Ninja Run Animation] Animation exists:`, !!animations[ANIMATIONS.NINJA_RUN]);
       } else if (isLocalPlayer && isNinjaRunActive) {
-        console.log(`🥷 [Ninja Run Animation] Ninja run active but server animation is '${serverAnim}', not overriding`);
+        console.log(`🥷 [Ninja Run Animation] Ninja run active but animation is '${requestedAnim}', not overriding`);
       }
       
-      console.log(`[ANIM_TRACE] Server wants to play: ${serverAnim}. Current client anim: ${currentAnimation}. Is attacking: ${isAttacking}. Final animation: ${finalAnimation}`);
+      console.log(`[ANIM_TRACE] Requested animation: ${requestedAnim}. Current client anim: ${currentAnimation}. Is attacking: ${isAttacking}. Final animation: ${finalAnimation}`);
 
       // Play animation if it's different and available, but not during high altitude falling, local attacks, power-up, or damage
       if (isHighAltitudeFalling) {
-        console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${serverAnim}' during high altitude falling at Y=${localPositionRef.current.y.toFixed(1)} (LOCAL PLAYER ONLY)`);
+        console.log(`[ANIM_TRACE] 🚫 Ignoring animation '${requestedAnim}' during high altitude falling at Y=${localPositionRef.current.y.toFixed(1)} (LOCAL PLAYER ONLY)`);
       } else if (isLocalPlayer && isAttacking) {
-        console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${serverAnim}' during local attack animation (LOCAL PLAYER ONLY)`);
+        console.log(`[ANIM_TRACE] 🚫 Ignoring animation '${requestedAnim}' during local attack animation (LOCAL PLAYER ONLY)`);
       } else if (isLocalPlayer && isCurrentlyInPowerUp) {
         // Track why the power-up ref is stuck
-        console.log(`🔍 POWERUP_BLOCKING: Ref=${isPlayingPowerUpRef.current}, blocking '${serverAnim}' transition from '${currentAnimation}'`);
-        console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${finalAnimation}' during sword power-up animation (LOCAL PLAYER ONLY) - State: ${isPlayingPowerUp}, Ref: ${isPlayingPowerUpRef.current}`);
+        console.log(`🔍 POWERUP_BLOCKING: Ref=${isPlayingPowerUpRef.current}, blocking '${requestedAnim}' transition from '${currentAnimation}'`);
+        console.log(`[ANIM_TRACE] 🚫 Ignoring animation '${finalAnimation}' during sword power-up animation (LOCAL PLAYER ONLY) - State: ${isPlayingPowerUp}, Ref: ${isPlayingPowerUpRef.current}`);
         
         // FAILSAFE: Force clear stuck ref if it's been blocking movement animations
         if (!isPlayingPowerUp && isPlayingPowerUpRef.current && 
-            (serverAnim === 'run-forward' || serverAnim === 'walk-forward' || serverAnim === 'idle')) {
-          console.log(`🛡️ FAILSAFE: Detected stuck power-up ref blocking '${serverAnim}'. Force clearing ref!`);
+            (requestedAnim === 'run-forward' || requestedAnim === 'walk-forward' || requestedAnim === 'idle')) {
+          console.log(`🛡️ FAILSAFE: Detected stuck power-up ref blocking '${requestedAnim}'. Force clearing ref!`);
           isPlayingPowerUpRef.current = false;
           setIsPlayingPowerUp(false);
           setIsMovementFrozen(false);
@@ -2545,9 +2487,9 @@ export const Player: React.FC<PlayerProps> = ({
           return;
         }
       } else if (isLocalPlayer && isTakingDamage) {
-        console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${serverAnim}' during damage animation (LOCAL PLAYER ONLY)`);
+        console.log(`[ANIM_TRACE] 🚫 Ignoring animation '${requestedAnim}' during damage animation (LOCAL PLAYER ONLY)`);
       } else if (finalAnimation && finalAnimation !== currentAnimation && animations[finalAnimation]) {
-         console.log(`[ANIM_TRACE] 🎬 Playing animation: ${finalAnimation} (original server: ${serverAnim})`);
+         console.log(`[ANIM_TRACE] 🎬 Playing animation: ${finalAnimation} (requested: ${requestedAnim})`);
          if (finalAnimation === ANIMATIONS.NINJA_RUN) {
            console.log('🥷 [Ninja Run Animation] PLAYING NINJA RUN ANIMATION!');
          }
@@ -2561,7 +2503,7 @@ export const Player: React.FC<PlayerProps> = ({
           }
         }
       } else if (finalAnimation && !animations[finalAnimation]) {
-         console.warn(`⚠️ [Anim Warn] Animation not available: ${finalAnimation} (original server: ${serverAnim}). Available: ${Object.keys(animations).join(', ')}`);
+         console.warn(`⚠️ [Anim Warn] Animation not available: ${finalAnimation} (requested: ${requestedAnim}). Available: ${Object.keys(animations).join(', ')}`);
       }
     }
   }, [playerData.currentAnimation, animations, mixer, playAnimation, currentAnimation, isAttacking, isPlayingPowerUp, isNinjaRunActive, isTakingDamage]); // Dependencies include things that trigger animation changes

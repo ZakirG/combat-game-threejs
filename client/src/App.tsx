@@ -161,7 +161,7 @@ function App() {
   // --- Zombie Attack Player Logic ---
   const handleZombieAttackPlayer = useCallback((targetPlayerId: string) => {
     // Only trigger effects if the attack targets the local player
-    if (!identity || targetPlayerId !== identity) {
+    if (targetPlayerId !== LOCAL_PLAYER_IDENTITY) {
       return; // Not the local player, ignore
     }
     
@@ -182,7 +182,7 @@ function App() {
     setTimeout(() => {
       setShouldTriggerHitAnimation(false);
     }, 100); // Short delay to allow Player component to detect the trigger
-  }, [identity]);
+  }, []);
 
   // Reset combo count after 2 seconds of no hits
   useEffect(() => {
@@ -380,7 +380,7 @@ function App() {
   }, []);
 
   const sendInput = useCallback((currentInputState: InputState) => {
-    if (!localPlayer || !identity || !connected) return;
+    if (!localPlayer) return;
     
     const currentPosition = {
       x: playerPositionRef.current.x,
@@ -423,7 +423,7 @@ function App() {
         setPlayers(new Map([[LOCAL_PLAYER_IDENTITY, updatedPlayer]]));
         lastSentInputState.current = { ...currentInputState };
     }
-  }, [identity, localPlayer, connected, determineAnimation]);
+  }, [localPlayer, determineAnimation]);
 
   // Add player rotation handler
   const handlePlayerRotation = useCallback((rotation: THREE.Euler) => {
@@ -582,10 +582,10 @@ function App() {
       // console.log("Delegated listener removed from body.");
   }, [handleDelegatedClick]);
 
-  // --- Game Loop Effect ---
+  // --- Game Loop Effect (Single-Player Mode) ---
   useEffect(() => {
       const gameLoop = () => {
-          if (!connected || !identity) {
+          if (!localPlayer) {
               if (animationFrameIdRef.current) {
                   cancelAnimationFrame(animationFrameIdRef.current);
                   animationFrameIdRef.current = null;
@@ -597,7 +597,7 @@ function App() {
           animationFrameIdRef.current = requestAnimationFrame(gameLoop);
       };
 
-      if (connected && !animationFrameIdRef.current) {
+      if (localPlayer && !animationFrameIdRef.current) {
           // console.log("[CLIENT] Starting game loop.");
           animationFrameIdRef.current = requestAnimationFrame(gameLoop);
       }
@@ -613,7 +613,7 @@ function App() {
               tutorialTimeoutRef.current = null;
           }
       };
-  }, [connected, identity, sendInput]);
+  }, [localPlayer, sendInput]);
 
   // --- Single Player Initialization ---
   useEffect(() => {
