@@ -27,7 +27,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { PlayerData } from '../generated';
+import { PlayerData } from '../types/localTypes';
 import { makeZombieDecision, ZOMBIE_ANIMATIONS, ZOMBIE_ATTACK_ANIMATIONS, ZombieDecision, STRIKING_DISTANCE } from './ZombieBrain';
 import { ZOMBIE_CONFIG } from '../characterConfigs';
 import { GameReadyCallbacks } from '../types/gameReady';
@@ -455,7 +455,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
       // Update legacy states for compatibility
       if (zombieStateRef.current.targetPlayerId) {
         const targetPlayerData = Array.from(players.values()).find(p => 
-          p.identity.toHexString() === zombieStateRef.current.targetPlayerId
+          p.identity === zombieStateRef.current.targetPlayerId
         );
         setTargetPlayer(targetPlayerData || null);
       } else {
@@ -466,7 +466,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
       if (newDecision.action === 'attack' && zombieStateRef.current.targetPlayerId && onZombieAttackPlayer) {
         // Find the target player from the players map
         const targetPlayer = Array.from(players.values()).find(p => 
-          p.identity.toHexString() === zombieStateRef.current.targetPlayerId
+          p.identity === zombieStateRef.current.targetPlayerId
         );
         
         // Check if the target is within striking distance (confirm attack validity)
@@ -478,7 +478,7 @@ const ZombieInstance: React.FC<ZombieInstanceProps> = ({
           // If within striking distance, trigger the attack effect
           if (distance <= 2.5) { // Slightly larger than STRIKING_DISTANCE for responsiveness
             console.log(`[${zombieId}] 🧟 Attacking player ${targetPlayer.username} at distance ${distance.toFixed(2)}`);
-            onZombieAttackPlayer(targetPlayer.identity.toHexString());
+            onZombieAttackPlayer(targetPlayer.identity);
           }
         }
       }

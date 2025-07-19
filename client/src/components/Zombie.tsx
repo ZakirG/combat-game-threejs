@@ -27,7 +27,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Html } from '@react-three/drei';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { PlayerData } from '../generated';
+import { PlayerData } from '../types/localTypes';
 import { ZOMBIE_CONFIG } from '../characterConfigs';
 
 // AI States

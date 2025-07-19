@@ -35,9 +35,8 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { Box, Plane, Grid, Environment, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { DirectionalLightHelper, CameraHelper } from 'three'; // Import the helper
-// Import generated types
-import { PlayerData, InputState } from '../generated';
-import { Identity } from '@clockworklabs/spacetimedb-sdk';
+// Import local types
+import { PlayerData, InputState } from '../types/localTypes';
 import { Player } from './Player';
 import { ZombieManager } from './ZombieManager';
 import { ControlsPanel } from './ControlsPanel';
@@ -47,7 +46,7 @@ import { ComboCounter } from './ComboCounter';
 
 interface GameSceneProps {
   players: ReadonlyMap<string, PlayerData>; // Receive the map
-  localPlayerIdentity: Identity | null;
+  localPlayerIdentity: string | null;
   onPlayerRotation?: (rotation: THREE.Euler) => void; // Optional callback for player rotation
   onPlayerPosition?: (position: THREE.Vector3) => void; // Optional callback for player position
   currentInputRef?: React.MutableRefObject<InputState>; // Add input state ref prop
@@ -190,7 +189,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
         onSwordCollected={(swordModel, swordPosition) => {
           // Find the local player and equip the sword
           const localPlayer = Array.from(players.values()).find(player =>
-            localPlayerIdentity?.toHexString() === player.identity.toHexString()
+            localPlayerIdentity === player.identity
           );
           if (localPlayer && gameReadyCallbacks?.onSwordCollected) {
             gameReadyCallbacks.onSwordCollected(swordModel, swordPosition);
@@ -199,7 +198,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
         onCybertruckCollected={(cybertruckModel, cybertruckPosition) => {
           // Handle cybertruck collection
           const localPlayer = Array.from(players.values()).find(player =>
-            localPlayerIdentity?.toHexString() === player.identity.toHexString()
+            localPlayerIdentity === player.identity
           );
           if (localPlayer) {
             console.log('🚛 Cybertruck collected by player!', cybertruckModel, cybertruckPosition);
@@ -212,10 +211,10 @@ export const GameScene: React.FC<GameSceneProps> = ({
 
       {/* Render Players */}
       {Array.from(players.values()).map((player) => {
-        const isLocal = localPlayerIdentity?.toHexString() === player.identity.toHexString();
+        const isLocal = localPlayerIdentity === player.identity;
         return (
           <Player 
-            key={player.identity.toHexString()} 
+            key={player.identity} 
             playerData={player}
             isLocalPlayer={isLocal}
             onRotationChange={isLocal ? onPlayerRotation : undefined}
@@ -236,7 +235,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
       {/* Render Combo Counter above local player */}
       {(() => {
         const localPlayer = Array.from(players.values()).find(player =>
-          localPlayerIdentity?.toHexString() === player.identity.toHexString()
+          localPlayerIdentity === player.identity
         );
         return localPlayer ? (
           <ComboCounter 

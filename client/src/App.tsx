@@ -42,8 +42,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import './App.css';
-import { Identity } from '@clockworklabs/spacetimedb-sdk';
-import * as moduleBindings from './generated';
+import { PlayerData, InputState, LOCAL_PLAYER_IDENTITY } from './types/localTypes';
 import { DebugPanel } from './components/DebugPanel';
 import { GameScene } from './components/GameScene';
 import { JoinGameDialog } from './components/JoinGameDialog';
@@ -56,20 +55,10 @@ import CoinCounter from './components/CoinCounter';
 import { WeaponPanel } from './components/WeaponPanel';
 import { GameReadyState, GameReadyCallbacks, isGameReady } from './types/gameReady';
 
-// Type Aliases
-type DbConnection = moduleBindings.DbConnection;
-type EventContext = moduleBindings.EventContext;
-type ErrorContext = moduleBindings.ErrorContext;
-type PlayerData = moduleBindings.PlayerData;
-type InputState = moduleBindings.InputState;
-// ... other types ...
-
-let conn: DbConnection | null = null;
-
 function App() {
   const [connected, setConnected] = useState(false);
-  const [identity, setIdentity] = useState<Identity | null>(null);
-  const [statusMessage, setStatusMessage] = useState("Connecting...");
+  const [identity, setIdentity] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState("Single Player Mode");
   const [players, setPlayers] = useState<ReadonlyMap<string, PlayerData>>(new Map());
   const [localPlayer, setLocalPlayer] = useState<PlayerData | null>(null);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
@@ -172,7 +161,7 @@ function App() {
   // --- Zombie Attack Player Logic ---
   const handleZombieAttackPlayer = useCallback((targetPlayerId: string) => {
     // Only trigger effects if the attack targets the local player
-    if (!identity || targetPlayerId !== identity.toHexString()) {
+    if (!identity || targetPlayerId !== identity) {
       return; // Not the local player, ignore
     }
     
@@ -253,76 +242,41 @@ function App() {
     }
   };
 
-  // --- Moved Table Callbacks/Subscription Functions Up ---
-  const registerTableCallbacks = useCallback(() => {
-    if (!conn) return;
-    // console.log("Registering table callbacks...");
-
-    conn.db.player.onInsert((_ctx: EventContext, player: PlayerData) => {
-        // console.log("Player inserted (callback):", player.identity.toHexString());
-        setPlayers((prev: ReadonlyMap<string, PlayerData>) => new Map(prev).set(player.identity.toHexString(), player));
-        if (identity && player.identity.toHexString() === identity.toHexString()) {
-            setLocalPlayer(player);
-            setStatusMessage(`Registered as ${player.username}`);
-        }
-    });
-
-    conn.db.player.onUpdate((_ctx: EventContext, _oldPlayer: PlayerData, newPlayer: PlayerData) => {
-        setPlayers((prev: ReadonlyMap<string, PlayerData>) => {
-            const newMap = new Map(prev);
-            newMap.set(newPlayer.identity.toHexString(), newPlayer);
-            return newMap;
-        });
-        if (identity && newPlayer.identity.toHexString() === identity.toHexString()) {
-            setLocalPlayer(newPlayer);
-        }
-    });
-
-    conn.db.player.onDelete((_ctx: EventContext, player: PlayerData) => {
-        // console.log("Player deleted (callback):", player.identity.toHexString());
-        setPlayers((prev: ReadonlyMap<string, PlayerData>) => {
-            const newMap = new Map(prev);
-            newMap.delete(player.identity.toHexString());
-            return newMap;
-        });
-        if (identity && player.identity.toHexString() === identity.toHexString()) {
-            setLocalPlayer(null);
-            setStatusMessage("Local player deleted!");
-        }
-    });
-    // console.log("Table callbacks registered.");
-  }, [identity]); // Keep identity dependency
-
-  const onSubscriptionApplied = useCallback(() => {
-     // console.log("Subscription applied successfully.");
-     setPlayers((prev: ReadonlyMap<string, PlayerData>) => {
-         if (prev.size === 0 && conn) {
-             const currentPlayers = new Map<string, PlayerData>();
-             for (const player of conn.db.player.iter()) {
-                 currentPlayers.set(player.identity.toHexString(), player);
-                 if (identity && player.identity.toHexString() === identity.toHexString()) {
-                     setLocalPlayer(player);
-                 }
-             }
-             return currentPlayers;
-         }
-         return prev;
-     });
-  }, [identity]); // Keep identity dependency
-
-  const onSubscriptionError = useCallback((error: any) => {
-      console.error("Subscription error:", error);
-      setStatusMessage(`Subscription Error: ${error?.message || error}`);
+  // --- Local Player Creation ---
+  const createLocalPlayer = useCallback((username: string, characterClass: string, xHandle?: string) => {
+    const newPlayer: PlayerData = {
+      identity: LOCAL_PLAYER_IDENTITY,
+      username,
+      characterClass,
+      xHandle,
+      position: { x: 0, y: 90, z: 0 }, // High altitude spawn
+      rotation: { x: 0, y: 0, z: 0 },
+      health: 100,
+      maxHealth: 100,
+      mana: 100,
+      maxMana: 100,
+      currentAnimation: "falling",
+      isMoving: false,
+      isRunning: false,
+      isNinjaRunning: false,
+      isAttacking: false,
+      isCasting: false,
+      lastInputSeq: 0,
+      input: {
+        forward: false, backward: false, left: false, right: false,
+        sprint: false, jump: false, attack: false, castSpell: false,
+        sequence: 0
+      },
+      color: "cyan",
+      isDriving: false,
+      vehicleVelocity: { x: 0, y: 0, z: 0 }
+    };
+    
+    // Set single player state
+    setLocalPlayer(newPlayer);
+    setPlayers(new Map([[LOCAL_PLAYER_IDENTITY, newPlayer]]));
+    setStatusMessage(`Playing as ${username}`);
   }, []);
-
-  const subscribeToTables = useCallback(() => {
-    if (!conn) return;
-    // console.log("Subscribing to tables...");
-    const subscription = conn.subscriptionBuilder();
-    subscription.subscribe("SELECT * FROM player");
-    subscription.onApplied(onSubscriptionApplied);
-    subscription.onError(onSubscriptionError);
-  }, [identity, onSubscriptionApplied, onSubscriptionError]); // Add dependencies
 
   // --- Event Handlers ---
   const handleDelegatedClick = useCallback((event: MouseEvent) => {
@@ -426,16 +380,14 @@ function App() {
   }, []);
 
   const sendInput = useCallback((currentInputState: InputState) => {
-    if (!conn || !identity || !connected) return; // Check connection status too
+    if (!localPlayer || !identity || !connected) return;
     
-    // Use local client position for multiplayer sync
     const currentPosition = {
       x: playerPositionRef.current.x,
-      y: playerPositionRef.current.y, // Send actual client Y position (falling, jumping)
+      y: playerPositionRef.current.y,
       z: playerPositionRef.current.z
     };
     
-    // Now using the playerRotationRef for more accurate rotation tracking
     const currentRotation = {
       x: playerRotationRef.current.x,
       y: playerRotationRef.current.y,
@@ -454,8 +406,21 @@ function App() {
     }
 
     if (changed || currentInputState.sequence !== lastSentInputState.current.sequence) {
-       
-        conn.reducers.updatePlayerInput(currentInputState, currentPosition, currentRotation, currentAnimation);
+        // Update local player state directly instead of calling server
+        const updatedPlayer: PlayerData = {
+          ...localPlayer,
+          position: currentPosition,
+          rotation: currentRotation,
+          currentAnimation,
+          input: currentInputState,
+          lastInputSeq: currentInputState.sequence,
+          isMoving: currentInputState.forward || currentInputState.backward || 
+                   currentInputState.left || currentInputState.right,
+          isRunning: currentInputState.sprint
+        };
+        
+        setLocalPlayer(updatedPlayer);
+        setPlayers(new Map([[LOCAL_PLAYER_IDENTITY, updatedPlayer]]));
         lastSentInputState.current = { ...currentInputState };
     }
   }, [identity, localPlayer, connected, determineAnimation]);
@@ -620,7 +585,7 @@ function App() {
   // --- Game Loop Effect ---
   useEffect(() => {
       const gameLoop = () => {
-          if (!connected || !conn || !identity) {
+          if (!connected || !identity) {
               if (animationFrameIdRef.current) {
                   cancelAnimationFrame(animationFrameIdRef.current);
                   animationFrameIdRef.current = null;
@@ -648,60 +613,19 @@ function App() {
               tutorialTimeoutRef.current = null;
           }
       };
-  }, [connected, conn, identity, sendInput]);
+  }, [connected, identity, sendInput]);
 
-  // --- Connection Effect Hook ---
+  // --- Single Player Initialization ---
   useEffect(() => {
-    // console.log("Running Connection Effect Hook...");
-    if (conn) {
-        // console.log("Connection already established, skipping setup.");
-         if (connected) {
-             setupInputListeners();
-             setupDelegatedListeners();
-         }
-        return;
-    }
-
-    const dbHost = "localhost:5555";
-    const dbName = "vibe-multiplayer";
-
-    // console.log(`Connecting to SpacetimeDB at ${dbHost}, database: ${dbName}...`);
-
-    const onConnect = (connection: DbConnection, id: Identity, _token: string) => {
-      // console.log("Connected!");
-      conn = connection;
-      (window as any).spacetimeConnection = connection; // Expose connection globally for components
-      setIdentity(id);
-      setConnected(true);
-      setStatusMessage(`Connected as ${id.toHexString().substring(0, 8)}...`);
-      subscribeToTables();
-      registerTableCallbacks();
-      setupInputListeners();
-      setupDelegatedListeners();
-      setShowJoinDialog(true);
-    };
-
-    const onDisconnect = (_ctx: ErrorContext, reason?: Error | null) => {
-      const reasonStr = reason ? reason.message : "No reason given";
-      // console.log("onDisconnect triggered:", reasonStr);
-      setStatusMessage(`Disconnected: ${reasonStr}`);
-      conn = null;
-      (window as any).spacetimeConnection = null; // Clean up global connection
-      setIdentity(null);
-      setConnected(false);
-      setPlayers(new Map());
-      setLocalPlayer(null);
-    };
-
-    moduleBindings.DbConnection.builder()
-      .withUri(`ws://${dbHost}`)
-      .withModuleName(dbName)
-      .onConnect(onConnect)
-      .onDisconnect(onDisconnect)
-      .build();
+    // Simulate immediate "connection" for single player
+    setIdentity(LOCAL_PLAYER_IDENTITY);
+    setConnected(true);  
+    setStatusMessage("Single Player Mode");
+    setupInputListeners();
+    setupDelegatedListeners();
+    setShowJoinDialog(true);
 
     return () => {
-      // console.log("Cleaning up connection effect - removing listeners.");
       removeInputListeners();
       removeDelegatedListeners();
     };
@@ -709,12 +633,6 @@ function App() {
 
   // --- handleJoinGame ---
   const handleJoinGame = (username: string, characterClass: string, xHandle?: string) => {
-    if (!conn) {
-        console.error("Cannot join game, not connected.");
-        return;
-    }
-    // console.log(`Registering as ${username} (${characterClass}) with X handle: ${xHandle || 'none'}...`);
-    
     // Hide join dialog first to start cleanup
     setShowJoinDialog(false);
     
@@ -734,8 +652,8 @@ function App() {
       setGameFullyReady(false);
       setShowLoadingScreen(true);
       
-      // @ts-ignore - Temporary fix until TypeScript bindings are regenerated
-      conn.reducers.registerPlayer(username, characterClass, xHandle || null);
+      // Create local player instead of calling server
+      createLocalPlayer(username, characterClass, xHandle);
       setHasJoinedGame(true); // Set state to true after successful join
     }, 100); // 100ms delay to allow WebGL context cleanup
   };

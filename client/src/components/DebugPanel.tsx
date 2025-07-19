@@ -33,14 +33,12 @@
  */
 
 import React, { useState } from 'react';
-import { Identity } from '@clockworklabs/spacetimedb-sdk';
-// Import generated type, assuming path from components dir
-import { PlayerData } from '../generated'; 
+import { PlayerData } from '../types/localTypes'; 
 
 interface DebugPanelProps {
   statusMessage: string;
   localPlayer: PlayerData | null;
-  identity: Identity | null;
+  identity: string | null;
   playerMap: ReadonlyMap<string, PlayerData>; // Pass the whole map
   expanded: boolean; // Receive expansion state from parent
   onToggleExpanded: () => void; // Receive toggle function from parent
@@ -110,10 +108,10 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
 
   // Derive player list array inside the component
   const playerList: PlayerData[] = Array.from(playerMap.values()).sort((a, b) => 
-    a.identity.toHexString().localeCompare(b.identity.toHexString())
+    a.identity.localeCompare(b.identity)
   );
 
-  const localPlayerDisplay = localPlayer ? `${localPlayer.username} (${localPlayer.characterClass}) (ID: ${identity?.toHexString().substring(0, 8)}) HP:${localPlayer.health}` : 'N/A';
+  const localPlayerDisplay = localPlayer ? `${localPlayer.username} (${localPlayer.characterClass}) (ID: ${identity?.substring(0, 8)}) HP:${localPlayer.health}` : 'N/A';
   
   // Stop click propagation to prevent clicks inside the panel triggering game actions (like pointer lock)
   const handlePanelClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -156,7 +154,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
       {expanded && (
         <>
           <div style={{ marginTop: '10px' }}>
-            <strong>Identity:</strong> {identity ? identity.toHexString() : 'None'}
+            <strong>Identity:</strong> {identity ? identity : 'None'}
           </div>
           
           {localPlayer && (
@@ -175,8 +173,8 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
             <strong>Players ({playerMap.size}):</strong>
             <ul style={{ maxHeight: '200px', overflow: 'auto', padding: '0 0 0 20px' }}>
               {Array.from(playerMap.values()).map(player => (
-                <li key={player.identity.toHexString()}>
-                  {player.username} ({(player as any).xHandle || player.characterClass}) - {player.identity.toHexString().substring(0, 8)}...
+                <li key={player.identity}>
+                  {player.username} ({(player as any).xHandle || player.characterClass}) - {player.identity.substring(0, 8)}...
                   {player.currentAnimation && <span style={{color: '#a0e0ff'}}> [{player.currentAnimation}]</span>}
                 </li>
               ))}

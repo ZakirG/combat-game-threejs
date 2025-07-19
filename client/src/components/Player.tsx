@@ -37,7 +37,7 @@ import * as THREE from 'three';
 import { useAnimations, Html, Sphere } from '@react-three/drei';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { TextureLoader } from 'three';
-import { PlayerData, InputState } from '../generated';
+import { PlayerData, InputState } from '../types/localTypes';
 import { 
   getCharacterConfig, 
   getCharacterGameplayConfig,
@@ -186,21 +186,9 @@ export const Player: React.FC<PlayerProps> = ({
   const NINJA_RUN_ACTIVATION_TIME = 1000; // 1 second of sprint+forward to activate ninja run
   const NINJA_RUN_GRACE_PERIOD = 100; // 100ms grace period for brief key releases
   
-  // Debug: Track ninja run state changes and sync with server
+  // Debug: Track ninja run state changes (local only)
   useEffect(() => {
     console.log(`🥷 [Ninja Run State] isNinjaRunActive changed to: ${isNinjaRunActive}`);
-    
-    // Sync ninja run state with server (only for local player)
-    if (isLocalPlayer && onPositionChange) {
-      // Use the connection from App.tsx to call the server reducer
-      const conn = (window as any).spacetimeConnection;
-      if (conn && conn.reducers && conn.reducers.setNinjaRunStatus) {
-        conn.reducers.setNinjaRunStatus(isNinjaRunActive);
-        console.log(`🥷 [Server Sync] Sent ninja run status to server: ${isNinjaRunActive}`);
-      } else {
-        console.warn(`🥷 [Server Sync] Could not sync ninja run status - connection or reducer not available`);
-      }
-    }
   }, [isNinjaRunActive, isLocalPlayer]);
   
   // Debug: Character info on mount
@@ -486,17 +474,11 @@ export const Player: React.FC<PlayerProps> = ({
     // 1. Calculate local movement vector based on WASD
     let localMoveX = 0;
     let localMoveZ = 0;
-    if (cameraMode === CAMERA_MODES.ORBITAL) {
-        if (inputState.forward) localMoveZ += 1;
-        if (inputState.backward) localMoveZ -= 1;
-        if (inputState.left) localMoveX += 1;
-        if (inputState.right) localMoveX -= 1;
-    } else {
-        if (inputState.forward) localMoveZ -= 1;
-        if (inputState.backward) localMoveZ += 1;
-        if (inputState.left) localMoveX -= 1;
-        if (inputState.right) localMoveX += 1;
-    }
+    // Fixed coordinate mapping to match expected movement (both axes flipped)
+    if (inputState.forward) localMoveZ += 1;   // Forward = positive Z
+    if (inputState.backward) localMoveZ -= 1;  // Backward = negative Z 
+    if (inputState.left) localMoveX += 1;      // Left = positive X (flipped)
+    if (inputState.right) localMoveX -= 1;     // Right = negative X (flipped)
     const localMoveVector = new THREE.Vector3(localMoveX, 0, localMoveZ);
 
     // Normalize if diagonal movement

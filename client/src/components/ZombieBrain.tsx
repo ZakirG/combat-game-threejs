@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { PlayerData } from '../generated';
+import { PlayerData } from '../types/localTypes';
 
 // Configurable distances
 const DISTANCE_TO_PLAYER_BEFORE_CHASING = 25.0; // Increased from 15.0 for more aggressive zombies

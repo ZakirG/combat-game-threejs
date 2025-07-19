@@ -102,9 +102,9 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
        highAltitudeSpawn: SPAWN_ALTITUDE
      },
     movement: {
-      walkSpeed: 2.8,
-      runSpeed: 5.5,
-      sprintRunSpeed: 22.0 // Quadruple the run speed for ninja run (4x normal run speed)
+      walkSpeed: 8.0,      // Significantly increased for action game feel
+      runSpeed: 15.0,      // Much faster for responsive gameplay
+      sprintRunSpeed: 35.0 // High-speed ninja run
     },
     animationTable: {
       idle: "Idle.fbx",
@@ -247,9 +247,9 @@ export const CHARACTER_CONFIGS: Record<string, CharacterConfig> = {
        highAltitudeSpawn: SPAWN_ALTITUDE
      },
     movement: {
-      walkSpeed: 3.0,
-      runSpeed: 6.0,
-      sprintRunSpeed: 24.0 // Quadruple the run speed for ninja run (4x normal run speed)
+      walkSpeed: 8.0,      // Significantly increased for action game feel
+      runSpeed: 15.0,      // Much faster for responsive gameplay
+      sprintRunSpeed: 35.0 // High-speed ninja run
     },
     animationTable: {
       idle: "Idle.fbx",

@@ -872,7 +872,7 @@ const FloatingSword: React.FC<FloatingSwordProps> = ({
       
       // Check for player collision (only for local player)
       if (players && localPlayerIdentity && onSwordCollected) {
-        const localPlayer = players.get(localPlayerIdentity.toHexString());
+        const localPlayer = players.get(localPlayerIdentity);
         if (localPlayer) {
           const playerPos = new THREE.Vector3(
             localPlayer.position.x,
@@ -1097,7 +1097,7 @@ const FloatingFlamethrower: React.FC<FloatingFlamethrowerProps> = ({
       
       // Check for player collision (only for local player)
       if (players && localPlayerIdentity && onFlamethrowerCollected) {
-        const localPlayer = players.get(localPlayerIdentity.toHexString());
+        const localPlayer = players.get(localPlayerIdentity);
         if (localPlayer) {
           const playerPos = new THREE.Vector3(
             localPlayer.position.x,
@@ -1336,7 +1336,7 @@ const FloatingCybertruck: React.FC<FloatingCybertruckProps> = ({
       
       // Check for player collision (only for local player)
       if (players && localPlayerIdentity && onCybertruckCollected) {
-        const localPlayer = players.get(localPlayerIdentity.toHexString());
+        const localPlayer = players.get(localPlayerIdentity);
         if (localPlayer) {
           const playerPos = new THREE.Vector3(
             localPlayer.position.x,
