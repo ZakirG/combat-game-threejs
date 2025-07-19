@@ -18,8 +18,8 @@ export const WeaponPanel: React.FC<WeaponPanelProps> = ({
   currentWeapon, 
   hasSword 
 }) => {
-  const iconSize = 50;
-  const borderWidth = 3;
+  const iconSize = 35;
+  const borderWidth = 2;
 
   const panelStyle: React.CSSProperties = {
     position: 'fixed',
@@ -27,21 +27,21 @@ export const WeaponPanel: React.FC<WeaponPanelProps> = ({
     left: '50%',
     transform: 'translateX(-50%)',
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: '12px',
-    padding: '12px',
+    borderRadius: '8px',
+    padding: '8px',
     display: 'flex',
-    gap: '12px',
+    gap: '8px',
     alignItems: 'center',
     zIndex: 1400,
-    border: '2px solid rgba(255, 255, 255, 0.2)',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-    backdropFilter: 'blur(8px)'
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+    backdropFilter: 'blur(6px)'
   };
 
   const iconStyle: React.CSSProperties = {
     width: iconSize,
     height: iconSize,
-    borderRadius: '8px',
+    borderRadius: '6px',
     transition: 'all 0.3s ease',
     cursor: 'default',
     display: 'block'
@@ -54,7 +54,7 @@ export const WeaponPanel: React.FC<WeaponPanelProps> = ({
         ? `${borderWidth}px solid #00ff00` 
         : `${borderWidth}px solid transparent`,
       boxShadow: isActive 
-        ? '0 0 8px rgba(0, 255, 0, 0.6)' 
+        ? '0 0 6px rgba(0, 255, 0, 0.6)' 
         : 'none'
     };
   };
@@ -88,9 +88,9 @@ export const WeaponPanel: React.FC<WeaponPanelProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: 'rgba(100, 100, 100, 0.8)',
-            borderRadius: '8px',
+            borderRadius: '6px',
             color: 'white',
-            fontSize: '24px',
+            fontSize: '18px',
             ...getIconBorder('UNARMED')
           }}
           className="fists-fallback"
@@ -127,9 +127,9 @@ export const WeaponPanel: React.FC<WeaponPanelProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: 'rgba(100, 100, 100, 0.8)',
-              borderRadius: '8px',
+              borderRadius: '6px',
               color: 'white',
-              fontSize: '24px',
+              fontSize: '18px',
               ...getIconBorder('SWORD')
             }}
             className="sword-fallback"
