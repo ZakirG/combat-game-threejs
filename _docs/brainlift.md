@@ -1,5 +1,7 @@
 # Brainlift
 
+Inside the _docs folder, you can see many new markdown documents that I've created in the process of planning new features and attempting to fix bugs. Some of them came in handy, some did not. Some of them were for bugs that I attempted to fix and was not able to just yet. I created most of these since the last submission in the last few days.
+
 Below is a journey through my planning stages of this game. Prompts I asked LLMs 
 are included, their responses are not included.
 

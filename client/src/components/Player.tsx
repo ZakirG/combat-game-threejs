@@ -199,6 +199,10 @@ export const Player: React.FC<PlayerProps> = ({
   const [rightHandBone, setRightHandBone] = useState<THREE.Bone | null>(null);
   const swordAttachmentRef = useRef<THREE.Group | null>(null);
   
+  // Damage animation state management
+  const [isTakingDamage, setIsTakingDamage] = useState<boolean>(false);
+  const damageTimeoutRef = useRef<number | null>(null);
+  
   // Glow effect system for sword equipping
   const [glowMesh, setGlowMesh] = useState<THREE.Mesh | null>(null);
   const glowTimeoutRef = useRef<number | null>(null);
@@ -749,8 +753,18 @@ export const Player: React.FC<PlayerProps> = ({
 
   // Debug: Track movement freeze state changes
   useEffect(() => {
-    // console.log(`🧊 [Movement State] isMovementFrozen changed to: ${isMovementFrozen}`);
+    console.log(`[FREEZE_TRACE] 🧊 isMovementFrozen changed to: ${isMovementFrozen}`);
   }, [isMovementFrozen]);
+  
+  // Debug: Track damage state changes
+  useEffect(() => {
+    console.log(`[DAMAGE_TRACE] 🤕 isTakingDamage changed to: ${isTakingDamage}`);
+  }, [isTakingDamage]);
+  
+  // Debug: Track attack state changes
+  useEffect(() => {
+    console.log(`[ATTACK_TRACE] ⚔️ isAttacking changed to: ${isAttacking}`);
+  }, [isAttacking]);
 
   // Debug: Track power-up ref for race condition protection
   useEffect(() => {
@@ -1003,8 +1017,9 @@ export const Player: React.FC<PlayerProps> = ({
               // console.log(`🔄 [Loop Debug] Set ${name} to LOOP (infinite)`);
             } else {
               action.setLoop(THREE.LoopOnce, 1);
+              // For one-shot animations, we'll use clampWhenFinished but handle state properly in playAnimation
               action.clampWhenFinished = true;
-              // console.log(`🔄 [Loop Debug] Set ${name} to ONCE (single)`);
+              // console.log(`🔄 [Loop Debug] Set ${name} to ONCE (single) with clamp`);
             }
             
             // console.log(`✅ Animation "${name}" processed and ready.`);
@@ -1175,9 +1190,43 @@ export const Player: React.FC<PlayerProps> = ({
     );
   };
 
+  // Clean up any stuck animations in the mixer
+  const cleanupStuckAnimations = useCallback(() => {
+    if (!animations || !mixer) return;
+    
+    let cleanedCount = 0;
+    Object.entries(animations).forEach(([name, action]) => {
+      // Skip the current animation
+      if (name === currentAnimation) return;
+      
+      // Clean up any animation that's paused or has weight but isn't running
+      if (action.paused || (action.weight > 0 && !action.isRunning())) {
+        console.log(`[ANIM_CLEANUP] 🧹 Cleaning stuck animation: ${name} (weight=${action.weight}, paused=${action.paused})`);
+        action.stop();
+        action.weight = 0;
+        action.paused = false;
+        cleanedCount++;
+      }
+    });
+    
+    if (cleanedCount > 0) {
+      console.log(`[ANIM_CLEANUP] ✅ Cleaned ${cleanedCount} stuck animations`);
+    }
+  }, [animations, mixer, currentAnimation]);
+
   // Update playAnimation to have better logging and sword support
   const playAnimation = useCallback((name: string, crossfadeDuration = 0.3) => {
-    // console.log(`🎬 playAnimation called with: ${name} (sword equipped: ${isSwordEquipped})`);
+    console.log(`[ANIM_TRACE] playAnimation called for: ${name} (current: ${currentAnimation}, sword equipped: ${isSwordEquipped})`);
+    console.log(`[ANIM_TRACE] 📊 Current state: isAttacking=${isAttacking}, isMovementFrozen=${isMovementFrozen}, isTakingDamage=${isTakingDamage}, mixer=${!!mixer}`);
+    
+    // Check if we have a stuck animation situation
+    if (animations[currentAnimation]) {
+      const action = animations[currentAnimation];
+      const clip = action.getClip();
+      if (clip) {
+        console.log(`[ANIM_TRACE] 🎯 Current action '${currentAnimation}': time=${action.time.toFixed(2)}/${clip.duration.toFixed(2)}, running=${action.isRunning()}, weight=${action.weight}`);
+      }
+    }
     if (name === ANIMATIONS.NINJA_RUN) {
       console.log('🥷 [Ninja Run Animation] playAnimation called for NINJA RUN!');
     }
@@ -1221,9 +1270,36 @@ export const Player: React.FC<PlayerProps> = ({
     const targetAction = animations[actualAnimationName];
     const currentAction = animations[currentAnimation];
     
+    // Check if we're trying to play the same animation name but the action might be stuck
+    const isSameAnimation = currentAnimation === actualAnimationName;
+    
+    // Always stop all other animations first to ensure clean transitions
+    Object.entries(animations).forEach(([animName, action]) => {
+      if (animName !== actualAnimationName) {
+        if (action.isRunning()) {
+          action.fadeOut(crossfadeDuration);
+        } else if (action.weight > 0 || action.paused) {
+          // Clean up animations that are stuck with weight or paused
+          console.log(`[ANIM_TRACE] 🧹 Cleaning up stuck animation: ${animName} (weight=${action.weight}, paused=${action.paused})`);
+          action.stop();
+          action.weight = 0;
+          action.paused = false;
+        }
+      }
+    });
+    
     if (currentAction && currentAction !== targetAction) {
-      // console.log(`🔄 Fading out previous animation: ${currentAnimation}`);
-      currentAction.fadeOut(crossfadeDuration);
+      // Use atomic crossFadeTo to prevent T-pose flash
+      console.log(`[ANIM_TRACE] 🔄 Cross-fading from ${currentAnimation} to ${actualAnimationName}`);
+      currentAction.crossFadeTo(targetAction, crossfadeDuration);
+    } else if (isSameAnimation && currentAction) {
+      // Same animation - ensure it's properly playing
+      console.log(`[ANIM_TRACE] 🔁 Restarting same animation: ${actualAnimationName}`);
+      // Fade in the target animation even if it's the "same" to ensure it has proper weight
+      targetAction.fadeIn(crossfadeDuration);
+    } else {
+      // No current action or different target - just fade in
+      targetAction.fadeIn(crossfadeDuration);
     }
     
     // console.log(`▶️ Starting animation: ${actualAnimationName}`);
@@ -1231,12 +1307,37 @@ export const Player: React.FC<PlayerProps> = ({
     // Get character-specific animation time scale with sword awareness
     const timeScale = getAnimationTimeScale(characterClass, name, timeScaleIsSword);
     
+    // If transitioning to a different animation, use crossfade
+    if (currentAction && currentAction !== targetAction) {
+      // Already handled above with crossFadeTo
+    } else if (currentAction === targetAction) {
+      // Same animation being replayed - need to ensure it starts properly
+      console.log(`[ANIM_TRACE] 🔄 Replaying same animation: ${actualAnimationName}`);
+    }
+    
+    // CRITICAL: For clamped animations that have finished, we need to stop them first
+    // before resetting to ensure proper state
+    if (targetAction.paused || (!targetAction.isRunning() && targetAction.time > 0)) {
+      console.log(`[ANIM_TRACE] ⚠️ Animation ${actualAnimationName} in finished state (paused=${targetAction.paused}, time=${targetAction.time}). Stopping first...`);
+      targetAction.stop();
+    }
+    
+    // Now reset and play the animation
     targetAction.reset()
                 .setEffectiveTimeScale(timeScale)
                 .setEffectiveWeight(1)
-                .fadeIn(crossfadeDuration)
                 .play();
+    
+    // Ensure it's not paused after play
+    if (targetAction.paused) {
+      console.log(`[ANIM_TRACE] 🔧 Force unpausing ${actualAnimationName} after play`);
+      targetAction.paused = false;
+    }
                 
+    console.log(`[ANIM_TRACE] ✅ Animation applied: ${actualAnimationName}, timeScale=${timeScale}, weight=${targetAction.weight}, isRunning=${targetAction.isRunning()}`);
+    
+    // Only update currentAnimation state after we've actually set up the animation
+    // This prevents state desync issues
     setCurrentAnimation(actualAnimationName);
   }, [animations, currentAnimation, mixer, isSwordEquipped, characterClass]); // Add sword state to dependencies
 
@@ -1349,95 +1450,8 @@ export const Player: React.FC<PlayerProps> = ({
     };
   }, [isLocalPlayer, onRotationChange, cameraMode]);
 
-  // Handle one-time animation completion
-  useEffect(() => {
-    // Explicitly wrap hook body
-    {
-      if (
-        mixer &&
-        animations[currentAnimation] &&
-        (currentAnimation === ANIMATIONS.JUMP ||
-         currentAnimation === ANIMATIONS.ATTACK ||
-         currentAnimation === ANIMATIONS.CAST ||
-         currentAnimation.startsWith('sword_') ||
-         currentAnimation === ANIMATIONS.ATTACK2 ||
-         currentAnimation === ANIMATIONS.ATTACK3 ||
-         currentAnimation === ANIMATIONS.ATTACK4 ||
-         currentAnimation === ANIMATIONS.NINJA_ATTACK)
-      ) {
-        const action = animations[currentAnimation];
-        
-        // Ensure action exists and has a clip
-        if (!action || !action.getClip()) return;
-        
-        const duration = action.getClip().duration;
-        
-        // Define the listener function
-        const onFinished = (event: any) => {
-          // Only act if the finished action is the one we are tracking
-          if (event.action === action) {
-             // console.log(`Animation finished: ${currentAnimation}. Checking for movement input before transitioning.`);
-             
-             // Check if player is currently moving to determine appropriate animation
-             if (isLocalPlayer && currentInput) {
-               const { forward, backward, left, right, sprint } = currentInput;
-               const isMoving = forward || backward || left || right;
-               
-               if (isMoving) {
-                 // Player is still moving, determine appropriate movement animation
-                 let direction = 'forward';
-                 
-                 // Determine primary direction
-                 if (forward && !backward) {
-                   direction = 'forward';
-                 } else if (backward && !forward) {
-                   direction = 'back';
-                 } else if (left && !right) {
-                   direction = 'left';
-                 } else if (right && !left) {
-                   direction = 'right';
-                 } else if (forward && left) {
-                   direction = 'left';
-                 } else if (forward && right) {
-                   direction = 'right';
-                 } else if (backward && left) {
-                   direction = 'left';
-                 } else if (backward && right) {
-                   direction = 'right';
-                 }
-                 
-                 // Choose movement type based on sprint state
-                 const moveType = sprint ? 'run' : 'walk';
-                 const movementAnimation = `${moveType}-${direction}`;
-                 
-                 // console.log(`Player is moving after attack, transitioning to: ${movementAnimation}`);
-                 playAnimation(movementAnimation, 0.1);
-               } else {
-                 // Player is not moving, transition to idle
-                 // console.log(`Player is not moving after attack, transitioning to idle`);
-                 playAnimation(ANIMATIONS.IDLE, 0.1);
-               }
-             } else {
-               // Fallback to idle for non-local players or when no input available
-               playAnimation(ANIMATIONS.IDLE, 0.1);
-             }
-             
-             mixer.removeEventListener('finished', onFinished); // Remove listener
-          }
-        };
-        
-        // Add the listener
-        mixer.addEventListener('finished', onFinished);
-
-        // Cleanup function to remove listener if component unmounts or animation changes
-        return () => {
-          if (mixer) {
-            mixer.removeEventListener('finished', onFinished);
-          }
-        };
-      }
-    }
-  }, [currentAnimation, animations, mixer, playAnimation, isLocalPlayer, currentInput]); // Added currentInput dependency
+  // Note: Removed onFinished event listener to prevent T-pose flash.
+  // Animation state transitions are now handled by clampWhenFinished + server state updates.
 
   // --- Handle Camera Toggle ---
   const toggleCameraMode = useCallback(() => {
@@ -1616,7 +1630,7 @@ export const Player: React.FC<PlayerProps> = ({
           }
 
           // Only update horizontal position when physics is enabled and movement is not frozen
-          if (!isMovementFrozen) {
+          if (!isMovementFrozen && !isTakingDamage) {
             const predictedPosition = calculateClientMovement(
               localPositionRef.current,
               localRotationRef.current, // Pass current local rotation; function internally selects based on mode
@@ -1654,7 +1668,7 @@ export const Player: React.FC<PlayerProps> = ({
           const currentY = localPositionRef.current.y;
           
           // Handle jumping input (only trigger once per press) - only when physics enabled and not frozen
-          if (physicsEnabled && !isMovementFrozen && currentInput.jump && !wasJumpPressed.current && isOnGround.current) {
+          if (physicsEnabled && !isMovementFrozen && !isTakingDamage && currentInput.jump && !wasJumpPressed.current && isOnGround.current) {
             velocityY.current = JUMP_FORCE;
             isOnGround.current = false;
             wasJumpPressed.current = true;
@@ -1663,7 +1677,8 @@ export const Player: React.FC<PlayerProps> = ({
           }
           
           // Handle attack input (allow restarting attacks for faster combat + three-attack combo system) - only when not frozen
-          if (!isMovementFrozen && currentInput.attack && !wasAttackPressed.current) {
+          if (!isMovementFrozen && !isTakingDamage && currentInput.attack && !wasAttackPressed.current) {
+            console.log(`[ATTACK_TRACE] 🗡️ Attack input detected! Starting attack sequence`);
             wasAttackPressed.current = true;
             
             const currentTime = Date.now();
@@ -1954,6 +1969,11 @@ export const Player: React.FC<PlayerProps> = ({
             
             // Complete the attack after full animation duration
             attackTimeoutRef.current = setTimeout(() => {
+              console.log(`[ATTACK_TRACE] 🏁 Attack animation completed - transitioning from attacking state`);
+              
+              // Clean up any stuck animations before transitioning
+              cleanupStuckAnimations();
+              
               setIsAttacking(false);
               setCurrentAttackIsSword(false); // Clear attack type
               // Clear global attack state
@@ -1965,7 +1985,49 @@ export const Player: React.FC<PlayerProps> = ({
               };
               (window as any).currentPlayerAttackIsSword = false; // Legacy support
               attackTimeoutRef.current = null;
-              // console.log(`[Player] 🏁 Attack animation completed`);
+              
+              // Handle post-attack animation transition to prevent getting stuck on last frame
+              console.log(`[ATTACK_TRACE] 🔄 Post-attack transition starting - checking input state`);
+              if (isLocalPlayer && currentInput) {
+                const { forward, backward, left, right, sprint } = currentInput;
+                const isMoving = forward || backward || left || right;
+                console.log(`[ATTACK_TRACE] 📊 Input state: forward=${forward}, backward=${backward}, left=${left}, right=${right}, sprint=${sprint}, isMoving=${isMoving}`);
+                
+                if (isMoving) {
+                  // Player is moving after attack, transition to appropriate movement animation
+                  let direction = 'forward';
+                  
+                  // Determine primary direction (same logic as removed onFinished handler)
+                  if (forward && !backward) {
+                    direction = 'forward';
+                  } else if (backward && !forward) {
+                    direction = 'back';
+                  } else if (left && !right) {
+                    direction = 'left';
+                  } else if (right && !left) {
+                    direction = 'right';
+                  } else if (forward && left) {
+                    direction = 'left';
+                  } else if (forward && right) {
+                    direction = 'right';
+                  } else if (backward && left) {
+                    direction = 'left';
+                  } else if (backward && right) {
+                    direction = 'right';
+                  }
+                  
+                  // Choose movement type based on sprint state
+                  const moveType = sprint ? 'run' : 'walk';
+                  const movementAnimation = `${moveType}-${direction}`;
+                  
+                  console.log(`[ATTACK_TRACE] 🏃 Post-attack transition: Player moving, switching to ${movementAnimation}`);
+                  playAnimation(movementAnimation, 0.3);
+                } else {
+                  // Player is not moving, transition to idle
+                  console.log(`[ATTACK_TRACE] 🧍 Post-attack transition: Player idle, switching to idle`);
+                  playAnimation(ANIMATIONS.IDLE, 0.3);
+                }
+              }
               
               // Clear combo after timeout if no next attack is made
               if (comboStage > 0) {
@@ -1979,6 +2041,8 @@ export const Player: React.FC<PlayerProps> = ({
                 }, COMBO_WINDOW);
               }
             }, 1000); // 1 second for full attack animation to complete
+            
+            console.log(`[ATTACK_TRACE] ⏰ Attack timeout set for 1000ms`);
             
           } else if (!currentInput.attack) {
             wasAttackPressed.current = false;
@@ -2034,7 +2098,7 @@ export const Player: React.FC<PlayerProps> = ({
           const serverPosition = new THREE.Vector3(dataRef.current.position.x, dataRef.current.position.y, dataRef.current.position.z);
           
           // Only allow reconciliation when physics is enabled, model is ready, and movement is not frozen
-          const allowReconciliation = physicsEnabled && isModelVisible && !isMovementFrozen;
+          const allowReconciliation = physicsEnabled && isModelVisible && !isMovementFrozen && !isTakingDamage;
           
           if (allowReconciliation) {
             // Compare local (unflipped) prediction with an unflipped version of the server state
@@ -2068,6 +2132,10 @@ export const Player: React.FC<PlayerProps> = ({
             // During falling, skip reconciliation entirely to allow physics to work
           } else if (isMovementFrozen) {
             // console.log(`🧊 [Movement Frozen] Skipping server reconciliation during power-up`);
+          } else if (isTakingDamage) {
+            console.log(`[DAMAGE_TRACE] 🧊 Skipping server reconciliation during damage animation`);
+            console.log(`[DAMAGE_TRACE] 📍 Local pos: (${localPositionRef.current.x.toFixed(2)}, ${localPositionRef.current.y.toFixed(2)}, ${localPositionRef.current.z.toFixed(2)})`);
+            console.log(`[DAMAGE_TRACE] 📍 Server pos: (${serverPosition.x.toFixed(2)}, ${serverPosition.y.toFixed(2)}, ${serverPosition.z.toFixed(2)})`);
           } else {
             // During initial spawn period before physics is enabled - no reconciliation needed
             // FORCE character to stay at spawn altitude until physics is enabled
@@ -2096,12 +2164,14 @@ export const Player: React.FC<PlayerProps> = ({
           group.current.position.copy(localPositionRef.current);
 
           // 3.5. Send updated position to App for server sync (skip during initial falling sequence and power-up)
-          // Only skip during the dramatic high-altitude falling to preserve the entrance effect, and during power-up to prevent conflicts
+          // Only skip during the dramatic high-altitude falling to preserve the entrance effect, and during power-up/damage to prevent conflicts
           const isHighAltitudeFalling = currentAnimation === ANIMATIONS.FALLING && localPositionRef.current.y > 20;
-          if (onPositionChange && physicsEnabled && isModelVisible && !isHighAltitudeFalling && !isMovementFrozen) {
+          if (onPositionChange && physicsEnabled && isModelVisible && !isHighAltitudeFalling && !isMovementFrozen && !isTakingDamage) {
             onPositionChange(localPositionRef.current);
           } else if (isMovementFrozen) {
             // console.log(`🧊 [Movement Frozen] Skipping position sync to server during power-up`);
+          } else if (isTakingDamage) {
+            console.log(`[DAMAGE_TRACE] 🧊 Skipping position sync to server during damage animation`);
           }
           // --- Visual Rotation Logic --- 
           let targetVisualYaw = localRotationRef.current.y; // Default: Face camera/mouse direction
@@ -2320,6 +2390,28 @@ export const Player: React.FC<PlayerProps> = ({
       // --- Update Animation Mixer ---
       if (mixer) {
         mixer.update(dt); // Mixer still uses actual frame delta (dt)
+        // Periodic mixer state logging (every 2 seconds)
+        if (Date.now() % 2000 < 16) { // Approximately every 2 seconds (considering 60fps)
+          console.log(`[MIXER_TRACE] 🎬 Mixer updating: dt=${dt.toFixed(4)}, currentAnim=${currentAnimation}, actions=${Object.keys(animations).length}`);
+          
+          // Log the actual playing action
+          if (animations[currentAnimation]) {
+            const currentAction = animations[currentAnimation];
+            console.log(`[MIXER_TRACE] 📍 Current action state: time=${currentAction.time.toFixed(2)}, weight=${currentAction.weight}, playing=${currentAction.isRunning()}, paused=${currentAction.paused}`);
+            
+            // Check for any stuck animations
+            let stuckCount = 0;
+            Object.entries(animations).forEach(([name, action]) => {
+              if (action.paused || (action.weight > 0 && !action.isRunning())) {
+                stuckCount++;
+                console.log(`[MIXER_TRACE] ⚠️ Stuck animation found: ${name} (weight=${action.weight}, paused=${action.paused})`);
+              }
+            });
+            if (stuckCount > 0) {
+              console.log(`[MIXER_TRACE] ⚠️ Total stuck animations: ${stuckCount}`);
+            }
+          }
+        }
       }
     }
   });
@@ -2354,17 +2446,19 @@ export const Player: React.FC<PlayerProps> = ({
         console.log(`🥷 [Ninja Run Animation] Ninja run active but server animation is '${serverAnim}', not overriding`);
       }
       
-      // console.log(`🎯 [Anim Check] Received ServerAnim: ${serverAnim}, Final Anim: ${finalAnimation}, Current LocalAnim: ${currentAnimation}, High Alt Falling: ${isHighAltitudeFalling}, Is Attacking: ${isAttacking}, Is Playing PowerUp: ${isPlayingPowerUp}, PowerUp Ref: ${isPlayingPowerUpRef.current}, Is Available: ${!!animations[finalAnimation]}`);
+      console.log(`[ANIM_TRACE] Server wants to play: ${serverAnim}. Current client anim: ${currentAnimation}. Is attacking: ${isAttacking}. Final animation: ${finalAnimation}`);
 
-      // Play animation if it's different and available, but not during high altitude falling, local attacks, or power-up
+      // Play animation if it's different and available, but not during high altitude falling, local attacks, power-up, or damage
       if (isHighAltitudeFalling) {
-        // console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during high altitude falling at Y=${localPositionRef.current.y.toFixed(1)} (LOCAL PLAYER ONLY)`);
+        console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${serverAnim}' during high altitude falling at Y=${localPositionRef.current.y.toFixed(1)} (LOCAL PLAYER ONLY)`);
       } else if (isLocalPlayer && isAttacking) {
-        // console.log(`🚫 [Anim Block] Ignoring server animation '${serverAnim}' during local attack animation (LOCAL PLAYER ONLY)`);
+        console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${serverAnim}' during local attack animation (LOCAL PLAYER ONLY)`);
       } else if (isLocalPlayer && isCurrentlyInPowerUp) {
-        // console.log(`🚫 [Anim Block] Ignoring server animation '${finalAnimation}' during sword power-up animation (LOCAL PLAYER ONLY) - State: ${isPlayingPowerUp}, Ref: ${isPlayingPowerUpRef.current}`);
+        console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${finalAnimation}' during sword power-up animation (LOCAL PLAYER ONLY) - State: ${isPlayingPowerUp}, Ref: ${isPlayingPowerUpRef.current}`);
+      } else if (isLocalPlayer && isTakingDamage) {
+        console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${serverAnim}' during damage animation (LOCAL PLAYER ONLY)`);
       } else if (finalAnimation && finalAnimation !== currentAnimation && animations[finalAnimation]) {
-         // console.log(`🎬 [Anim Play] Playing animation: ${finalAnimation} (original server: ${serverAnim})`);
+         console.log(`[ANIM_TRACE] 🎬 Playing animation: ${finalAnimation} (original server: ${serverAnim})`);
          if (finalAnimation === ANIMATIONS.NINJA_RUN) {
            console.log('🥷 [Ninja Run Animation] PLAYING NINJA RUN ANIMATION!');
          }
@@ -2381,7 +2475,7 @@ export const Player: React.FC<PlayerProps> = ({
          console.warn(`⚠️ [Anim Warn] Animation not available: ${finalAnimation} (original server: ${serverAnim}). Available: ${Object.keys(animations).join(', ')}`);
       }
     }
-  }, [playerData.currentAnimation, animations, mixer, playAnimation, currentAnimation, isAttacking, isPlayingPowerUp, isNinjaRunActive]); // Dependencies include things that trigger animation changes
+  }, [playerData.currentAnimation, animations, mixer, playAnimation, currentAnimation, isAttacking, isPlayingPowerUp, isNinjaRunActive, isTakingDamage]); // Dependencies include things that trigger animation changes
 
   // Cleanup effects on unmount
   useEffect(() => {
@@ -2397,6 +2491,10 @@ export const Player: React.FC<PlayerProps> = ({
       if (powerUpTimeoutRef.current) {
         clearTimeout(powerUpTimeoutRef.current);
         // console.log(`[Player] 🧹 Power-up timeout cleared on unmount`);
+      }
+      if (damageTimeoutRef.current) {
+        clearTimeout(damageTimeoutRef.current);
+        console.log(`[DAMAGE_TRACE] 🧹 Damage timeout cleared on unmount`);
       }
     };
   }, []);
@@ -2821,13 +2919,97 @@ export const Player: React.FC<PlayerProps> = ({
     prevSwordEquippedRef.current = isSwordEquipped;
   }, [isSwordEquipped, mixer, animations, currentAnimation, isAttacking, isPlayingPowerUp, playAnimation]); // All dependencies needed for the effect
 
-  // Hit animation trigger effect
+  // Damage animation trigger and management
   useEffect(() => {
-    if (shouldTriggerHitAnimation && isLocalPlayer && animations['damage']) {
-      console.log('[Player] 🤕 Triggering hit animation - Hit To Body');
+    console.log(`[DAMAGE_TRACE] Damage trigger check: shouldTrigger=${shouldTriggerHitAnimation}, isLocal=${isLocalPlayer}, hasDamageAnim=${!!animations['damage']}, isTakingDamage=${isTakingDamage}`);
+    
+    if (shouldTriggerHitAnimation && isLocalPlayer && animations['damage'] && !isTakingDamage) {
+      console.log('[DAMAGE_TRACE] Damage triggered! Freezing player and playing damage animation.');
+      
+      // Set damage state to prevent interruption
+      setIsTakingDamage(true);
+      
+      // Clear any existing damage timeout
+      if (damageTimeoutRef.current) {
+        clearTimeout(damageTimeoutRef.current);
+      }
+      
+      // Store current position to prevent teleporting during damage
+      const currentPos = localPositionRef.current.clone();
+      console.log(`[DAMAGE_TRACE] Storing damage position: (${currentPos.x.toFixed(2)}, ${currentPos.y.toFixed(2)}, ${currentPos.z.toFixed(2)})`);
+      
+      // Play damage animation
       playAnimation('damage', 0.1);
+      
+      // Set timeout to exit damage state and return to appropriate animation
+      damageTimeoutRef.current = setTimeout(() => {
+        console.log('[DAMAGE_TRACE] Damage animation finished. Checking movement state for next animation.');
+        
+        // Clean up the damage animation state
+        if (animations['damage']) {
+          const damageAction = animations['damage'];
+          console.log(`[DAMAGE_TRACE] 🧹 Damage action state: running=${damageAction.isRunning()}, paused=${damageAction.paused}, weight=${damageAction.weight}`);
+          // Ensure damage animation is properly stopped
+          if (damageAction.paused || damageAction.weight > 0) {
+            damageAction.stop();
+            damageAction.weight = 0;
+            damageAction.paused = false;
+          }
+        }
+        
+        // Clean up any other stuck animations after damage
+        cleanupStuckAnimations();
+        
+        setIsTakingDamage(false);
+        damageTimeoutRef.current = null;
+        
+        // Determine appropriate animation based on current input state
+        if (isLocalPlayer && currentInput) {
+          const { forward, backward, left, right, sprint } = currentInput;
+          const isMoving = forward || backward || left || right;
+          
+          if (isMoving) {
+            // Player is moving after damage, transition to appropriate movement animation
+            let direction = 'forward';
+            
+            // Determine primary direction
+            if (forward && !backward) {
+              direction = 'forward';
+            } else if (backward && !forward) {
+              direction = 'back';
+            } else if (left && !right) {
+              direction = 'left';
+            } else if (right && !left) {
+              direction = 'right';
+            } else if (forward && left) {
+              direction = 'left';
+            } else if (forward && right) {
+              direction = 'right';
+            } else if (backward && left) {
+              direction = 'left';
+            } else if (backward && right) {
+              direction = 'right';
+            }
+            
+            // Choose movement type based on sprint state
+            const moveType = sprint ? 'run' : 'walk';
+            const movementAnimation = `${moveType}-${direction}`;
+            
+            console.log(`[DAMAGE_TRACE] Player moving after damage, transitioning to: ${movementAnimation}`);
+            playAnimation(movementAnimation, 0.3);
+          } else {
+            // Player is not moving, transition to idle
+            console.log(`[DAMAGE_TRACE] Player idle after damage, transitioning to idle`);
+            playAnimation(ANIMATIONS.IDLE, 0.3);
+          }
+        } else {
+          // Fallback to idle for non-local players or when no input available
+          console.log(`[DAMAGE_TRACE] Fallback to idle after damage`);
+          playAnimation(ANIMATIONS.IDLE, 0.3);
+        }
+      }, 800); // 800ms for damage animation duration
     }
-  }, [shouldTriggerHitAnimation, isLocalPlayer, animations, playAnimation]);
+  }, [shouldTriggerHitAnimation, isLocalPlayer, animations, playAnimation, isTakingDamage, currentInput, cleanupStuckAnimations]);
 
   // Initialize global attack state
   useEffect(() => {
