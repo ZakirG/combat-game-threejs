@@ -60,6 +60,7 @@ interface GameSceneProps {
   onZombieAttackPlayer?: (targetPlayerId: string) => void; // Callback for when zombies attack a player
   shouldTriggerHitAnimation?: boolean; // Whether to trigger hit animation for local player
   comboCount?: number; // Current combo count for display
+  onWeaponStateChange?: (weaponMode: 'UNARMED' | 'SWORD', hasSword: boolean) => void; // Callback for weapon state changes
 }
 
 // Textured Floor Component
@@ -115,7 +116,8 @@ export const GameScene: React.FC<GameSceneProps> = ({
   onZombieHit, // Destructure zombie hit callback
   onZombieAttackPlayer, // Destructure zombie attack player callback
   shouldTriggerHitAnimation = false, // Destructure hit animation trigger
-  comboCount = 0 // Destructure combo count
+  comboCount = 0, // Destructure combo count
+  onWeaponStateChange // Destructure weapon state change callback
 }) => {
   // Ref for the main directional light
   const directionalLightRef = useRef<THREE.DirectionalLight>(null!);
@@ -226,6 +228,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
             shouldTriggerHitAnimation={isLocal ? shouldTriggerHitAnimation : false} // Pass hit animation trigger to local player only
             environmentCollisionBoxes={environmentCollisionBoxes} // Pass collision data
             gameReady={gameReady} // Pass gameReady state to control physics timing
+            onWeaponStateChange={isLocal ? onWeaponStateChange : undefined} // Only pass to local player
           />
         );
       })}

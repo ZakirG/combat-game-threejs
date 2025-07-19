@@ -126,6 +126,7 @@ interface PlayerProps {
   gameReady?: boolean; // Controls when physics should be enabled
   shouldTriggerHitAnimation?: boolean; // Whether to trigger hit animation
   environmentCollisionBoxes?: THREE.Box3[]; // Collision boxes for environment objects
+  onWeaponStateChange?: (weaponMode: 'UNARMED' | 'SWORD', hasSword: boolean) => void; // Callback for weapon state changes
 }
 
 export const Player: React.FC<PlayerProps> = ({
@@ -140,7 +141,8 @@ export const Player: React.FC<PlayerProps> = ({
   gameReadyCallbacks, // Destructure GameReady callbacks
   gameReady = false, // Destructure gameReady state
   shouldTriggerHitAnimation = false, // Destructure hit animation trigger
-  environmentCollisionBoxes = [] // Destructure collision boxes with default empty array
+  environmentCollisionBoxes = [], // Destructure collision boxes with default empty array
+  onWeaponStateChange // Destructure weapon state change callback
 }) => {
   const group = useRef<THREE.Group>(null!);
   const { camera } = useThree();
@@ -155,6 +157,7 @@ export const Player: React.FC<PlayerProps> = ({
   const [weaponIndex, setWeaponIndex] = useState<number>(0); // Start with UNARMED (index 0)
   const currentWeaponMode = WEAPON_MODES[weaponIndex];
   const [hasShownWeaponTutorial, setHasShownWeaponTutorial] = useState<boolean>(false);
+  const [hasSwordObtained, setHasSwordObtained] = useState<boolean>(false);
   
   // Model management
   const [modelLoaded, setModelLoaded] = useState(false);
@@ -374,14 +377,19 @@ export const Player: React.FC<PlayerProps> = ({
   // Track previous sword state to prevent unnecessary effect triggers
   const prevSwordEquippedRef = useRef<boolean>(false);
 
-  // Debug: Log weapon mode changes
+  // Debug: Log weapon mode changes and notify parent of weapon state changes
   useEffect(() => {
     if (isLocalPlayer) {
       console.log(`[Weapon Switch] 🔄 Weapon mode changed to: ${currentWeaponMode} (index: ${weaponIndex})`);
       console.log(`[Weapon Switch] 🗡️ isSwordEquipped: ${isSwordEquipped}`);
       console.log(`[Weapon Switch] 📍 Sword model exists: ${!!swordModelRef.current}`);
+      
+      // Notify parent component of weapon state change for UI updates
+      if (onWeaponStateChange) {
+        onWeaponStateChange(currentWeaponMode, hasSwordObtained);
+      }
     }
-  }, [weaponIndex, currentWeaponMode, isSwordEquipped, isLocalPlayer]);
+  }, [weaponIndex, currentWeaponMode, isSwordEquipped, isLocalPlayer, hasSwordObtained, onWeaponStateChange]);
 
   // --- Client Prediction State ---
   // For gameplay, force high altitude spawn on first entrance
@@ -2896,6 +2904,12 @@ export const Player: React.FC<PlayerProps> = ({
     
     // Store sword model reference for weapon switching
     swordModelRef.current = swordModel;
+    
+    // Mark that sword has been obtained (for UI display)
+    if (!hasSwordObtained) {
+      setHasSwordObtained(true);
+      console.log('[Player] ⚔️ Sword obtained for the first time - UI will show sword icon');
+    }
     
     // Prevent multiple attachments
     if (equippedSword || swordAttachmentRef.current) {

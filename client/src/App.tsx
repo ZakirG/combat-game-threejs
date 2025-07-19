@@ -53,6 +53,7 @@ import { PlayerUI } from './components/PlayerUI';
 import { KillCounter } from './components/KillCounter';
 import { MaxComboCounter } from './components/MaxComboCounter';
 import CoinCounter from './components/CoinCounter';
+import { WeaponPanel } from './components/WeaponPanel';
 import { GameReadyState, GameReadyCallbacks, isGameReady } from './types/gameReady';
 
 // Type Aliases
@@ -108,6 +109,10 @@ function App() {
   const [showTutorialMessage, setShowTutorialMessage] = useState<boolean>(false);
   const tutorialTimeoutRef = useRef<number | null>(null);
 
+  // --- Weapon Panel State ---
+  const [currentWeaponMode, setCurrentWeaponMode] = useState<'UNARMED' | 'SWORD'>('UNARMED');
+  const [hasSwordObtained, setHasSwordObtained] = useState<boolean>(false);
+
   // --- Ref for current input state ---
   const currentInputRef = useRef<InputState>({
     forward: false, backward: false, left: false, right: false,
@@ -155,6 +160,13 @@ function App() {
       
       return currentTime;
     });
+  }, []);
+
+  // --- Weapon State Change Handler ---
+  const handleWeaponStateChange = useCallback((weaponMode: 'UNARMED' | 'SWORD', hasSword: boolean) => {
+    setCurrentWeaponMode(weaponMode);
+    setHasSwordObtained(hasSword);
+    console.log(`[App] 🗡️ Weapon state updated: ${weaponMode}, has sword: ${hasSword}`);
   }, []);
 
   // --- Zombie Attack Player Logic ---
@@ -774,6 +786,7 @@ function App() {
             onZombieAttackPlayer={handleZombieAttackPlayer} // Pass zombie attack player callback
             shouldTriggerHitAnimation={shouldTriggerHitAnimation} // Pass hit animation trigger
             comboCount={comboCount} // Pass combo count for display
+            onWeaponStateChange={handleWeaponStateChange} // Pass weapon state change callback
           />
           {localPlayer && <PlayerUI playerData={localPlayer} />}
           
@@ -781,6 +794,12 @@ function App() {
           {showZombieAttackFlash && (
             <div className="damage-overlay zombie-attack-flash" />
           )}
+          
+          {/* Weapon Panel - show current weapon state */}
+          <WeaponPanel 
+            currentWeapon={currentWeaponMode}
+            hasSword={hasSwordObtained}
+          />
           
           {/* Kill Counter - always show when game is active */}
           <KillCounter killCount={totalKillCount} />
