@@ -219,6 +219,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
             onRotationChange={isLocal ? onPlayerRotation : undefined}
             onPositionChange={isLocal ? onPlayerPosition : undefined} // Pass position callback
             currentInput={isLocal ? currentInputRef?.current : undefined}
+            currentInputRef={isLocal ? currentInputRef : undefined} // Pass real-time input ref
             isDebugArrowVisible={isLocal ? isDebugPanelVisible : false} // Pass down arrow visibility
             isDebugPanelVisible={isDebugPanelVisible} // Pass down general debug visibility
             gameReadyCallbacks={isLocal ? gameReadyCallbacks : undefined} // Only pass to local player

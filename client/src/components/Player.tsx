@@ -115,6 +115,7 @@ interface PlayerProps {
   onRotationChange?: (rotation: THREE.Euler) => void;
   onPositionChange?: (position: THREE.Vector3) => void; // Callback for position updates
   currentInput?: InputState; // Prop to receive current input for local player
+  currentInputRef?: React.MutableRefObject<InputState>; // Real-time input state ref
   isDebugArrowVisible?: boolean; // Prop to control debug arrow visibility
   isDebugPanelVisible?: boolean; // Prop to control general debug helpers visibility
   gameReadyCallbacks?: GameReadyCallbacks; // Callbacks for GameReady events
@@ -129,6 +130,7 @@ export const Player: React.FC<PlayerProps> = ({
   onRotationChange,
   onPositionChange, // Destructure position callback
   currentInput, // Receive input state
+  currentInputRef, // Real-time input state ref
   isDebugArrowVisible = false, 
   isDebugPanelVisible = false, // Destructure with default false
   gameReadyCallbacks, // Destructure GameReady callbacks
@@ -378,6 +380,7 @@ export const Player: React.FC<PlayerProps> = ({
   
   // --- Attack State ---
   const wasAttackPressed = useRef<boolean>(false); // Track attack input to prevent continuous attacking
+  const lastMovementMismatchLogRef = useRef<number>(0); // Throttle movement mismatch logging
   
   // Camera control variables
   const isPointerLocked = useRef(false);
@@ -1591,6 +1594,19 @@ export const Player: React.FC<PlayerProps> = ({
       if (group.current && modelLoaded) {
         if (isLocalPlayer && currentInput) {
           // --- LOCAL PLAYER PREDICTION & RECONCILIATION --- 
+          
+          // Movement mismatch detection (throttled to avoid spam)
+          const isCurrentlyMoving = currentInput && (currentInput.forward || currentInput.backward || currentInput.left || currentInput.right);
+          const isMovementAnim = currentAnimation.includes('walk') || currentAnimation.includes('run');
+          
+          if (isCurrentlyMoving && !isMovementAnim && !isAttacking) {
+            // Use a ref to throttle this log
+            const now = Date.now();
+            if (!lastMovementMismatchLogRef.current || now - lastMovementMismatchLogRef.current > 1000) {
+              console.log(`⚠️ MOVEMENT_MISMATCH: Moving=${isCurrentlyMoving}, Anim=${currentAnimation}, ShouldBe=walking`);
+              lastMovementMismatchLogRef.current = now;
+            }
+          }
 
           // 1. Calculate predicted position based on current input, rotation, and SERVER_TICK_DELTA
           // Handle ninja run sprint timing
@@ -1996,6 +2012,11 @@ export const Player: React.FC<PlayerProps> = ({
                 const { forward, backward, left, right, sprint } = currentInput;
                 const isMoving = forward || backward || left || right;
                 console.log(`[ATTACK_TRACE] 📊 Input state: forward=${forward}, backward=${backward}, left=${left}, right=${right}, sprint=${sprint}, isMoving=${isMoving}`);
+                
+                // Show the difference between captured and real-time input
+                const realTimeInput = currentInputRef?.current || currentInput;
+                const realTimeIsMoving = realTimeInput ? (realTimeInput.forward || realTimeInput.backward || realTimeInput.left || realTimeInput.right) : false;
+                console.log(`🔍 INPUT_MISMATCH: Captured_isMoving=${isMoving}, RealTime_isMoving=${realTimeIsMoving}`);
                 
                 if (isMoving) {
                   // Player is moving after attack, transition to appropriate movement animation
@@ -2455,6 +2476,8 @@ export const Player: React.FC<PlayerProps> = ({
       } else if (isLocalPlayer && isAttacking) {
         console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${serverAnim}' during local attack animation (LOCAL PLAYER ONLY)`);
       } else if (isLocalPlayer && isCurrentlyInPowerUp) {
+        // Track why the power-up ref is stuck
+        console.log(`🔍 POWERUP_BLOCKING: Ref=${isPlayingPowerUpRef.current}, blocking '${serverAnim}' transition from '${currentAnimation}'`);
         console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${finalAnimation}' during sword power-up animation (LOCAL PLAYER ONLY) - State: ${isPlayingPowerUp}, Ref: ${isPlayingPowerUpRef.current}`);
       } else if (isLocalPlayer && isTakingDamage) {
         console.log(`[ANIM_TRACE] 🚫 Ignoring server animation '${serverAnim}' during damage animation (LOCAL PLAYER ONLY)`);
