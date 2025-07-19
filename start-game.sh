@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Vibe Coding 3D Multiplayer Game - Auto Start Script
-# This script automatically opens Warp terminal tabs and starts the game
+# Vibe Coding 3D Single Player Game - Auto Start Script
+# This script starts the single-player client (SpacetimeDB backend no longer needed)
 
 nvm use 22
 
@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="$SCRIPT_DIR/server"
 CLIENT_DIR="$SCRIPT_DIR/client"
 
-echo "🎮 Starting Vibe Coding 3D Multiplayer Game..."
+echo "🎮 Starting Vibe Coding 3D Single Player Game..."
 echo "📁 Project directory: $SCRIPT_DIR"
 
 # Check if we're in the right directory
@@ -22,68 +22,69 @@ if [ ! -d "$SERVER_DIR" ] || [ ! -d "$CLIENT_DIR" ]; then
     exit 1
 fi
 
-# Stop any existing game processes first to prevent conflicts
-echo "🛑 Stopping any existing game processes..."
+# Stop any existing client processes first to prevent conflicts
+echo "🛑 Stopping any existing client processes..."
 if [ -f "./stop-game.sh" ]; then
     ./stop-game.sh
     echo "✅ Existing processes stopped"
     # Wait a moment for processes to fully terminate
     sleep 2
 else
-    echo "⚠️  stop-game.sh not found, checking for running SpacetimeDB processes..."
-    # Try to kill any existing spacetime processes manually
-    if pgrep -f "spacetime" > /dev/null; then
-        echo "🔍 Found running SpacetimeDB processes, terminating..."
-        pkill -f "spacetime" || true
+    echo "⚠️  stop-game.sh not found, checking for running client processes..."
+    # Try to kill any existing vite/npm processes manually
+    if pgrep -f "vite\|npm.*run.*dev" > /dev/null; then
+        echo "🔍 Found running client processes, terminating..."
+        pkill -f "vite\|npm.*run.*dev" || true
         sleep 2
-        echo "✅ SpacetimeDB processes terminated"
+        echo "✅ Client processes terminated"
     else
-        echo "✅ No existing SpacetimeDB processes found"
+        echo "✅ No existing client processes found"
     fi
 fi
 
-# Create server startup script
-cat > "$SERVER_DIR/start-server.sh" << 'EOF'
-#!/bin/bash
-set -e
-
-# Set up environment
-source "$HOME/.cargo/env"
-export PATH="/Users/zakirgowani/.local/bin:$PATH"
-
-echo "🔧 Building SpacetimeDB module..."
-spacetime build
-
-echo "🔄 Regenerating TypeScript client bindings..."
-spacetime generate --lang typescript --out-dir ../client/src/generated
-if [ $? -eq 0 ]; then
-    echo "✅ TypeScript bindings regenerated successfully"
-else
-    echo "❌ Failed to regenerate TypeScript bindings"
-    exit 1
-fi
-
-echo "🚀 Starting SpacetimeDB server..."
-spacetime start --listen-addr 0.0.0.0:5555 &
-SERVER_PID=$!
-
-# Wait for server to start
-echo "⏳ Waiting for server to start..."
-sleep 8
-
-echo "📦 Publishing module..."
-echo "N" | spacetime publish vibe-multiplayer
-
-echo "✅ SpacetimeDB server is running!"
-echo "🌐 Server URL: http://127.0.0.1:5555"
-echo "📊 Database: vibe-multiplayer"
-echo ""
-echo "📝 Note: TypeScript client bindings are automatically regenerated on each start"
-echo "Press Ctrl+C to stop the server"
-
-# Wait for server process
-wait $SERVER_PID
-EOF
+# Server no longer needed for single-player mode
+# # Create server startup script
+# cat > "$SERVER_DIR/start-server.sh" << 'EOF'
+# #!/bin/bash
+# set -e
+# 
+# # Set up environment
+# source "$HOME/.cargo/env"
+# export PATH="/Users/zakirgowani/.local/bin:$PATH"
+# 
+# echo "🔧 Building SpacetimeDB module..."
+# spacetime build
+# 
+# echo "🔄 Regenerating TypeScript client bindings..."
+# spacetime generate --lang typescript --out-dir ../client/src/generated
+# if [ $? -eq 0 ]; then
+#     echo "✅ TypeScript bindings regenerated successfully"
+# else
+#     echo "❌ Failed to regenerate TypeScript bindings"
+#     exit 1
+# fi
+# 
+# echo "🚀 Starting SpacetimeDB server..."
+# spacetime start --listen-addr 0.0.0.0:5555 &
+# SERVER_PID=$!
+# 
+# # Wait for server to start
+# echo "⏳ Waiting for server to start..."
+# sleep 8
+# 
+# echo "📦 Publishing module..."
+# echo "N" | spacetime publish vibe-multiplayer
+# 
+# echo "✅ SpacetimeDB server is running!"
+# echo "🌐 Server URL: http://127.0.0.1:5555"
+# echo "📊 Database: vibe-multiplayer"
+# echo ""
+# echo "📝 Note: TypeScript client bindings are automatically regenerated on each start"
+# echo "Press Ctrl+C to stop the server"
+# 
+# # Wait for server process
+# wait $SERVER_PID
+# EOF
 
 # Create client startup script
 cat > "$CLIENT_DIR/start-client.sh" << 'EOF'
@@ -119,105 +120,81 @@ echo "🚀 Starting React development server..."
 npm run dev
 EOF
 
-# Make scripts executable
-chmod +x "$SERVER_DIR/start-server.sh"
+# Make client script executable (server no longer needed)
+# chmod +x "$SERVER_DIR/start-server.sh"
 chmod +x "$CLIENT_DIR/start-client.sh"
 
 
 
-# Function to open terminals using open command (more reliable)
-open_terminals_with_open() {
-    echo "🖥️  Opening terminal sessions..."
+# Function to open client terminal (server no longer needed)
+open_client_terminal() {
+    echo "🖥️  Opening client terminal..."
     
-    # Create temporary scripts for each terminal
-    cat > /tmp/start-server-temp.sh << EOF
-#!/bin/bash
-cd "$SERVER_DIR"
-./start-server.sh
-EOF
-    
+    # Create temporary script for client
     cat > /tmp/start-client-temp.sh << EOF
 #!/bin/bash
 cd "$CLIENT_DIR"
 ./start-client.sh
 EOF
     
-    chmod +x /tmp/start-server-temp.sh /tmp/start-client-temp.sh
+    chmod +x /tmp/start-client-temp.sh
     
-    # Open server in new terminal window
-    echo "🚀 Starting server..."
+    # Open client in new terminal window
+    echo "🚀 Starting client..."
     if command -v warp-cli > /dev/null 2>&1; then
         # Use Warp CLI if available
-        warp-cli open /tmp/start-server-temp.sh
-        sleep 2
         warp-cli open /tmp/start-client-temp.sh
     else
         # Fall back to using open command with Terminal.app
-        open -a Terminal /tmp/start-server-temp.sh
-        sleep 2
         open -a Terminal /tmp/start-client-temp.sh
     fi
     
     # Clean up temp files after a delay
-    (sleep 30 && rm -f /tmp/start-server-temp.sh /tmp/start-client-temp.sh) &
+    (sleep 30 && rm -f /tmp/start-client-temp.sh) &
 }
 
-# Function to start processes in background (alternative approach)
-start_processes_background() {
-    echo "🖥️  Starting processes in background..."
+# Function to start client in background (server no longer needed)
+start_client_background() {
+    echo "🖥️  Starting client in background..."
     
-    # Start server in background
-    echo "🚀 Starting SpacetimeDB server..."
-    (cd "$SERVER_DIR" && ./start-server.sh) &
-    SERVER_PID=$!
-    
-    # Wait for server to start
-    sleep 10
-    
-    # Start client
+    # Start client only (single-player mode)
     echo "🚀 Starting React client..."
     (cd "$CLIENT_DIR" && ./start-client.sh) &
     CLIENT_PID=$!
     
-    echo "✅ Processes started!"
-    echo "🌐 Server PID: $SERVER_PID"
+    echo "✅ Client started!"
     echo "🌐 Client PID: $CLIENT_PID"
     echo "🌐 Game URL: http://localhost:5173"
     echo ""
-    echo "To stop processes:"
+    echo "To stop process:"
     echo "  ./stop-game.sh"
     echo "  OR"
-    echo "  kill $SERVER_PID $CLIENT_PID"
+    echo "  kill $CLIENT_PID"
 }
 
-# Try different approaches
+# Try different approaches (client only for single-player)
 if [[ "$1" == "--background" ]]; then
-    start_processes_background
+    start_client_background
 else
-    echo "🖥️  Attempting to open terminal windows..."
-    open_terminals_with_open
+    echo "🖥️  Attempting to open client terminal..."
+    open_client_terminal
     
     echo ""
-    echo "If terminal windows didn't open automatically, run these commands manually:"
+    echo "If terminal window didn't open automatically, run this command manually:"
     echo ""
-    echo "Terminal 1 (Server):"
-    echo "cd '$SERVER_DIR' && ./start-server.sh"
-    echo ""
-    echo "Terminal 2 (Client):"
+    echo "Client Terminal:"
     echo "cd '$CLIENT_DIR' && ./start-client.sh"
     echo ""
-    echo "Alternative: Run with --background flag to start processes in background:"
+    echo "Alternative: Run with --background flag to start client in background:"
     echo "./start-game.sh --background"
 fi
 
 echo ""
-echo "🎉 Game setup complete!"
-echo "🌐 Once both services are running, open your browser to:"
+echo "🎉 Single-player game setup complete!"
+echo "🌐 Once the client is running, open your browser to:"
 echo "   http://localhost:5173"
 echo ""
 echo "📝 Tips:"
-echo "   - Server runs on port 5555"
-echo "   - Client runs on port 5173"
-echo "   - TypeScript bindings are automatically regenerated on server start"
-echo "   - Press Ctrl+C in each terminal to stop services"
+echo "   - Client runs on port 5173 (no server needed in single-player mode)"
+echo "   - Press Ctrl+C in the terminal to stop the client"
 echo "   - Check browser console for any errors" 

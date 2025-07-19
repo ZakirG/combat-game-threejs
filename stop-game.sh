@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Vibe Coding 3D Multiplayer Game - Stop Script
-# This script stops all running game processes
+# Vibe Coding 3D Single Player Game - Stop Script
+# This script stops all running client processes (no server in single-player mode)
 
-echo "🛑 Stopping Vibe Coding 3D Multiplayer Game..."
+echo "🛑 Stopping Vibe Coding 3D Single Player Game..."
 
 # Function to kill processes by name
 kill_process() {
@@ -25,9 +25,9 @@ kill_process() {
     fi
 }
 
-# Kill SpacetimeDB server processes
-kill_process "spacetime.*start"
-kill_process "spacetimedb-standalone"
+# SpacetimeDB server no longer needed for single-player mode
+# kill_process "spacetime.*start"
+# kill_process "spacetimedb-standalone"
 
 # Kill Vite development server
 kill_process "vite"
@@ -43,13 +43,13 @@ if command -v lsof > /dev/null 2>&1; then
         echo "$port_5173_pids" | xargs kill -TERM 2>/dev/null || true
     fi
     
-    # Kill any processes on port 5555 (SpacetimeDB)
-    local port_5555_pids=$(lsof -ti :5555 || true)
-    if [ -n "$port_5555_pids" ]; then
-        echo "🔥 Killing processes on port 5555: $port_5555_pids"
-        echo "$port_5555_pids" | xargs kill -TERM 2>/dev/null || true
-    fi
+    # Port 5555 no longer used (was SpacetimeDB server)
+    # local port_5555_pids=$(lsof -ti :5555 || true)
+    # if [ -n "$port_5555_pids" ]; then
+    #     echo "🔥 Killing processes on port 5555: $port_5555_pids"
+    #     echo "$port_5555_pids" | xargs kill -TERM 2>/dev/null || true
+    # fi
 fi
 
-echo "✅ Game processes stopped!"
-echo "🧹 You can now restart the game using ./start-game.sh" 
+echo "✅ Client processes stopped!"
+echo "🧹 You can now restart the single-player game using ./start-game.sh" 

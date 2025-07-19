@@ -26,7 +26,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { PlayerData } from '../generated';
+import { PlayerData } from '../types/localTypes';
 
 interface ComboCounterProps {
   comboCount: number;

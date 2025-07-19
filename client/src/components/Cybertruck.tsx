@@ -9,7 +9,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
-import { CybertruckData } from '../generated';
+import { CybertruckData } from '../types/localTypes';
 
 interface CybertruckProps {
   cybertruckData: CybertruckData;

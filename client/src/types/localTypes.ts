@@ -41,5 +41,13 @@ export interface PlayerData {
   vehicleVelocity: Vector3;
 }
 
+export interface CybertruckData {
+  id: number;
+  position: Vector3;
+  rotation: Vector3;
+  isOccupied: boolean;
+  driverIdentity: string | undefined; // Changed from Identity to string
+}
+
 // Mock identity for single player
 export const LOCAL_PLAYER_IDENTITY = "local-player-001"; 
