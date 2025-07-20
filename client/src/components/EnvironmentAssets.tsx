@@ -1380,7 +1380,7 @@ const configureTexture = (tex: THREE.Texture, isColorMap: boolean = true) => {
   tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(1, 1); // Default repeat – adjust if needed
   if (isColorMap) {
-    tex.encoding = THREE.sRGBEncoding;
+    tex.colorSpace = THREE.SRGBColorSpace;
   }
   tex.anisotropy = 8;
   tex.needsUpdate = true;
